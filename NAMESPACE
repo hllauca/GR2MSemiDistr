@@ -1,0 +1,10 @@
+exportPattern("^[[:alpha:]]+")
+#' @import rgdal
+#' @import raster
+#' @import rgrass7
+#' @import rgeos
+#' @import rtop
+#' @import hydroGOF
+#' @import foreach
+#' @import airGR
+#' @import tictoc
