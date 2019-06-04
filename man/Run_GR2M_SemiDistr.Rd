@@ -4,9 +4,9 @@
 \alias{Run_GR2M_SemiDistr}
 \title{Run lumped GR2M mode for each sub-basin and timestep.}
 \usage{
-Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Raster, Shapefile, Input,
-  WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove = FALSE,
-  Plot = TRUE, IniState = NULL, wfac = TRUE)
+Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Shapefile, Input, WarmIni,
+  WarmEnd, RunIni, RunEnd, IdBasin, Remove = FALSE, Plot = TRUE,
+  IniState = NULL, wfac = TRUE)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.}
@@ -14,8 +14,6 @@ Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Raster, Shapefile, Input,
 \item{HRU}{Calibration regions for each subbasin.}
 
 \item{WorkDir}{General work directory where data is located.}
-
-\item{Raster}{Flow direction raster in GRASS format.}
 
 \item{Shapefile}{Subbasins shapefile.}
 

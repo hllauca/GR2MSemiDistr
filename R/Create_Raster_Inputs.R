@@ -1,4 +1,4 @@
-#' Create raster inputs to run the Semidistributed GR2M version.
+#' Create raster inputs (.TIF) to run the Semidistribute GR2M version.
 #'
 #' @param Shapefile Subbasins shapefile.
 #' @param Dem Raster DEM for the study area.

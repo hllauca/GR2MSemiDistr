@@ -2,7 +2,7 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Create a CSV file with forcing data (DatesR, Precipitacion, Potential Evapotranspiration and Observed streamflow).}
+\title{Create a TXT file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).}
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs.mm,
   DateIni, DateEnd)
@@ -20,11 +20,11 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs.mm,
 
 \item{DateIni}{Initial subset date in 'yyyy/mm/dd' format.}
 
-\item{Qobs.mm}{Final subset date in 'yyyy/mm/dd' format.}
+\item{DateEnd}{Final subset date in 'yyyy/mm/dd' format.}
 }
 \value{
-Export a CSV file with forcing data to run the Semidistribute GR2M model.
+Export a text file with forcing data inputs to run semidistribute GR2M model.
 }
 \description{
-Create a CSV file with forcing data (DatesR, Precipitacion, Potential Evapotranspiration and Observed streamflow).
+Create a TXT file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).
 }

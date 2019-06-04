@@ -39,12 +39,12 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       Stb <- Parameters[idy]
 
     # Load shapefiles
-      path.shp   <- file.path(WorkDir,'2_SHP', Shapefile)
+      path.shp   <- file.path(WorkDir,'Inputs', Shapefile)
       area       <- readOGR(path.shp, verbose=F)
       nsub       <- nrow(area@data)
 
     # Read input data
-      Data        <- read.table(file.path(WorkDir, '4_INPUT', Input), sep=',', header=T)
+      Data        <- read.table(file.path(WorkDir, 'Inputs', 'Inputs_Basins.txt'), sep='\t', header=T)
       Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
 
     # Subset data for the study period
@@ -74,10 +74,10 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             }
 
             # Auxiliary variables
-            qModel    <- matrix(NA, nrow=time , ncol=nsub2)
-            qSub  <- vector()
-            ParamSub  <- list()
-            OutModel  <- list()
+            qModel     <- matrix(NA, nrow=time , ncol=nsub2)
+            qSub       <- vector()
+            ParamSub   <- list()
+            OutModel   <- list()
             States     <- list()
             EndState   <- list()
             Factor     <- list()
@@ -130,7 +130,7 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
                 message('Initial parameters:')
                 message(paste0(capture.output(Ini.Param), collapse = "\n"))
                 message(' ')
-                message('Running Semi Distributed GR2M')
+                message('Running Semidistribute GR2M model')
                 message(paste0('Time step: ', format(Database$DatesR[i], "%b-%Y")))
                 message('Please wait..')
             } #End loop
@@ -195,4 +195,3 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     return(Ans)
 
 } # End (not run)
-

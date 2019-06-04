@@ -1,4 +1,4 @@
-#' Create a CSV file with forcing data (DatesR, Precipitacion, Potential Evapotranspiration and Observed streamflow).
+#' Create a TXT file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).
 #'
 #' @param Shapefile Subbasins shapefile.
 #' @param Database Path where precipitacion and Pot. evapotranspiration files are located.
@@ -6,8 +6,8 @@
 #' @param PotEvap Pot. evapotranspiration filename (in NetCDF format).
 #' @param Qobs.mm Observed streamflow data (in milimeters) for the study period.
 #' @param DateIni Initial subset date in 'yyyy/mm/dd' format.
-#' @param Qobs.mm Final subset date in 'yyyy/mm/dd' format.
-#' @return Export a CSV file with forcing data to run the Semidistribute GR2M model.
+#' @param DateEnd Final subset date in 'yyyy/mm/dd' format.
+#' @return Export a text file with forcing data inputs to run semidistribute GR2M model.
 #' @export0
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs.mm, DateIni, DateEnd){
 
@@ -25,7 +25,6 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs.mm,
       Basins  <- readOGR(file.path(getwd(),'Inputs', Shapefile))
       nBasins <- nrow(Basins@data)
       proj    <- crs(Basins)
-
 
     # Extract monthly precipitation data for each subbasin
     # Because of subbasins with less area than PISCOO pixel, we obtain the time series
@@ -55,7 +54,6 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs.mm,
         DataPP[,i] <- pp.out
       }
       DataPP[DataPP<0] <- 0
-
 
     # Extract monthly potential evapotranspiration for each subbasin
     # In this case we build the climatological series for each subbasin. Because of subbasins with
@@ -90,11 +88,11 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs.mm,
       }
       DataPET[DataPET<0] <- 0
 
-
     # Save dataframe as .csv (by commas)
-      df <- data.frame(DatesMonths, DataPP, DataPET, Qobs.mm)
+      Qobs <- read.table(Qobs.mm, sep='\t', header=F)
+      df   <- data.frame(DatesMonths, DataPP, DataPET, Qobs)
       colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qmm')
-      write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.csv'), sep=',', row.names=F)
+      write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
       toc()
       message('Done!')
 }# End (not run)
