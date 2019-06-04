@@ -14,7 +14,7 @@ Create_Raster_Inputs <- function(Shapefile, Dem){
 
   # Show message
     cat('\f')
-    message("Creating Mask and Flow Direction rasters")
+    message("Creating Centroids Mask and Flow Direction rasters")
     message("Please wait...")
 
   # Load subbasin shapefile and raster DEM

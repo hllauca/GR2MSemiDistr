@@ -5,11 +5,11 @@
 #' @param Precip Precipitation filename (in NetCDF format).
 #' @param PotEvap Pot. evapotranspiration filename (in NetCDF format).
 #' @param Qobs.mm Observed streamflow data (in milimeters) for the study period.
-#' @param DateIni Initial subset date in 'yyyy/mm/dd' format.
-#' @param DateEnd Final subset date in 'yyyy/mm/dd' format.
+#' @param DateIni Initial subset date in 'yyyy/mm/dd' format. '1981/01/01' as default
+#' @param DateEnd Final subset date in 'yyyy/mm/dd' format. '2019/02/01' as default
 #' @return Export a text file with forcing data inputs to run semidistribute GR2M model.
 #' @export0
-Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs.mm, DateIni, DateEnd){
+Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs.mm, DateIni='1981/01/01', DateEnd='2019/02/01'){
 
     # Load packages
       require(rgdal)
