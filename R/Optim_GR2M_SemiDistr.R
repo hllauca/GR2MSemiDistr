@@ -10,18 +10,18 @@
 #' @param Raster       Flow direction raster in GRASS format.
 #' @param Shapefile    Subbasins shapefile.
 #' @param Input        Model forcing data in airGR format "[DatesR, P, T, Qobs]".
-#' @param WarmIni      Initial date (mm/yyyy) of the warm-up period.
-#' @param WarEnd       Final date (mm/yyyy) of the warm-up period.
-#' @param RunIni       Initial date (mm/yyyy) of the model evaluation period.
-#' @param RunEnd       Final date (mm/yyyy) of the model evaluation period.
+#' @param WarmIni      Initial date 'mm/yyyy' of the warm-up period.
+#' @param WarEnd       Final date 'mm/yyyy' of the warm-up period.
+#' @param RunIni       Initial date 'mm/yyyy' of the model evaluation period.
+#' @param RunEnd       Final date 'mm/yyyy' of the model evaluation period.
 #' @param IdBasin      Subbasin ID number to compute outlet model (from shapefile attribute table).
 #' @param Remove       Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param No.Omptim    Calibration regions not to optimize.
 #' @return Best semidistribute GR2M model parameters.
 #' @export0
 Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Optimization=5000,
-                                 Optimization='NSE', HRU, WorkDir, Shapefile, Input,
-								                 WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
+                                  Optimization='NSE', HRU, WorkDir, Shapefile, Input,
+								  WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
     # Load packages
       require(rgdal)
@@ -62,8 +62,8 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
     # Objetive function
       OFUN <- function(Variable, HRU2, WorkDir2, nsub2, Database2, time2,
-                       RunIni2, RunEnd2, WarmIni2, WarmEnd2, IdBasin2,
-                       Remove2, Eval, No.Optim2, idx2, idy2, Stb2){
+                        RunIni2, RunEnd2, WarmIni2, WarmEnd2, IdBasin2,
+                        Remove2, Eval, No.Optim2, idx2, idy2, Stb2){
 
             # Select model parameters to optimize
             if (is.null(No.Optim2)==TRUE){

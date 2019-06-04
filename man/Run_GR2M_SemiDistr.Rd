@@ -19,11 +19,11 @@ Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Shapefile, Input, WarmIni,
 
 \item{Input}{Model forcing data in airGR format "[DatesR, P, T, Qobs]".}
 
-\item{WarmIni}{Initial date (mm/yyyy) of the warm-up period.}
+\item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
 
-\item{RunIni}{Initial date (mm/yyyy) of the model evaluation period.}
+\item{RunIni}{Initial date 'mm/yyyy' of the model evaluation period.}
 
-\item{RunEnd}{Final date (mm/yyyy) of the model evaluation period.}
+\item{RunEnd}{Final date 'mm/yyyy' of the model evaluation period.}
 
 \item{IdBasin}{Subbasin ID number to compute outlet model (from shapefile attribute table).}
 
@@ -35,7 +35,7 @@ Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Shapefile, Input, WarmIni,
 
 \item{wfac}{Logical value to compute streamflows appliying the Weighted Flow Accumulation algorithm. TRUE as default.}
 
-\item{WarEnd}{Final date (mm/yyyy) of the warm-up period.}
+\item{WarEnd}{Final date 'mm/yyyy' of the warm-up period.}
 }
 \value{
 Semidistribute GR2M model outputs for a subbasin.

@@ -2,7 +2,7 @@
 #'
 #' @param Shapefile Subbasins shapefile.
 #' @param Dem Raster DEM for the study area.
-#' @return Export raster mask and flow direction for the study subbasins.
+#' @return Export centroids mask and flow direction rasters for the study subbasins.
 #' @export0
 Create_Raster_Inputs <- function(Shapefile, Dem){
 
@@ -13,6 +13,7 @@ Create_Raster_Inputs <- function(Shapefile, Dem){
     require(rgeos)
 
   # Show message
+    cat('\f')
     message("Creating Mask and Flow Direction rasters")
     message("Please wait...")
 
@@ -42,7 +43,7 @@ Create_Raster_Inputs <- function(Shapefile, Dem){
     QMask <- stackApply(Mask, rep(1,nsub+1), fun=sum)
 
   # Save raster of mask
-    writeRaster(QMask, filename=file.path(getwd(), 'Inputs', 'Qmask.tif'), overwrite=T)
+    writeRaster(QMask, filename=file.path(getwd(), 'Inputs', 'Centroids_mask.tif'), overwrite=T)
 
   # Load GRASS
     loc <- initGRASS('C:/Program Files/GRASS GIS 7.4.4', home=getwd(),
@@ -59,7 +60,7 @@ Create_Raster_Inputs <- function(Shapefile, Dem){
 
   # Save raster of flow direction
     execGRASS("r.out.gdal", Sys_show.output.on.console=F, flags='overwrite',
-              parameters=list(input='fdr', output=file.path(getwd(),'Inputs','FlowDirection.tif'), format='GTiff'))
+              parameters=list(input='fdr', output=file.path(getwd(),'Inputs','Flow_Direction.tif'), format='GTiff'))
 
   # Clean GRASS workspace
     unlink(file.path(getwd(), "GRASS_TEMP"), recursive=T)

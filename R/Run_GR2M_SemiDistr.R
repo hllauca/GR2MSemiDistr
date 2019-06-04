@@ -5,10 +5,10 @@
 #' @param WorkDir     General work directory where data is located.
 #' @param Shapefile   Subbasins shapefile.
 #' @param Input       Model forcing data in airGR format "[DatesR, P, T, Qobs]".
-#' @param WarmIni     Initial date (mm/yyyy) of the warm-up period.
-#' @param WarEnd      Final date (mm/yyyy) of the warm-up period.
-#' @param RunIni      Initial date (mm/yyyy) of the model evaluation period.
-#' @param RunEnd      Final date (mm/yyyy) of the model evaluation period.
+#' @param WarmIni     Initial date 'mm/yyyy' of the warm-up period.
+#' @param WarEnd      Final date 'mm/yyyy' of the warm-up period.
+#' @param RunIni      Initial date 'mm/yyyy' of the model evaluation period.
+#' @param RunEnd      Final date 'mm/yyyy' of the model evaluation period.
 #' @param IdBasin     Subbasin ID number to compute outlet model (from shapefile attribute table).
 #' @param Remove      Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param Plot        Logical value to plot observed and simulated streamflow timeseries. TRUE as default.
@@ -17,8 +17,8 @@
 #' @return Semidistribute GR2M model outputs for a subbasin.
 #' @export0
 Run_GR2M_SemiDistr <- function(Parameters, HRU, WorkDir, Shapefile,
-                               Input, WarmIni, WarmEnd, RunIni, RunEnd,
-                               IdBasin, Remove=FALSE, Plot=TRUE, IniState=NULL, wfac=TRUE){
+                                Input, WarmIni, WarmEnd, RunIni, RunEnd,
+                                IdBasin, Remove=FALSE, Plot=TRUE, IniState=NULL, wfac=TRUE){
 
   # Load packages
     require(rgdal)
@@ -33,8 +33,8 @@ Run_GR2M_SemiDistr <- function(Parameters, HRU, WorkDir, Shapefile,
 
   # Shapefiles and rasters paths
     path.shp   <- file.path(WorkDir,'Inputs', Shapefile)
-    path.rast  <- file.path(WorkDir,'Inputs', 'FlowDirection.tif')
-    path.mask  <- file.path(WorkDir,'Inputs', 'Qmask.tif')
+    path.rast  <- file.path(WorkDir,'Inputs', 'Flow_Direction.tif')
+    path.mask  <- file.path(WorkDir,'Inputs', 'Centroids_mask.tif')
 
   # Load shapefiles and rasters
     area       <- readOGR(path.shp, verbose=F)

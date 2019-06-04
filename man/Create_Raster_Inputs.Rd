@@ -12,7 +12,7 @@ Create_Raster_Inputs(Shapefile, Dem)
 \item{Dem}{Raster DEM for the study area.}
 }
 \value{
-Export raster mask and flow direction for the study subbasins.
+Export centroids mask and flow direction rasters for the study subbasins.
 }
 \description{
 Create raster inputs (.TIF) to run the Semidistribute GR2M version.
