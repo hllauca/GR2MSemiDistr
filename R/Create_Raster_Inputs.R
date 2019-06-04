@@ -12,8 +12,12 @@ Create_Raster_Inputs <- function(Shapefile, Dem){
     require(raster)
     require(rgeos)
 
+  # Show message
+    message("Creating Mask and Flow Direction rasters")
+    message("Please wait...")
+
   # Load subbasin shapefile and raster DEM
-    area  <- readOGR(file.path(getwd(),'Inputs',Shapefile))
+    area  <- readOGR(file.path(getwd(), 'Inputs', Shapefile), verbose=FALSE)
     nsub  <- nrow(area@data)
     num   <- raster(file.path(getwd(),'Inputs',Dem))
 
@@ -45,18 +49,20 @@ Create_Raster_Inputs <- function(Shapefile, Dem){
                      gisDbase="GRASS_TEMP", override=TRUE)
 
   # Importar raster DEM
-    execGRASS("r.in.gdal", flags=c('o','overwrite'), parameters=list(input=file.path(getwd(),'Inputs',Dem), output="dem"))
+    execGRASS("r.in.gdal", Sys_show.output.on.console=F, flags=c('o','overwrite'), parameters=list(input=file.path(getwd(),'Inputs',Dem), output="dem"))
 
   # Setup extention
-    execGRASS("g.region", parameters=list(raster="dem"))
+    execGRASS("g.region", Sys_show.output.on.console=F, parameters=list(raster="dem"))
 
   # Create flow direction D8
-    execGRASS("r.watershed", flags=c("overwrite", "s", "a"), parameters=list(elevation="dem", drainage='fdr'))
+    execGRASS("r.watershed", Sys_show.output.on.console=F, flags=c("overwrite", "s", "a"), parameters=list(elevation="dem", drainage='fdr'))
 
   # Save raster of flow direction
-    execGRASS("r.out.gdal", flags='overwrite',
+    execGRASS("r.out.gdal", Sys_show.output.on.console=F, flags='overwrite',
               parameters=list(input='fdr', output=file.path(getwd(),'Inputs','FlowDirection.tif'), format='GTiff'))
 
   # Clean GRASS workspace
     unlink(file.path(getwd(), "GRASS_TEMP"), recursive=T)
+
+    message('Done!')
 }
