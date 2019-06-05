@@ -10,18 +10,18 @@
 #' @param Raster       Flow direction raster in GRASS format.
 #' @param Shapefile    Subbasins shapefile.
 #' @param Input        Model forcing data in airGR format "[DatesR, P, T, Qobs]".
-#' @param WarmIni      Initial date (mm/yyyy) of the warm-up period.
-#' @param WarEnd       Final date (mm/yyyy) of the warm-up period.
-#' @param RunIni       Initial date (mm/yyyy) of the model evaluation period.
-#' @param RunEnd       Final date (mm/yyyy) of the model evaluation period.
+#' @param WarmIni      Initial date 'mm/yyyy' of the warm-up period.
+#' @param WarEnd       Final date 'mm/yyyy' of the warm-up period.
+#' @param RunIni       Initial date 'mm/yyyy' of the model evaluation period.
+#' @param RunEnd       Final date 'mm/yyyy' of the model evaluation period.
 #' @param IdBasin      Subbasin ID number to compute outlet model (from shapefile attribute table).
 #' @param Remove       Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param No.Omptim    Calibration regions not to optimize.
 #' @return Best semidistribute GR2M model parameters.
 #' @export0
 Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Optimization=5000,
-                                 Optimization='NSE', HRU, WorkDir, Shapefile, Input,
-								                 WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
+                                  Optimization='NSE', HRU, WorkDir, Shapefile, Input,
+								  WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
     # Load packages
       require(rgdal)
@@ -39,12 +39,12 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       Stb <- Parameters[idy]
 
     # Load shapefiles
-      path.shp   <- file.path(WorkDir,'2_SHP', Shapefile)
+      path.shp   <- file.path(WorkDir,'Inputs', Shapefile)
       area       <- readOGR(path.shp, verbose=F)
       nsub       <- nrow(area@data)
 
     # Read input data
-      Data        <- read.table(file.path(WorkDir, '4_INPUT', Input), sep=',', header=T)
+      Data        <- read.table(file.path(WorkDir, 'Inputs', 'Inputs_Basins.txt'), sep='\t', header=T)
       Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
 
     # Subset data for the study period
@@ -62,8 +62,8 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
     # Objetive function
       OFUN <- function(Variable, HRU2, WorkDir2, nsub2, Database2, time2,
-                       RunIni2, RunEnd2, WarmIni2, WarmEnd2, IdBasin2,
-                       Remove2, Eval, No.Optim2, idx2, idy2, Stb2){
+                        RunIni2, RunEnd2, WarmIni2, WarmEnd2, IdBasin2,
+                        Remove2, Eval, No.Optim2, idx2, idy2, Stb2){
 
             # Select model parameters to optimize
             if (is.null(No.Optim2)==TRUE){
@@ -74,10 +74,10 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             }
 
             # Auxiliary variables
-            qModel    <- matrix(NA, nrow=time , ncol=nsub2)
-            qSub  <- vector()
-            ParamSub  <- list()
-            OutModel  <- list()
+            qModel     <- matrix(NA, nrow=time , ncol=nsub2)
+            qSub       <- vector()
+            ParamSub   <- list()
+            OutModel   <- list()
             States     <- list()
             EndState   <- list()
             Factor     <- list()
@@ -130,7 +130,7 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
                 message('Initial parameters:')
                 message(paste0(capture.output(Ini.Param), collapse = "\n"))
                 message(' ')
-                message('Running Semi Distributed GR2M')
+                message('Running Semidistribute GR2M model')
                 message(paste0('Time step: ', format(Database$DatesR[i], "%b-%Y")))
                 message('Please wait..')
             } #End loop
@@ -195,4 +195,3 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     return(Ans)
 
 } # End (not run)
-
