@@ -4,9 +4,9 @@
 \alias{Run_GR2M_SemiDistr}
 \title{Run lumped GR2M mode for each sub-basin and timestep.}
 \usage{
-Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Raster, Shapefile, Input,
-  WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove = FALSE,
-  Plot = TRUE, IniState = NULL, wfac = TRUE)
+Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Shapefile, Input, WarmIni,
+  WarmEnd, RunIni, RunEnd, IdBasin, Remove = FALSE, Plot = TRUE,
+  IniState = NULL, wfac = TRUE)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.}
@@ -15,17 +15,15 @@ Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Raster, Shapefile, Input,
 
 \item{WorkDir}{General work directory where data is located.}
 
-\item{Raster}{Flow direction raster in GRASS format.}
-
 \item{Shapefile}{Subbasins shapefile.}
 
 \item{Input}{Model forcing data in airGR format "[DatesR, P, T, Qobs]".}
 
-\item{WarmIni}{Initial date (mm/yyyy) of the warm-up period.}
+\item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
 
-\item{RunIni}{Initial date (mm/yyyy) of the model evaluation period.}
+\item{RunIni}{Initial date 'mm/yyyy' of the model evaluation period.}
 
-\item{RunEnd}{Final date (mm/yyyy) of the model evaluation period.}
+\item{RunEnd}{Final date 'mm/yyyy' of the model evaluation period.}
 
 \item{IdBasin}{Subbasin ID number to compute outlet model (from shapefile attribute table).}
 
@@ -37,7 +35,7 @@ Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Raster, Shapefile, Input,
 
 \item{wfac}{Logical value to compute streamflows appliying the Weighted Flow Accumulation algorithm. TRUE as default.}
 
-\item{WarEnd}{Final date (mm/yyyy) of the warm-up period.}
+\item{WarEnd}{Final date 'mm/yyyy' of the warm-up period.}
 }
 \value{
 Semidistribute GR2M model outputs for a subbasin.

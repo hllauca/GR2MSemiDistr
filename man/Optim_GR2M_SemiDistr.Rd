@@ -28,11 +28,11 @@ Optim_GR2M_SemiDistr(Parameters, Parameters.Min, Parameters.Max,
 
 \item{Input}{Model forcing data in airGR format "[DatesR, P, T, Qobs]".}
 
-\item{WarmIni}{Initial date (mm/yyyy) of the warm-up period.}
+\item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
 
-\item{RunIni}{Initial date (mm/yyyy) of the model evaluation period.}
+\item{RunIni}{Initial date 'mm/yyyy' of the model evaluation period.}
 
-\item{RunEnd}{Final date (mm/yyyy) of the model evaluation period.}
+\item{RunEnd}{Final date 'mm/yyyy' of the model evaluation period.}
 
 \item{IdBasin}{Subbasin ID number to compute outlet model (from shapefile attribute table).}
 
@@ -40,7 +40,7 @@ Optim_GR2M_SemiDistr(Parameters, Parameters.Min, Parameters.Max,
 
 \item{Raster}{Flow direction raster in GRASS format.}
 
-\item{WarEnd}{Final date (mm/yyyy) of the warm-up period.}
+\item{WarEnd}{Final date 'mm/yyyy' of the warm-up period.}
 
 \item{No.Omptim}{Calibration regions not to optimize.}
 }
