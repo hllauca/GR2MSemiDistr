@@ -14,7 +14,7 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs.mm,
 
 \item{Precip}{Precipitation filename (in NetCDF format).}
 
-\item{PotEvap}{Pot. evapotranspiration filename (in NetCDF format).}
+\item{PotEvap}{Potential evapotranspiration filename (in NetCDF format).}
 
 \item{Qobs.mm}{Observed streamflow data (in milimeters) for the study period.}
 
