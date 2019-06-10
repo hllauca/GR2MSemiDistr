@@ -26,11 +26,30 @@
 #' @import  hydroGOF
 #' @import  foreach
 #' @import  tictoc
+#' @import  ProgGUIinR
 Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direction.tif', Mask='Centroids_mask.tif',
                                Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd, RunIni, RunEnd,
                                IdBasin, Remove=FALSE, Plot=TRUE, IniState=NULL, wfac=TRUE){
 
+# Parameters=Model.Param
+# FlowDir='Flow_Direction.tif'
+# Mask='Centroids_mask.tif'
+# Input='Inputs_Basins.txt'
+# Region=Model.Region
+# Location=Location
+# Shapefile=File.Shape
+# WarmIni=WarmUp.Ini
+# WarmEnd=WarmUp.End
+# RunIni=RunModel.Ini
+# RunEnd=RunModel.End
+# IdBasin=Optim.Basin
+# Remove=Optim.Remove
+# Plot=TRUE
+# IniState=NULL
+# wfac=WFacum
+
   # Load packages
+    require(ProgGUIinR)
     require(rgdal)
     require(raster)
     require(rgeos)
@@ -48,6 +67,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
 
   # Load shapefiles and rasters
     area       <- readOGR(path.shp, verbose=F)
+    surf       <- area@data$Area
     nsub       <- nrow(area@data)
     rast       <- raster(path.rast)
 
@@ -97,7 +117,9 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
   # Start loop for each timestep
     for (i in 1:time){
 
-      Date <- format(Database$DatesR[i], "%m/%Y")
+      Date  <- format(Database$DatesR[i], "%m/%Y")
+      nDays <- days.in.month(as.numeric(format(Database$DatesR[i],'%Y')),
+                             as.numeric(format(Database$DatesR[i],'%m')))
 
           foreach (j=1:nsub) %do% {
 
@@ -112,7 +134,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
                 States[[j]]    <- OutModel[[j]]$StateEnd
                 OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
                 }
-                qModel[i,j]    <- round(OutModel[[j]]$Qsim,3)
+                qModel[i,j]    <- round(OutModel[[j]]$Qsim*surf[j]/(86.4*nDays),3)
                 if (wfac == TRUE){
                 qRaster[qMask==j] <- qModel[i,j]
                 }
@@ -149,7 +171,9 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
                        which(format(Database$DatesR, format="%m/%Y") == RunEnd))
     Database2   <- Database[Subset2,]
 
+
   # Show comparative figure
+    Qobs  <- round(Database2$Qm3s,3)
     if (Plot==TRUE){
       x11()
       if (Remove==FALSE){
@@ -158,17 +182,14 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
         } else{
           Qsim <- qSub[Subset2]
         }
-        Qobs <- Database2$Qmm
-        ggof(Qsim, Qobs)
       } else{
         if (wfac == TRUE){
           Qsim <- qSub[Subset2, IdBasin] - qModel[Subset2, IdBasin]
           } else{
           Qsim <- qSub[Subset2] - qModel[Subset2]
           }
-        Qobs <- Database2$Qmm
-        ggof(Qsim, Qobs)
       }
+      ggof(Qsim, Qobs)
     }
 
   # Streamflow simulated at the basin outlet and raster streamflows
@@ -191,7 +212,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
   # Model results
   Ans <- list(Qout=QOUT,
               Qras=QRAS,
-              Qobs=Database2$Qmm,
+              Qobs=Qobs,
               Qsub=qModel[Subset2,],
               Precip=PP,
               Pevap=PET,
