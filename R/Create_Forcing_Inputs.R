@@ -16,6 +16,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qmmobs, 
       require(raster)
       require(rgeos)
       require(tictoc)
+      require(ncdf4)
       tic()
 
     # Create a vector of dates

@@ -1,10 +1,11 @@
 exportPattern("^[[:alpha:]]+")
-#' @import rgdal
-#' @import raster
-#' @import rgrass7
-#' @import rgeos
-#' @import rtop
-#' @import hydroGOF
-#' @import foreach
 #' @import airGR
+#' @import foreach
+#' @import hydroGOF
+#' @import ncdf4
+#' @import raster
+#' @import rgdal
+#' @import rgeos
+#' @import rgrass7
+#' @import rtop
 #' @import tictoc
