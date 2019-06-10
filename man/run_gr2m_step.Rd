@@ -7,13 +7,13 @@
 run_gr2m_step(Model.Input, Model.Parameter, Model.State, Model.Run)
 }
 \arguments{
-\item{Model.Input}{Model forcing data in airGR format "[DatesR, P, T]".}
+\item{Model.Input}{Model forcing data in airGR format '(DatesR,P,T)'.}
 
-\item{Model.State}{GR2M state variables for computing timestep.}
+\item{Model.State}{GR2M state variables for the computing timestep.}
 
-\item{Model.Run}{Date (%m/%Y) to be compute timestep.}
+\item{Model.Run}{Date 'mm/yyyy' to compute timestep.}
 
-\item{Model.Parameters}{GR2M (X1 and X2) parameters.}
+\item{Model.Parameters}{GR2M (X1 and X2) model parameters.}
 }
 \value{
 GR2M model output for an specific timestep.

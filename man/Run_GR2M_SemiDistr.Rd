@@ -4,20 +4,26 @@
 \alias{Run_GR2M_SemiDistr}
 \title{Run lumped GR2M mode for each sub-basin and timestep.}
 \usage{
-Run_GR2M_SemiDistr(Parameters, HRU, WorkDir, Shapefile, Input, WarmIni,
-  WarmEnd, RunIni, RunEnd, IdBasin, Remove = FALSE, Plot = TRUE,
-  IniState = NULL, wfac = TRUE)
+Run_GR2M_SemiDistr(Parameters, Region, Location,
+  FlowDir = "Flow_Direction.tif", Mask = "Centroids_mask.tif",
+  Shapefile, Input = "Inputs_Basins.txt", WarmIni, WarmEnd, RunIni,
+  RunEnd, IdBasin, Remove = FALSE, Plot = TRUE, IniState = NULL,
+  wfac = TRUE)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.}
 
-\item{HRU}{Calibration regions for each subbasin.}
+\item{Region}{Calibration regions for each subbasin.}
 
-\item{WorkDir}{General work directory where data is located.}
+\item{Location}{General work directory where data is located.}
+
+\item{FlowDir}{Flow direction raster in GRASS format (from 1 to 8). 'Flow_Direction.tif' as default.}
+
+\item{Mask}{Subbasins centroids mask raster. 'Centroids_mask.tif' as default.}
 
 \item{Shapefile}{Subbasins shapefile.}
 
-\item{Input}{Model forcing data in airGR format "[DatesR, P, T, Qobs]".}
+\item{Input}{Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.}
 
 \item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
 

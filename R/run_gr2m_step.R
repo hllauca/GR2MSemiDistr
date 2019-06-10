@@ -1,9 +1,9 @@
 #' Run lumped GR2M model for each sub-basin and monthly timestep.
 #'
-#' @param Model.Input Model forcing data in airGR format "[DatesR, P, T]".
-#' @param Model.Parameters GR2M (X1 and X2) parameters.
-#' @param Model.State GR2M state variables for computing timestep.
-#' @param Model.Run Date (%m/%Y) to be compute timestep.
+#' @param Model.Input Model forcing data in airGR format '(DatesR,P,T)'.
+#' @param Model.Parameters GR2M (X1 and X2) model parameters.
+#' @param Model.State GR2M state variables for the computing timestep.
+#' @param Model.Run Date 'mm/yyyy' to compute timestep.
 #' @return GR2M model output for an specific timestep.
 #' @export0
 run_gr2m_step <- function(Model.Input, Model.Parameter, Model.State, Model.Run){
@@ -39,7 +39,9 @@ run_gr2m_step <- function(Model.Input, Model.Parameter, Model.State, Model.Run){
       RunOptions    <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
                                         InputsModel=InputsModel,
                                         IniStates=Model.State,
-                                        IndPeriod_Run=Ind_Run)
+                                        IndPeriod_Run=Ind_Run,
+                                        verbose=FALSE,
+                                        warnings=FALSE)
 
       # Run GR2M
       OutputsModel  <- RunModel(InputsModel=InputsModel,
