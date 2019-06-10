@@ -81,7 +81,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
     qModel     <- matrix(NA, nrow=time , ncol=nsub)
     if (wfac == TRUE){
     qSub       <- matrix(NA, nrow=time , ncol=nsub)
-    qMask      <- as.matrix(raster(path.mask))
+    qMask      <- raster(path.mask)
     qRaster    <- qMask
     qArray     <- array(NA, dim=c(nrow(qMask), ncol(qMask), time))
     qBrick     <- brick(nr=nrow(qMask), nc=ncol(qMask), nl=time)
@@ -96,9 +96,9 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
     Inputs     <- list()
     FixInputs  <- list()
     qMask      <- raster(path.mask)
-    # qRaster    <- qMask
-    # qArray     <- array(NA, dim=c(nrow(qMask), ncol(qMask), time))
-    # qBrick     <- brick(nr=nrow(qMask), nc=ncol(qMask), nl=time)
+    qRaster    <- qMask
+    qArray     <- array(NA, dim=c(nrow(qMask), ncol(qMask), time))
+    qBrick     <- brick(nr=nrow(qMask), nc=ncol(qMask), nl=time)
   #
   # # GR2M model parameters
   #   Zone  <- sort(unique(Region))
@@ -211,7 +211,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
   #             Pevap=PET,
   #             Dates=Database2$DatesR,
   #             EndState=EndState)
-Ans<-qMask
+Ans<-qBrick
   # Show message
   message('Done!')
   toc()
