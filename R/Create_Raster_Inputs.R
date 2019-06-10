@@ -3,7 +3,11 @@
 #' @param Shapefile Subbasins shapefile.
 #' @param Dem Raster DEM for the study area.
 #' @return Export centroids mask and flow direction rasters for the study subbasins.
-#' @export0
+#' @export
+#' @import  rgrass7
+#' @import  rgdal
+#' @import  raster
+#' @import  rgeos
 Create_Raster_Inputs <- function(Shapefile, Dem){
 
   # Load packages

@@ -18,7 +18,14 @@
 #' @param Remove       Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param No.Omptim    Calibration regions not to optimize.
 #' @return Best semidistribute GR2M model parameters.
-#' @export0
+#' @export
+#' @import  rgdal
+#' @import  raster
+#' @import  rgeos
+#' @import  rtop
+#' @import  hydroGOF
+#' @import  foreach
+#' @import  tictoc
 Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Optimization=5000,
                                  Optimization='NSE', Region, Location, Shapefile, Input='Inputs_Basins.txt',
 								                 WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
@@ -44,7 +51,7 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       nsub       <- nrow(area@data)
 
     # Read input data
-      Data        <- read.table(file.path(Location, 'Inputs', 'Inputs_Basins.txt'), sep='\t', header=T)
+      Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
       Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
 
     # Subset data for the study period
@@ -108,16 +115,10 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
                     if (i==1){
                       IniState      <- NULL
-                      OutModel[[j]] <- run_gr2m(FixInputs[[j]],
-                                                 ParamSub[[j]],
-                                                 IniState[[j]],
-                                                 Date)
+                      OutModel[[j]] <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
                     }else{
                       States[[j]]   <- OutModel[[j]]$StateEnd
-                      OutModel[[j]] <- run_gr2m(FixInputs[[j]],
-                                                 ParamSub[[j]],
-                                                 States[[j]],
-                                                 Date)
+                      OutModel[[j]] <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
                     }
                     qModel[i,j]     <- round(OutModel[[j]]$Qsim,3)
                 }
