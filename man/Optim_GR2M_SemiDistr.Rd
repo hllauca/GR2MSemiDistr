@@ -5,12 +5,12 @@
 \title{Optimization of GR2M model parameters with SCE-UA algorithm.}
 \usage{
 Optim_GR2M_SemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Max.Optimization = 5000, Optimization = "NSE", HRU, WorkDir,
-  Shapefile, Input, WarmIni, WarmEnd, RunIni, RunEnd, IdBasin,
-  Remove = FALSE, No.Optim = NULL)
+  Max.Optimization = 5000, Optimization = "NSE", Region, Location,
+  Shapefile, Input = "Inputs_Basins.txt", WarmIni, WarmEnd, RunIni,
+  RunEnd, IdBasin, Remove = FALSE, No.Optim = NULL)
 }
 \arguments{
-\item{Parameters}{GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.}
+\item{Parameters}{GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.}
 
 \item{Parameters.Min}{Minimum GR2M (X1, X2 and f) model parameters values.}
 
@@ -20,13 +20,13 @@ Optim_GR2M_SemiDistr(Parameters, Parameters.Min, Parameters.Max,
 
 \item{Optimization}{Evaluation criteria for GR2M optimization.}
 
-\item{HRU}{Calibration region for each subbasin.}
+\item{Region}{Calibration region for each subbasin.}
 
-\item{WorkDir}{General work directory where data is located.}
+\item{Location}{General work directory where data is located.}
 
 \item{Shapefile}{Subbasins shapefile.}
 
-\item{Input}{Model forcing data in airGR format "[DatesR, P, T, Qobs]".}
+\item{Input}{Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.}
 
 \item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
 

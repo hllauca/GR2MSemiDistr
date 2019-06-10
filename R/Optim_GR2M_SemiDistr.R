@@ -1,15 +1,15 @@
 #' Optimization of GR2M model parameters with SCE-UA algorithm.
 #'
-#' @param Parameters  GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.
+#' @param Parameters       GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
 #' @param Parameters.Min   Minimum GR2M (X1, X2 and f) model parameters values.
 #' @param Parameters.Max   Maximum GR2M (X1, X2 and f) model parameters values.
 #' @param Max.Optimization Maximum number of functions used in the optimization loop. 5000 as default.
-#' @param Optimization Evaluation criteria for GR2M optimization.
-#' @param HRU          Calibration region for each subbasin.
-#' @param WorkDir      General work directory where data is located.
+#' @param Optimization     Evaluation criteria for GR2M optimization.
+#' @param Region           Calibration region for each subbasin.
+#' @param Location     General work directory where data is located.
 #' @param Raster       Flow direction raster in GRASS format.
 #' @param Shapefile    Subbasins shapefile.
-#' @param Input        Model forcing data in airGR format "[DatesR, P, T, Qobs]".
+#' @param Input        Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
 #' @param WarmIni      Initial date 'mm/yyyy' of the warm-up period.
 #' @param WarEnd       Final date 'mm/yyyy' of the warm-up period.
 #' @param RunIni       Initial date 'mm/yyyy' of the model evaluation period.
@@ -20,8 +20,8 @@
 #' @return Best semidistribute GR2M model parameters.
 #' @export0
 Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Optimization=5000,
-                                  Optimization='NSE', HRU, WorkDir, Shapefile, Input,
-								  WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
+                                 Optimization='NSE', Region, Location, Shapefile, Input='Inputs_Basins.txt',
+								                 WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
     # Load packages
       require(rgdal)
@@ -35,16 +35,16 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
     # Filtering calibration region no to optimize
       idx <- 1:length(Parameters)
-      idy <- which(No.Optim==rep(HRU,2))
+      idy <- which(No.Optim==rep(Region,2))
       Stb <- Parameters[idy]
 
     # Load shapefiles
-      path.shp   <- file.path(WorkDir,'Inputs', Shapefile)
+      path.shp   <- file.path(Location,'Inputs', Shapefile)
       area       <- readOGR(path.shp, verbose=F)
       nsub       <- nrow(area@data)
 
     # Read input data
-      Data        <- read.table(file.path(WorkDir, 'Inputs', 'Inputs_Basins.txt'), sep='\t', header=T)
+      Data        <- read.table(file.path(Location, 'Inputs', 'Inputs_Basins.txt'), sep='\t', header=T)
       Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
 
     # Subset data for the study period
@@ -54,14 +54,14 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       time        <- length(Subset)
 
     # GR2M initial parameters
-      nreg      <- length(sort(unique(HRU)))
-      Ini.Param <- data.frame(Region=sort(unique(HRU)),
+      nreg      <- length(sort(unique(Region)))
+      Ini.Param <- data.frame(Region=sort(unique(Region)),
                           X1=Parameters[1:nreg],
                           X2=Parameters[(nreg+1):(2*nreg)],
                           f=Parameters[((2*nreg)+1):length(Parameters)])
 
     # Objetive function
-      OFUN <- function(Variable, HRU2, WorkDir2, nsub2, Database2, time2,
+      OFUN <- function(Variable, Region2, Location2, nsub2, Database2, time2,
                         RunIni2, RunEnd2, WarmIni2, WarmEnd2, IdBasin2,
                         Remove2, Eval, No.Optim2, idx2, idy2, Stb2){
 
@@ -85,7 +85,7 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             FixInputs  <- list()
 
             # Model parameters to run GR2M model
-            Zone  <- sort(unique(HRU2))
+            Zone  <- sort(unique(Region2))
             nreg  <- length(Zone)
             Param <- data.frame(Zona=Zone,
                                 X1=Parameters[1:nreg],
@@ -98,9 +98,9 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
                     foreach (j=1:nsub2) %do% {
 
-                    ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==HRU[j]),
-                                        subset(Param$X2, Param$Zona==HRU[j]))
-                    Factor[[j]]    <- subset(Param$f, Param$Zona==HRU[j])
+                    ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==Region[j]),
+                                        subset(Param$X2, Param$Zona==Region[j]))
+                    Factor[[j]]    <- subset(Param$f, Param$Zona==Region[j])
                     Inputs[[j]]    <- Database2[,c(1,j+1,j+1+nsub2)]
                     FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
                     FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR,
@@ -173,17 +173,17 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
   # Define calibration regions and parameters to optimize
     if (is.null(No.Optim)==TRUE){
-      Zone       <- sort(unique(HRU))
+      Zone       <- sort(unique(Region))
     } else{
-      Parameters <- Parameters[!(rep(HRU,2) %in% No.Optim)]
-      Zone       <- sort(unique(HRU[!(HRU %in% No.Optim)]))
+      Parameters <- Parameters[!(rep(Region,2) %in% No.Optim)]
+      Zone       <- sort(unique(Region[!(Region %in% No.Optim)]))
     }
     Parameters.Min <- rep(Parameters.Min, each=length(Zone))
     Parameters.Max <- rep(Parameters.Max, each=length(Zone))
 
   # Optimization with SCE-UA
     Ans <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max, maxn=Max.Optimization,
-                 Eval=Optimization, HRU2=HRU, WorkDir2=WorkDir, nsub2=nsub, Database2=Database, time2=time,
+                 Eval=Optimization, Region2=Region, Location2=Location, nsub2=nsub, Database2=Database, time2=time,
                  RunIni2=RunIni, RunEnd2=RunEnd, WarmIni2=WarmIni, WarmEnd2=WarmEnd, IdBasin2=IdBasin,
                  Remove2=Remove, No.Optim2=No.Optim, idx2=idx, idy2=idy, Stb2=Stb)
 
