@@ -94,7 +94,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
     FixInputs  <- list()
     qMask      <- as.matrix(raster(path.mask))
     qRaster    <- qMask
-    qArray     <- array(NA, dim=c(nrow(qMask), ncol(qMask),time))
+    qArray     <- array(NA, dim=c(nrow(qMask), ncol(qMask), time))
     qBrick     <- brick(nr=nrow(qMask), nc=ncol(qMask), nl=time)
 
   # GR2M model parameters
