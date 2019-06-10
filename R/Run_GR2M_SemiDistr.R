@@ -37,7 +37,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
 # Remove=Optim.Remove
 # Plot=TRUE
 # IniState=NULL
-# wfac=WFAC
+# wfac=WFacum
 # source('D:/GitHub/GR2MSemiDistr/R/run_gr2m_step.R')
 
 
@@ -118,10 +118,10 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
                 FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
                 FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
                 if (i==1){
-                OutModel[[j]]  <- run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
+                OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
                 }else{
                 States[[j]]    <- OutModel[[j]]$StateEnd
-                OutModel[[j]]  <- run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
+                OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
                 }
                 qModel[i,j]    <- round(OutModel[[j]]$Qsim,3)
                 if (wfac == TRUE){
@@ -131,7 +131,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
 
     # Accumulate streamflow at the basin outlet
       if (wfac == TRUE){
-        Result      <- run_wfac(rast, as.vector(t(qRaster)), area, nsub, i)
+        Result      <- GR2MSemiDistr::run_wfac(rast, as.vector(t(qRaster)), area, nsub, i)
         qSub[i,]    <- round(Result$Qsub,3)
         qArray[,,i] <- as.matrix(Result$Qacum)
       } else{
@@ -142,7 +142,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
       message('Running Semidistribute GR2M model')
       message(paste0('Timestep: ', format(Database$DatesR[i], "%b-%Y")))
       message('Please wait..')
-    } # End loop
+    }# End loop
 
    # Compute streamflow raster brick
     if (wfac == TRUE){
