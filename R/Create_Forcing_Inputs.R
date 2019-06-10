@@ -9,7 +9,7 @@
 #' @param DateEnd Final subset date in 'yyyy/mm/dd' format. '2019/02/01' as default
 #' @return Export a text file with forcing data inputs to run semidistribute GR2M model.
 #' @export0
-Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs.mm, DateIni='1981/01/01', DateEnd='2019/02/01'){
+Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qmmobs, DateIni='1981/01/01', DateEnd='2019/02/01'){
 
     # Load packages
       require(rgdal)
@@ -89,7 +89,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs.mm,
       DataPET[DataPET<0] <- 0
 
     # Save dataframe as .csv (by commas)
-      Qobs <- read.table(Qobs.mm, sep='\t', header=F)
+      Qobs <- read.table(Qmmobs, sep='\t', header=F)
       df   <- data.frame(DatesMonths, DataPP, DataPET, Qobs)
       colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qmm')
       write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
