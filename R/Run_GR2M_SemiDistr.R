@@ -95,123 +95,119 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
     Factor     <- list()
     Inputs     <- list()
     FixInputs  <- list()
-    qMask      <- raster(path.mask)
-    qRaster    <- qMask
-    qArray     <- array(NA, dim=c(nrow(qMask), ncol(qMask), time))
-    qBrick     <- brick(nr=nrow(qMask), nc=ncol(qMask), nl=time)
-  #
-  # # GR2M model parameters
-  #   Zone  <- sort(unique(Region))
-  #   nreg  <- length(Zone)
-  #   Param <- data.frame(Region=sort(unique(Region)),
-  #                           X1=Parameters[1:nreg],
-  #                           X2=Parameters[(nreg+1):(2*nreg)],
-  #                            f=Parameters[((2*nreg)+1):length(Parameters)])
 
-  # # Start loop for each timestep
-  #   for (i in 1:time){
-  #
-  #     Date <- format(Database$DatesR[i], "%m/%Y")
-  #
-  #         foreach (j=1:nsub) %do% {
-  #
-  #               ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==Region[j]), subset(Param$X2, Param$Region==Region[j]))
-  #               Factor[[j]]    <- subset(Param$f, Param$Region==Region[j])
-  #               Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
-  #               FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
-  #               FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
-  #               if (i==1){
-  #               OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
-  #               }else{
-  #               States[[j]]    <- OutModel[[j]]$StateEnd
-  #               OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
-  #               }
-  #               qModel[i,j]    <- round(OutModel[[j]]$Qsim,3)
-  #               if (wfac == TRUE){
-  #               qRaster[qMask==j] <- qModel[i,j]
-  #               }
-  #         }
-  #
-  #   # Accumulate streamflow at the basin outlet
-  #     if (wfac == TRUE){
-  #       Result      <- GR2MSemiDistr::run_wfac(rast, as.vector(t(qRaster)), area, nsub, i)
-  #       qSub[i,]    <- round(Result$Qsub,3)
-  #       qArray[,,i] <- as.matrix(Result$Qacum)
-  #     } else{
-  #       qSub[i]  <- round(sum(qModel[i,], na.rm=T),3)
-  #     }
-  #   # Show message
-  #     cat('\f')
-  #     message('Running Semidistribute GR2M model')
-  #     message(paste0('Timestep: ', format(Database$DatesR[i], "%b-%Y")))
-  #     message('Please wait..')
-  #   }# End loop
-  #
-  #  # Compute streamflow raster brick
-  #   if (wfac == TRUE){
-  #     qBrick         <- setValues(qBrick, qArray)
-  #     crs(qBrick)    <- crs(qMask)
-  #     extend(qBrick) <- extend(qMask)
-  #     res(qBrick)    <- res(qMask)
-  #
-  #     # Clean GRASS workspace
-  #     unlink(file.path(getwd(), "GRASS_TEMP"), recursive=T)
-  #   }
-  #
-  #   # Subset data (without warm-up period)
-  #   Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
-  #                      which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-  #   Database2   <- Database[Subset2,]
-  #
-  # # Show comparative figure
-  #   if (Plot==TRUE){
-  #     x11()
-  #     if (Remove==FALSE){
-  #       if (wfac == TRUE){
-  #         Qsim <- qSub[Subset2, IdBasin]
-  #       } else{
-  #         Qsim <- qSub[Subset2]
-  #       }
-  #       Qobs <- Database2$Qmm
-  #       ggof(Qsim, Qobs)
-  #     } else{
-  #       if (wfac == TRUE){
-  #         Qsim <- qSub[Subset2, IdBasin] - qModel[Subset2, IdBasin]
-  #         } else{
-  #         Qsim <- qSub[Subset2] - qModel[Subset2]
-  #         }
-  #       Qobs <- Database2$Qmm
-  #       ggof(Qsim, Qobs)
-  #     }
-  #   }
-  #
-  # # Streamflow simulated at the basin outlet and raster streamflows
-  #   if (wfac == TRUE){
-  #     QOUT <- qSub[Subset2,IdBasin]
-  #     QRAS <- qBrick
-  #   } else{
-  #     QOUT <- qSub[Subset2]
-  #     QRAS <- NULL
-  #   }
-  #
-  # # Forcing data multiplying by a factor 'f'
-  #   PP  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-  #   PET <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-  #   for (w in 1:nsub){
-  #     PP[,w] <- subset(Param$f, Param$Region==Region[w])*Database2[,(w+1)]
-  #     PET[,w]<- subset(Param$f, Param$Region==Region[w])*Database2[,(nsub+w)]
-  #   }
-  #
-  # # Model results
-  # Ans <- list(Qout=QOUT,
-  #             Qras=QRAS,
-  #             Qobs=Database2$Qmm,
-  #             Qsub=qModel[Subset2,],
-  #             Precip=PP,
-  #             Pevap=PET,
-  #             Dates=Database2$DatesR,
-  #             EndState=EndState)
-Ans<-qBrick
+  # GR2M model parameters
+    Zone  <- sort(unique(Region))
+    nreg  <- length(Zone)
+    Param <- data.frame(Region=sort(unique(Region)),
+                            X1=Parameters[1:nreg],
+                            X2=Parameters[(nreg+1):(2*nreg)],
+                             f=Parameters[((2*nreg)+1):length(Parameters)])
+
+  # Start loop for each timestep
+    for (i in 1:time){
+
+      Date <- format(Database$DatesR[i], "%m/%Y")
+
+          foreach (j=1:nsub) %do% {
+
+                ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==Region[j]), subset(Param$X2, Param$Region==Region[j]))
+                Factor[[j]]    <- subset(Param$f, Param$Region==Region[j])
+                Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
+                FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
+                FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
+                if (i==1){
+                OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
+                }else{
+                States[[j]]    <- OutModel[[j]]$StateEnd
+                OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
+                }
+                qModel[i,j]    <- round(OutModel[[j]]$Qsim,3)
+                if (wfac == TRUE){
+                qRaster[qMask==j] <- qModel[i,j]
+                }
+          }
+
+    # Accumulate streamflow at the basin outlet
+      if (wfac == TRUE){
+        Result      <- GR2MSemiDistr::run_wfac(rast, as.vector(t(qRaster)), area, nsub, i)
+        qSub[i,]    <- round(Result$Qsub,3)
+        qArray[,,i] <- as.matrix(Result$Qacum)
+      } else{
+        qSub[i]  <- round(sum(qModel[i,], na.rm=T),3)
+      }
+    # Show message
+      cat('\f')
+      message('Running Semidistribute GR2M model')
+      message(paste0('Timestep: ', format(Database$DatesR[i], "%b-%Y")))
+      message('Please wait..')
+    }# End loop
+
+   # Compute streamflow raster brick
+    if (wfac == TRUE){
+      qBrick         <- setValues(qBrick, qArray)
+      crs(qBrick)    <- crs(qMask)
+      extend(qBrick) <- extend(qMask)
+      res(qBrick)    <- res(qMask)
+
+      # Clean GRASS workspace
+      unlink(file.path(getwd(), "GRASS_TEMP"), recursive=T)
+    }
+
+    # Subset data (without warm-up period)
+    Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+                       which(format(Database$DatesR, format="%m/%Y") == RunEnd))
+    Database2   <- Database[Subset2,]
+
+  # Show comparative figure
+    if (Plot==TRUE){
+      x11()
+      if (Remove==FALSE){
+        if (wfac == TRUE){
+          Qsim <- qSub[Subset2, IdBasin]
+        } else{
+          Qsim <- qSub[Subset2]
+        }
+        Qobs <- Database2$Qmm
+        ggof(Qsim, Qobs)
+      } else{
+        if (wfac == TRUE){
+          Qsim <- qSub[Subset2, IdBasin] - qModel[Subset2, IdBasin]
+          } else{
+          Qsim <- qSub[Subset2] - qModel[Subset2]
+          }
+        Qobs <- Database2$Qmm
+        ggof(Qsim, Qobs)
+      }
+    }
+
+  # Streamflow simulated at the basin outlet and raster streamflows
+    if (wfac == TRUE){
+      QOUT <- qSub[Subset2,IdBasin]
+      QRAS <- qBrick
+    } else{
+      QOUT <- qSub[Subset2]
+      QRAS <- NULL
+    }
+
+  # Forcing data multiplying by a factor 'f'
+    PP  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+    PET <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+    for (w in 1:nsub){
+      PP[,w] <- subset(Param$f, Param$Region==Region[w])*Database2[,(w+1)]
+      PET[,w]<- subset(Param$f, Param$Region==Region[w])*Database2[,(nsub+w)]
+    }
+
+  # Model results
+  Ans <- list(Qout=QOUT,
+              Qras=QRAS,
+              Qobs=Database2$Qmm,
+              Qsub=qModel[Subset2,],
+              Precip=PP,
+              Pevap=PET,
+              Dates=Database2$DatesR,
+              EndState=EndState)
+
   # Show message
   message('Done!')
   toc()
