@@ -4,7 +4,7 @@
 #' @param Database Path where precipitacion and Pot. evapotranspiration files are located.
 #' @param Precip Precipitation filename (in NetCDF format).
 #' @param PotEvap Potential evapotranspiration filename (in NetCDF format).
-#' @param QmmObs Observed streamflow data (in milimeters) for the study period.
+#' @param Qobs Observed streamflow data (in m3/s) for the study period.
 #' @param DateIni Initial subset date in 'yyyy/mm/dd' format. '1981/01/01' as default
 #' @param DateEnd Final subset date in 'yyyy/mm/dd' format. '2019/02/01' as default
 #' @return Export a text file with forcing data inputs to run semidistribute GR2M model.
@@ -14,7 +14,7 @@
 #' @import  rgeos
 #' @import  tictoc
 #' @import  ncdf4
-Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, QObs, DateIni='1981/01/01', DateEnd='2019/02/01'){
+Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, DateIni='1981/01/01', DateEnd='2019/02/01'){
 
     # Load packages
       require(rgdal)
@@ -95,7 +95,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, QObs, Da
       DataPET[DataPET<0] <- 0
 
     # Save dataframe as .csv (by commas)
-      Qobs <- read.table(Qmmobs, sep='\t', header=F)
+      Qobs <- read.table(Qobs, sep='\t', header=F)
       df   <- data.frame(DatesMonths, DataPP, DataPET, Qobs)
       colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qm3s')
       write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
