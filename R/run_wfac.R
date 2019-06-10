@@ -4,9 +4,10 @@
 #' @param Qmodel Subbasin-streamflow raster. Q values only at sub-basin centroids cells.
 #' @param Shapefile Subbasins shapefile.
 #' @param nSub Numbers of subbasin to be processed.
-#' @param t Timestep (for an iteration mode).
+#' @param t Timestep (for an iterative mode).
 #' @return [Qsub] Streamflow values at the oulet of each subbasin. [Qacum] Flow accumulation raster.
-#' @export0
+#' @export
+#' @import rgrass7
 run_wfac <- function(FlowDir, Qmodel, Shapefile, nSub, t){
 
     # Load packages

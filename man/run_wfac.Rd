@@ -15,7 +15,7 @@ run_wfac(FlowDir, Qmodel, Shapefile, nSub, t)
 
 \item{nSub}{Numbers of subbasin to be processed.}
 
-\item{t}{Timestep (for an iteration mode).}
+\item{t}{Timestep (for an iterative mode).}
 }
 \value{
 [Qsub] Streamflow values at the oulet of each subbasin. [Qacum] Flow accumulation raster.

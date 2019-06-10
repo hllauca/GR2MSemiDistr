@@ -5,7 +5,8 @@
 #' @param Model.State GR2M state variables for the computing timestep.
 #' @param Model.Run Date 'mm/yyyy' to compute timestep.
 #' @return GR2M model output for an specific timestep.
-#' @export0
+#' @export
+#' @import airGR
 run_gr2m_step <- function(Model.Input, Model.Parameter, Model.State, Model.Run){
 
     # Load packages

@@ -17,28 +17,18 @@
 #' @param IniState    Initial GR2M states variables. NULL as default.
 #' @param wfac        Logical value to compute streamflows appliying the Weighted Flow Accumulation algorithm. TRUE as default.
 #' @return Semidistribute GR2M model outputs for a subbasin.
-#' @export0
+#' @export
+#' @import  rgdal
+#' @import  raster
+#' @import  rgeos
+#' @import  rgrass7
+#' @import  rtop
+#' @import  hydroGOF
+#' @import  foreach
+#' @import  tictoc
 Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direction.tif', Mask='Centroids_mask.tif',
                                Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd, RunIni, RunEnd,
                                IdBasin, Remove=FALSE, Plot=TRUE, IniState=NULL, wfac=TRUE){
-
-# Parameters=Model.Param
-# Region=Model.HRU
-# Location=Location
-# FlowDir='Flow_Direction.tif'
-# Mask='Centroids_mask.tif'
-# Shapefile=File.Shape
-# Input='Inputs_Basins.txt'
-# WarmIni=WarmUp.Ini
-# WarmEnd=WarmUp.End
-# RunIni=RunModel.Ini
-# RunEnd=RunModel.End
-# IdBasin=Optim.Basin
-# Remove=Optim.Remove
-# Plot=TRUE
-# IniState=NULL
-# wfac=WFacum
-
 
   # Load packages
     require(rgdal)
@@ -130,7 +120,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
 
     # Accumulate streamflow at the basin outlet
       if (wfac == TRUE){
-        Result      <- GR2MSemiDistr::run_wfac(rast, as.vector(t(qRaster)), area, nsub, i)
+        Result      <- GR2MSemiDistr::run_wfac(rast, qRaster, area, nsub, i)
         qSub[i,]    <- round(Result$Qsub,3)
         qArray[,,i] <- as.matrix(Result$Qacum)
       } else{

@@ -8,7 +8,12 @@
 #' @param DateIni Initial subset date in 'yyyy/mm/dd' format. '1981/01/01' as default
 #' @param DateEnd Final subset date in 'yyyy/mm/dd' format. '2019/02/01' as default
 #' @return Export a text file with forcing data inputs to run semidistribute GR2M model.
-#' @export0
+#' @export
+#' @import  rgdal
+#' @import  raster
+#' @import  rgeos
+#' @import  tictoc
+#' @import  ncdf4
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qmmobs, DateIni='1981/01/01', DateEnd='2019/02/01'){
 
     # Load packages
