@@ -16,11 +16,11 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qmmobs,
 
 \item{PotEvap}{Potential evapotranspiration filename (in NetCDF format).}
 
+\item{Qmmobs}{Observed streamflow data (in milimeters) for the study period.}
+
 \item{DateIni}{Initial subset date in 'yyyy/mm/dd' format. '1981/01/01' as default}
 
 \item{DateEnd}{Final subset date in 'yyyy/mm/dd' format. '2019/02/01' as default}
-
-\item{Qobs.mm}{Observed streamflow data (in milimeters) for the study period.}
 }
 \value{
 Export a text file with forcing data inputs to run semidistribute GR2M model.
