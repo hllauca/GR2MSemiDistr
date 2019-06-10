@@ -71,39 +71,39 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
     Database    <- Data[Subset,]
     time        <- length(Subset)
 
-  # # Load GRASS (require to be installed previously)
-  #   if (wfac == TRUE){
-  #   loc <- initGRASS('C:/Program Files/GRASS GIS 7.4.4', home=getwd(),
-  #                    gisDbase="GRASS_TEMP", override=TRUE)
-  #   }
-  #
-  # # Auxiliary variables
-  #   qModel    <- matrix(NA, nrow=time , ncol=nsub)
-  #   if (wfac == TRUE){
-  #   qSub  <- matrix(NA, nrow=time , ncol=nsub)
-  #   } else{
-  #   qSub  <- vector()
-  #   }
-  #   ParamSub   <- list()
-  #   OutModel   <- list()
-  #   States     <- list()
-  #   EndState   <- list()
-  #   Factor     <- list()
-  #   Inputs     <- list()
-  #   FixInputs  <- list()
-  #   qMask      <- as.matrix(raster(path.mask))
-  #   qRaster    <- qMask
-  #   qArray     <- array(NA, dim=c(nrow(qMask), ncol(qMask), time))
-  #   qBrick     <- brick(nr=nrow(qMask), nc=ncol(qMask), nl=time)
-  #
-  # # GR2M model parameters
-  #   Zone  <- sort(unique(Region))
-  #   nreg  <- length(Zone)
-  #   Param <- data.frame(Region=sort(unique(Region)),
-  #                           X1=Parameters[1:nreg],
-  #                           X2=Parameters[(nreg+1):(2*nreg)],
-  #                            f=Parameters[((2*nreg)+1):length(Parameters)])
-  #
+  # Load GRASS (require to be installed previously)
+    if (wfac == TRUE){
+    loc <- initGRASS('C:/Program Files/GRASS GIS 7.4.4', home=getwd(),
+                     gisDbase="GRASS_TEMP", override=TRUE)
+    }
+
+  # Auxiliary variables
+    qModel    <- matrix(NA, nrow=time , ncol=nsub)
+    if (wfac == TRUE){
+    qSub  <- matrix(NA, nrow=time , ncol=nsub)
+    } else{
+    qSub  <- vector()
+    }
+    ParamSub   <- list()
+    OutModel   <- list()
+    States     <- list()
+    EndState   <- list()
+    Factor     <- list()
+    Inputs     <- list()
+    FixInputs  <- list()
+    qMask      <- as.matrix(raster(path.mask))
+    qRaster    <- qMask
+    qArray     <- array(NA, dim=c(nrow(qMask), ncol(qMask), time))
+    qBrick     <- brick(nr=nrow(qMask), nc=ncol(qMask), nl=time)
+
+  # GR2M model parameters
+    Zone  <- sort(unique(Region))
+    nreg  <- length(Zone)
+    Param <- data.frame(Region=sort(unique(Region)),
+                            X1=Parameters[1:nreg],
+                            X2=Parameters[(nreg+1):(2*nreg)],
+                             f=Parameters[((2*nreg)+1):length(Parameters)])
+
   # # Start loop for each timestep
   #   for (i in 1:time){
   #
@@ -207,7 +207,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
   #             Pevap=PET,
   #             Dates=Database2$DatesR,
   #             EndState=EndState)
-Ans<-Database
+Ans<-Param
   # Show message
   message('Done!')
   toc()
