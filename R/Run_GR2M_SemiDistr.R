@@ -143,7 +143,7 @@ wfac=WFacum
       if (wfac == TRUE){
         Result      <- GR2MSemiDistr::run_wfac(rast, qRaster, area, nsub, i)
         qSub[i,]    <- round(Result$Qsub,3)
-        qArray[,,i] <- as.matrix(Result$Qacum)
+        qArray[,,i] <- round(as.matrix(Result$Qacum),3)
       } else{
         qSub[i]  <- round(sum(qModel[i,], na.rm=T),3)
       }
