@@ -31,22 +31,22 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
                                Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd, RunIni, RunEnd,
                                IdBasin, Remove=FALSE, Plot=TRUE, IniState=NULL, wfac=TRUE){
 
-# Parameters=Model.Param
-# FlowDir='Flow_Direction.tif'
-# Mask='Centroids_mask.tif'
-# Input='Inputs_Basins.txt'
-# Region=Model.Region
-# Location=Location
-# Shapefile=File.Shape
-# WarmIni=WarmUp.Ini
-# WarmEnd=WarmUp.End
-# RunIni=RunModel.Ini
-# RunEnd=RunModel.End
-# IdBasin=Optim.Basin
-# Remove=Optim.Remove
-# Plot=TRUE
-# IniState=NULL
-# wfac=WFacum
+Parameters=Model.Param
+FlowDir='Flow_Direction.tif'
+Mask='Centroids_mask.tif'
+Input='Inputs_Basins.txt'
+Region=Model.Region
+Location=Location
+Shapefile=File.Shape
+WarmIni=WarmUp.Ini
+WarmEnd=WarmUp.End
+RunIni=RunModel.Ini
+RunEnd=RunModel.End
+IdBasin=Optim.Basin
+Remove=Optim.Remove
+Plot=TRUE
+IniState=NULL
+wfac=WFacum
 
   # Load packages
     require(ProgGUIinR)
@@ -159,7 +159,7 @@ Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direc
     if (wfac == TRUE){
       qBrick         <- setValues(qBrick, qArray)
       crs(qBrick)    <- crs(qMask)
-      extend(qBrick) <- extend(qMask)
+      extent(qBrick) <- extent(qMask)
       res(qBrick)    <- res(qMask)
 
       # Clean GRASS workspace
