@@ -122,7 +122,6 @@ wfac=WFacum
                              as.numeric(format(Database$DatesR[i],'%m')))
 
           foreach (j=1:nsub) %do% {
-
                 ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==Region[j]), subset(Param$X2, Param$Region==Region[j]))
                 Factor[[j]]    <- subset(Param$f, Param$Region==Region[j])
                 Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
@@ -195,7 +194,7 @@ wfac=WFacum
   # Streamflow simulated at the basin outlet and raster streamflows
     if (wfac == TRUE){
       QOUT <- qSub[Subset2,]
-      QRAS <- qBrick
+      QRAS <- qBrick[[Subset2]]
     } else{
       QOUT <- qSub[Subset2]
       QRAS <- NULL
