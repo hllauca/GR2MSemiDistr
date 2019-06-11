@@ -27,7 +27,9 @@ run_gr2m_step <- function(Model.Input, Model.Parameter, Model.State, Model.Run){
       # Set-up running options
       RunOptions    <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
                                         InputsModel=InputsModel,
-                                        IndPeriod_Run=Ind_Run)
+                                        IndPeriod_Run=Ind_Run,
+                                        verbose=FALSE,
+                                        warnings=FALSE)
 
       # Run GR2M
       OutputsModel  <- RunModel(InputsModel=InputsModel,
