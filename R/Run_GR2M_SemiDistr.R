@@ -116,7 +116,6 @@ wfac=WFacum
 
   # Start loop for each timestep
     for (i in 1:time){
-
       Date  <- format(Database$DatesR[i], "%m/%Y")
       nDays <- days.in.month(as.numeric(format(Database$DatesR[i],'%Y')),
                              as.numeric(format(Database$DatesR[i],'%m')))

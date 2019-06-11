@@ -30,6 +30,24 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
                                  Optimization='NSE', Region, Location, Shapefile, Input='Inputs_Basins.txt',
 								                 WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
+
+# Parameters=Model.Param
+# Parameters.Min=Model.ParMin
+# Parameters.Max=Model.ParMax
+# Max.Optimization=Optim.Max
+# Optimization=Optim.Eval
+# Region=Model.Region
+# Location=Location
+# Shapefile=File.Shape
+# Input='Inputs_Basins.txt'
+# WarmIni=WarmUp.Ini
+# WarmEnd=WarmUp.End
+# RunIni=RunModel.Ini
+# RunEnd=RunModel.End
+# IdBasin=Optim.Basin
+# Remove=Optim.Remove
+# No.Optim=No.Region
+
     # Load packages
       require(rgdal)
       require(raster)
@@ -48,6 +66,7 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     # Load shapefiles
       path.shp   <- file.path(Location,'Inputs', Shapefile)
       area       <- readOGR(path.shp, verbose=F)
+      surf       <- area@data$Area
       nsub       <- nrow(area@data)
 
     # Read input data
@@ -63,25 +82,36 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     # GR2M initial parameters
       nreg      <- length(sort(unique(Region)))
       Ini.Param <- data.frame(Region=sort(unique(Region)),
-                          X1=Parameters[1:nreg],
-                          X2=Parameters[(nreg+1):(2*nreg)],
-                          f=Parameters[((2*nreg)+1):length(Parameters)])
+                              X1=Parameters[1:nreg],
+                              X2=Parameters[(nreg+1):(2*nreg)],
+                              f=Parameters[((2*nreg)+1):length(Parameters)])
+
+      # Define calibration regions and parameters ranges to optimize
+      if (is.null(No.Optim)==TRUE){
+        Zone       <- sort(unique(Region))
+      } else{
+        Parameters <- Parameters[!(rep(Region,2) %in% No.Optim)]
+        Zone       <- sort(unique(Region[!(Region %in% No.Optim)]))
+      }
+      Parameters.Min <- rep(Parameters.Min, each=length(Zone))
+      Parameters.Max <- rep(Parameters.Max, each=length(Zone))
+
 
     # Objetive function
       OFUN <- function(Variable, Region2, Location2, nsub2, Database2, time2,
-                        RunIni2, RunEnd2, WarmIni2, WarmEnd2, IdBasin2,
-                        Remove2, Eval, No.Optim2, idx2, idy2, Stb2){
+                       RunIni2, RunEnd2, WarmIni2, WarmEnd2, IdBasin2,
+                       Remove2, Eval, No.Optim2, idx2, idy2, Stb2){
 
             # Select model parameters to optimize
             if (is.null(No.Optim2)==TRUE){
-              Optimization <- Variable
+              Par.Optim <- Variable
             } else{
-              dta          <- rbind(cbind(idx2[-idy2], Variable), cbind(idy2, Stb2))
-              Optimization <- dta[match(sort(dta[,1]), dta[,1]), 2]
+              dta       <- rbind(cbind(idx2[-idy2], Variable), cbind(idy2, Stb2))
+              Par.Optim <- dta[match(sort(dta[,1]), dta[,1]), 2]
             }
 
             # Auxiliary variables
-            qModel     <- matrix(NA, nrow=time , ncol=nsub2)
+            qModel     <- matrix(NA, nrow=time2, ncol=nsub2)
             qSub       <- vector()
             ParamSub   <- list()
             OutModel   <- list()
@@ -92,35 +122,35 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             FixInputs  <- list()
 
             # Model parameters to run GR2M model
-            Zone  <- sort(unique(Region2))
-            nreg  <- length(Zone)
-            Param <- data.frame(Zona=Zone,
-                                X1=Parameters[1:nreg],
-                                X2=Parameters[(nreg+1):(2*nreg)],
-                                f=Parameters[((2*nreg)+1):length(Parameters)])
+            Zone2 <- sort(unique(Region2))
+            nreg  <- length(Zone2)
+            Param <- data.frame(Zona=Zone2,
+                                X1=Par.Optim[1:nreg],
+                                X2=Par.Optim[(nreg+1):(2*nreg)],
+                                f=Par.Optim[((2*nreg)+1):length(Par.Optim)])
 
             # Start loop for each timestep
             for (i in 1:time2){
-              Date <- format(Database2$DatesR[i], "%m/%Y")
+              Date  <- format(Database2$DatesR[i], "%m/%Y")
+              nDays <- days.in.month(as.numeric(format(Database2$DatesR[i],'%Y')),
+                                     as.numeric(format(Database2$DatesR[i],'%m')))
 
-                    foreach (j=1:nsub2) %do% {
+                 foreach (j=1:nsub2) %do% {
 
-                    ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==Region[j]),
-                                        subset(Param$X2, Param$Zona==Region[j]))
-                    Factor[[j]]    <- subset(Param$f, Param$Zona==Region[j])
+                    ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==Region2[j]),
+                                        subset(Param$X2, Param$Zona==Region2[j]))
+                    Factor[[j]]    <- subset(Param$f, Param$Zona==Region2[j])
                     Inputs[[j]]    <- Database2[,c(1,j+1,j+1+nsub2)]
                     FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
-                    FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR,
-                                                        "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
-
+                    FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR,"GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
                     if (i==1){
                       IniState      <- NULL
-                      OutModel[[j]] <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
+                      OutModel[[j]] <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState, Date)
                     }else{
                       States[[j]]   <- OutModel[[j]]$StateEnd
                       OutModel[[j]] <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
                     }
-                    qModel[i,j]     <- round(OutModel[[j]]$Qsim,3)
+                    qModel[i,j]     <- round(OutModel[[j]]$Qsim*surf[j]/(86.4*nDays),3)
                 }
               qSub[i] <- round(sum(qModel[i,], na.rm=T),3)
 
@@ -137,13 +167,13 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             } #End loop
 
           # Subset data (without warm-up period)
-            Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni2),
-                               which(format(Database$DatesR, format="%m/%Y") == RunEnd2))
-            Database2   <- Database[Subset2,]
+            Subset2     <- seq(which(format(Database2$DatesR, format="%m/%Y") == RunIni2),
+                               which(format(Database2$DatesR, format="%m/%Y") == RunEnd2))
+            Database3   <- Database2[Subset2,]
 
           # Streamflow simulated at the basin outlet and raster streamflows
             Qsim <- qSub[Subset2]
-            Qobs <- Database2$Qmm
+            Qobs <- Database3$Qm3s
             if (Remove2==TRUE){
               Qsub <- qModel
               Qsim <- Qsim - Qsub[,IdBasin2]
@@ -152,35 +182,22 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
           # Evaluation criteria
             if (Eval == 'KGE'){
               H <- 1 - round(KGE(Qsim, Qobs),3)
-              return(H)
             }
             if (Eval == 'NSE'){
               H <- 1 - round(NSE(Qsim, Qobs),3)
-              return(H)
             }
             if (Eval == 'lnNSE'){
               H <- 1 - round(NSE(ln(Qsim), ln(Qobs)),3)
-              return(H)
             }
             if (Eval == 'RMSE'){
               H <- round(rmse(Qsim, Qobs),3)
-              return(H)
             }
             if (Eval == 'R'){
               H <- 1 - round(rPearson(Qsim, Qobs),3)
-              return(H)
             }
-    }
+          return(H)
+    } # End objectibe function
 
-  # Define calibration regions and parameters to optimize
-    if (is.null(No.Optim)==TRUE){
-      Zone       <- sort(unique(Region))
-    } else{
-      Parameters <- Parameters[!(rep(Region,2) %in% No.Optim)]
-      Zone       <- sort(unique(Region[!(Region %in% No.Optim)]))
-    }
-    Parameters.Min <- rep(Parameters.Min, each=length(Zone))
-    Parameters.Max <- rep(Parameters.Max, each=length(Zone))
 
   # Optimization with SCE-UA
     Ans <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max, maxn=Max.Optimization,
