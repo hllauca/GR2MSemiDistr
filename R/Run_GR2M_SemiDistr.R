@@ -194,7 +194,7 @@ wfac=WFacum
 
   # Streamflow simulated at the basin outlet and raster streamflows
     if (wfac == TRUE){
-      QOUT <- qSub[Subset2,IdBasin]
+      QOUT <- qSub[Subset2,]
       QRAS <- qBrick
     } else{
       QOUT <- qSub[Subset2]
