@@ -195,6 +195,7 @@ wfac=WFacum
     if (wfac == TRUE){
       QOUT <- qSub[Subset2,]
       QRAS <- qBrick[[Subset2]]
+      QRAS[QRAS==0]<-NA
     } else{
       QOUT <- qSub[Subset2]
       QRAS <- NULL
