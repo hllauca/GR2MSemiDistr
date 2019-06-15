@@ -1,50 +1,50 @@
-#' Optimization of GR2M model parameters with SCE-UA algorithm.
+#' Optimization of GR2M model parameters with MOPSOCD algorithm.
 #'
-#' @param Parameters       GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
-#' @param Parameters.Min   Minimum GR2M (X1, X2 and f) model parameters values.
-#' @param Parameters.Max   Maximum GR2M (X1, X2 and f) model parameters values.
-#' @param Optimization     Multi-objective evaluation criteria (NSE, lnNSE, KGE, RMSE, R)
-#' @param Region           Calibration region for each subbasin.
-#' @param Location         General work directory where data is located.
-#' @param Raster       Flow direction raster in GRASS format.
-#' @param Shapefile    Subbasins shapefile.
-#' @param Input        Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
-#' @param WarmIni      Initial date 'mm/yyyy' of the warm-up period.
-#' @param WarEnd       Final date 'mm/yyyy' of the warm-up period.
-#' @param RunIni       Initial date 'mm/yyyy' of the model evaluation period.
-#' @param RunEnd       Final date 'mm/yyyy' of the model evaluation period.
-#' @param IdBasin      Subbasin ID number to compute outlet model (from shapefile attribute table).
-#' @param Remove       Logical value to remove streamflow generated in the IdBasin. FALSE as default.
-#' @param No.Optim    Calibration regions to exclude
+#' @param Parameters		GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
+#' @param Parameters.Min	Minimum GR2M (X1, X2 and f) model parameters values.
+#' @param Parameters.Max	Maximum GR2M (X1, X2 and f) model parameters values.
+#' @param Optimization		Multi-objective evaluation criteria (NSE, lnNSE, KGE, RMSE, R)
+#' @param Region			Calibration region for each subbasin.
+#' @param Location			General work directory where data is located.
+#' @param Raster			Flow direction raster in GRASS format.
+#' @param Shapefile			Subbasins shapefile.
+#' @param Input				Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
+#' @param WarmIni   		Initial date 'mm/yyyy' of the warm-up period.
+#' @param WarEnd    		Final date 'mm/yyyy' of the warm-up period.
+#' @param RunIni    		Initial date 'mm/yyyy' of the model evaluation period.
+#' @param RunEnd    		Final date 'mm/yyyy' of the model evaluation period.
+#' @param IdBasin   		Subbasin ID number to compute outlet model (from shapefile attribute table).
+#' @param Remove    		Logical value to remove streamflow generated in the IdBasin. FALSE as default.
+#' @param No.Optim  Calibration regions to exclude
 #' @return Best semidistribute GR2M model parameters.
 #' @export
+#' @import  ProgGUIinR
 #' @import  rgdal
 #' @import  raster
 #' @import  rgeos
-#' @import  rtop
+#' @import  mopsocd
 #' @import  hydroGOF
 #' @import  foreach
 #' @import  tictoc
-Optim_GR2M_SemiDistr_MOPSOCD <- function(Parameters, Parameters.Min, Parameters.Max, Optimization=c('NSE','R'),
-                                         Region, Location, Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd,
-                                         RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
+Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Optimization=c('NSE','R'),
+								  Region, Location, Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd,
+								  RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
-
-Parameters=Model.Param
-Parameters.Min=Model.ParMin
-Parameters.Max=Model.ParMax
-Optimization=Optimization=c('NSE','R')
-Region=Model.Region
-Location=Location
-Shapefile=File.Shape
-Input='Inputs_Basins.txt'
-WarmIni=WarmUp.Ini
-WarmEnd=WarmUp.End
-RunIni=RunModel.Ini
-RunEnd=RunModel.End
-IdBasin=Optim.Basin
-Remove=Optim.Remove
-No.Optim=No.Region
+#Parameters=Model.Param
+#Parameters.Min=Model.ParMin
+#Parameters.Max=Model.ParMax
+#Optimization=Optimization=c('NSE','R')
+#Region=Model.Region
+#Location=Location
+#Shapefile=File.Shape
+#Input='Inputs_Basins.txt'
+#WarmIni=WarmUp.Ini
+#WarmEnd=WarmUp.End
+#RunIni=RunModel.Ini
+#RunEnd=RunModel.End
+#IdBasin=Optim.Basin
+#Remove=Optim.Remove
+#No.Optim=No.Region
 
     # Load packages
       require(rgdal)
@@ -95,8 +95,7 @@ No.Optim=No.Region
       Parameters.Min <- rep(Parameters.Min, each=length(Zone))
       Parameters.Max <- rep(Parameters.Max, each=length(Zone))
 
-
-    # Objetive function
+    # Objective function
       OFUN <- function(Variable){
 
             # Select model parameters to optimize
@@ -124,14 +123,13 @@ No.Optim=No.Region
                                 X2=Par.Optim[(nreg+1):(2*nreg)],
                                 f=Par.Optim[((2*nreg)+1):length(Par.Optim)])
 
-            # Start loop for each timestep
+            # Start loop for each time-step
             for (i in 1:time){
               Date  <- format(Database$DatesR[i], "%m/%Y")
               nDays <- days.in.month(as.numeric(format(Database$DatesR[i],'%Y')),
                                      as.numeric(format(Database$DatesR[i],'%m')))
 
                  foreach (j=1:nsub) %do% {
-
                     ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==Region[j]),
                                         subset(Param$X2, Param$Zona==Region[j]))
                     Factor[[j]]    <- subset(Param$f, Param$Zona==Region[j])
@@ -151,7 +149,7 @@ No.Optim=No.Region
 
               # Show message
                 cat('\f')
-                message('Optimazing with MOPSOCD')
+                message('Optimizing with MOPSOCD')
                 message('=======================')
                 message('Initial parameters:')
                 message(paste0(capture.output(Ini.Param), collapse = "\n"))
@@ -195,7 +193,7 @@ No.Optim=No.Region
                    fncnt=length(Optimization), 
                    lowerbound=Parameters.Min,
                    upperbound=Parameters.Max,
-                   opt=1) #Maximazing
+                   opt=1) #Maximizing
 
   # Show message
     message("Done!")
