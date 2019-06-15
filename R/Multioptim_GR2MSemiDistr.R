@@ -3,10 +3,9 @@
 #' @param Parameters       GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
 #' @param Parameters.Min   Minimum GR2M (X1, X2 and f) model parameters values.
 #' @param Parameters.Max   Maximum GR2M (X1, X2 and f) model parameters values.
-#' @param Max.Optimization Maximum number of functions used in the optimization loop. 5000 as default.
-#' @param Optimization     Evaluation criteria for GR2M optimization.
+#' @param Optimization     Multi-objective evaluation criteria (NSE, lnNSE, KGE, RMSE, R)
 #' @param Region           Calibration region for each subbasin.
-#' @param Location     General work directory where data is located.
+#' @param Location         General work directory where data is located.
 #' @param Raster       Flow direction raster in GRASS format.
 #' @param Shapefile    Subbasins shapefile.
 #' @param Input        Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
@@ -16,7 +15,7 @@
 #' @param RunEnd       Final date 'mm/yyyy' of the model evaluation period.
 #' @param IdBasin      Subbasin ID number to compute outlet model (from shapefile attribute table).
 #' @param Remove       Logical value to remove streamflow generated in the IdBasin. FALSE as default.
-#' @param No.Omptim    Calibration regions not to optimize.
+#' @param No.Optim    Calibration regions to exclude
 #' @return Best semidistribute GR2M model parameters.
 #' @export
 #' @import  rgdal
@@ -26,39 +25,39 @@
 #' @import  hydroGOF
 #' @import  foreach
 #' @import  tictoc
-Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Optimization=5000,
-                                 Optimization='NSE', Region, Location, Shapefile, Input='Inputs_Basins.txt',
-								                 WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
+Optim_GR2M_SemiDistr_MOPSOCD <- function(Parameters, Parameters.Min, Parameters.Max, Optimization=c('NSE','R'),
+                                         Region, Location, Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd,
+                                         RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
 
-# Parameters=Model.Param
-# Parameters.Min=Model.ParMin
-# Parameters.Max=Model.ParMax
-# Max.Optimization=Optim.Max
-# Optimization=Optim.Eval
-# Region=Model.Region
-# Location=Location
-# Shapefile=File.Shape
-# Input='Inputs_Basins.txt'
-# WarmIni=WarmUp.Ini
-# WarmEnd=WarmUp.End
-# RunIni=RunModel.Ini
-# RunEnd=RunModel.End
-# IdBasin=Optim.Basin
-# Remove=Optim.Remove
-# No.Optim=No.Region
+Parameters=Model.Param
+Parameters.Min=Model.ParMin
+Parameters.Max=Model.ParMax
+Optimization=Optimization=c('NSE','R')
+Region=Model.Region
+Location=Location
+Shapefile=File.Shape
+Input='Inputs_Basins.txt'
+WarmIni=WarmUp.Ini
+WarmEnd=WarmUp.End
+RunIni=RunModel.Ini
+RunEnd=RunModel.End
+IdBasin=Optim.Basin
+Remove=Optim.Remove
+No.Optim=No.Region
 
     # Load packages
       require(rgdal)
       require(raster)
       require(rgeos)
-      require(rtop)
+      require(ProgGUIinR)
+      require(mopsocd)
       require(hydroGOF)
       require(foreach)
       require(tictoc)
       tic()
 
-    # Filtering calibration region no to optimize
+    # Filtering calibration region to exclude
       idx <- 1:length(Parameters)
       idy <- which(No.Optim==rep(Region,2))
       Stb <- Parameters[idy]
@@ -73,7 +72,7 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
       Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
 
-    # Subset data for the study period
+    # Subset data for the entire study period
       Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
                          which(format(Data$DatesR, format="%m/%Y") == RunEnd))
       Database    <- Data[Subset,]
@@ -98,20 +97,18 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
 
     # Objetive function
-      OFUN <- function(Variable, Region2, Location2, nsub2, Database2, time2,
-                       RunIni2, RunEnd2, WarmIni2, WarmEnd2, IdBasin2,
-                       Remove2, Eval, No.Optim2, idx2, idy2, Stb2){
+      OFUN <- function(Variable){
 
             # Select model parameters to optimize
-            if (is.null(No.Optim2)==TRUE){
+            if (is.null(No.Optim)==TRUE){
               Par.Optim <- Variable
             } else{
-              dta       <- rbind(cbind(idx2[-idy2], Variable), cbind(idy2, Stb2))
+              dta       <- rbind(cbind(idx[-idy], Variable), cbind(idy, Stb))
               Par.Optim <- dta[match(sort(dta[,1]), dta[,1]), 2]
             }
 
             # Auxiliary variables
-            qModel     <- matrix(NA, nrow=time2, ncol=nsub2)
+            qModel     <- matrix(NA, nrow=time, ncol=nsub)
             qSub       <- vector()
             ParamSub   <- list()
             OutModel   <- list()
@@ -122,25 +119,23 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             FixInputs  <- list()
 
             # Model parameters to run GR2M model
-            Zone2 <- sort(unique(Region2))
-            nreg  <- length(Zone2)
-            Param <- data.frame(Zona=Zone2,
+            Param <- data.frame(Zona=sort(unique(Region)),
                                 X1=Par.Optim[1:nreg],
                                 X2=Par.Optim[(nreg+1):(2*nreg)],
                                 f=Par.Optim[((2*nreg)+1):length(Par.Optim)])
 
             # Start loop for each timestep
-            for (i in 1:time2){
-              Date  <- format(Database2$DatesR[i], "%m/%Y")
-              nDays <- days.in.month(as.numeric(format(Database2$DatesR[i],'%Y')),
-                                     as.numeric(format(Database2$DatesR[i],'%m')))
+            for (i in 1:time){
+              Date  <- format(Database$DatesR[i], "%m/%Y")
+              nDays <- days.in.month(as.numeric(format(Database$DatesR[i],'%Y')),
+                                     as.numeric(format(Database$DatesR[i],'%m')))
 
-                 foreach (j=1:nsub2) %do% {
+                 foreach (j=1:nsub) %do% {
 
-                    ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==Region2[j]),
-                                        subset(Param$X2, Param$Zona==Region2[j]))
-                    Factor[[j]]    <- subset(Param$f, Param$Zona==Region2[j])
-                    Inputs[[j]]    <- Database2[,c(1,j+1,j+1+nsub2)]
+                    ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==Region[j]),
+                                        subset(Param$X2, Param$Zona==Region[j]))
+                    Factor[[j]]    <- subset(Param$f, Param$Zona==Region[j])
+                    Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
                     FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
                     FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR,"GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
                     if (i==1){
@@ -156,8 +151,8 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
               # Show message
                 cat('\f')
-                message('Optimazing with SCE-UA')
-                message('======================')
+                message('Optimazing with MOPSOCD')
+                message('=======================')
                 message('Initial parameters:')
                 message(paste0(capture.output(Ini.Param), collapse = "\n"))
                 message(' ')
@@ -167,43 +162,40 @@ Optim_GR2M_SemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             } #End loop
 
           # Subset data (without warm-up period)
-            Subset2     <- seq(which(format(Database2$DatesR, format="%m/%Y") == RunIni2),
-                               which(format(Database2$DatesR, format="%m/%Y") == RunEnd2))
-            Database3   <- Database2[Subset2,]
+            Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+                               which(format(Database$DatesR, format="%m/%Y") == RunEnd))
+            Database2   <- Database[Subset2,]
 
           # Streamflow simulated at the basin outlet and raster streamflows
             Qsim <- qSub[Subset2]
-            Qobs <- Database3$Qm3s
-            if (Remove2==TRUE){
+            Qobs <- Database2$Qm3s
+            if (Remove==TRUE){
               Qsub <- qModel
-              Qsim <- Qsim - Qsub[,IdBasin2]
+              Qsim <- Qsim - Qsub[,IdBasin]
             }
 
-          # Evaluation criteria
-            if (Eval == 'KGE'){
-              H <- 1 - round(KGE(Qsim, Qobs),3)
-            }
-            if (Eval == 'NSE'){
-              H <- 1 - round(NSE(Qsim, Qobs),3)
-            }
-            if (Eval == 'lnNSE'){
-              H <- 1 - round(NSE(ln(Qsim), ln(Qobs)),3)
-            }
-            if (Eval == 'RMSE'){
-              H <- round(rmse(Qsim, Qobs),3)
-            }
-            if (Eval == 'R'){
-              H <- 1 - round(rPearson(Qsim, Qobs),3)
-            }
-          return(H)
-    } # End objectibe function
+          # Evaluation criteria dataframe
+            optim.df <- data.frame(KGE=round(KGE(Qsim, Qobs),3),
+                                   NSE=round(NSE(Qsim, Qobs),3),
+                                   lnNSE=round(NSE(ln(Qsim), ln(Qobs)),3),
+                                   RMSE=1-round(rmse(Qsim, Qobs),3),
+                                   R=round(rPearson(Qsim, Qobs),3))
+            
+            
+          # Return  
+          MOF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])
+          return(MOF)
+          
+    } # End objective function
 
 
-  # Optimization with SCE-UA
-    Ans <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max, maxn=Max.Optimization,
-                 Eval=Optimization, Region2=Region, Location2=Location, nsub2=nsub, Database2=Database, time2=time,
-                 RunIni2=RunIni, RunEnd2=RunEnd, WarmIni2=WarmIni, WarmEnd2=WarmEnd, IdBasin2=IdBasin,
-                 Remove2=Remove, No.Optim2=No.Optim, idx2=idx, idy2=idy, Stb2=Stb)
+  # Optimization with MOPSOCD
+    Ans <- mopsocd(OFUN,
+                   varcnt=length(Parameters),
+                   fncnt=length(Optimization), 
+                   lowerbound=Parameters.Min,
+                   upperbound=Parameters.Max,
+                   opt=1) #Maximazing
 
   # Show message
     message("Done!")
