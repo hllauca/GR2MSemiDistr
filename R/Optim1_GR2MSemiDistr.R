@@ -1,11 +1,11 @@
 #' Optimization of GR2M model parameters with SCE-UA algorithm.
 #'
-#' @param Parameters       	GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
-#' @param Parameters.Min   	Minimum GR2M (X1, X2 and f) model parameters values.
-#' @param Parameters.Max   	Maximum GR2M (X1, X2 and f) model parameters values.
+#' @param Parameters      GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
+#' @param Parameters.Min  Minimum GR2M (X1, X2 and f) model parameters values.
+#' @param Parameters.Max  Maximum GR2M (X1, X2 and f) model parameters values.
 #' @param Max.Functions 	Maximum number of functions used in the optimization loop. 5000 as default.
-#' @param Optimization     	Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R).
-#' @param Region           	Calibration region for each subbasin.
+#' @param Optimization    Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R).
+#' @param Region          Calibration region for each subbasin.
 #' @param Location     		General work directory where data is located.
 #' @param Raster       		Flow direction raster in GRASS format.
 #' @param Shapefile    		Subbasins shapefile.
@@ -17,7 +17,7 @@
 #' @param IdBasin      		Subbasin ID number to compute outlet model (from shapefile attribute table).
 #' @param Remove       		Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param No.Optim    		Calibration regions not to optimize.
-#' @return Best semidistribute GR2M model parameters.
+#' @return  Best semidistribute GR2M model parameters.
 #' @export
 #' @import  ProgGUIinR
 #' @import  rgdal
@@ -28,8 +28,8 @@
 #' @import  foreach
 #' @import  tictoc
 Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=5000,
-									 Optimization='NSE', Region, Location, Shapefile, Input='Inputs_Basins.txt',
-									 WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
+									               Optimization='NSE', Region, Location, Shapefile, Input='Inputs_Basins.txt',
+									               WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
 # Parameters=Model.Param
 # Parameters.Min=Model.ParMin
@@ -52,7 +52,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       require(rgdal)
       require(raster)
       require(rgeos)
-	  require(ProgGUIinR)
+	    require(ProgGUIinR)
       require(rtop)
       require(hydroGOF)
       require(foreach)
@@ -174,17 +174,17 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
               Qsim <- Qsim - Qsub[,IdBasin]
             }
 
-		  # Evaluation criteria dataframe
+		      # Evaluation criteria dataframe
             optim.df <- data.frame(KGE=1-round(KGE(Qsim, Qobs),3),
                                    NSE=1-round(NSE(Qsim, Qobs),3),
                                    lnNSE=1-round(NSE(ln(Qsim), ln(Qobs)),3),
                                    RMSE=round(rmse(Qsim, Qobs),3),
                                    R=1-round(rPearson(Qsim, Qobs),3))
-            
-          # Return  
+
+          # Return
           OF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])
           return(OF)
-		  
+
     } # End objective function
 
   # Optimization with SCE-UA
