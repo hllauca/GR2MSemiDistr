@@ -36,13 +36,13 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Da
     # Because of subbasins with less area than PISCOO pixel, we obtain the time series
     # for the centroid of the subbasin
     # Read precipitation data
-      load(file.path(Database, Precip)) #data_pp
-      nDataPP <- nlayers(data_pp)
+      pp      <- brick(file.path(Database, Precip))
+      nDataPP <- nlayers(pp)
 
     # Extract data for each subbasin
       DataPP <- matrix(NA, ncol=nBasins, nrow=length(DatesMonths))
       for (i in 1:nBasins){
-        pp.mask <- mask(data_pp, Basins[i,])
+        pp.mask <- mask(pp, Basins[i,])
         pp.mean <- as.vector(cellStats(pp.mask, "mean"))
         if (is.na(pp.mean[1]) == TRUE){
           xycen         <- coordinates(gCentroid(Basins[i,]))
