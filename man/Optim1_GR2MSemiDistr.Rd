@@ -5,9 +5,9 @@
 \title{Optimization of GR2M model parameters with SCE-UA algorithm.}
 \usage{
 Optim1_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Max.Functions = 5000, Optimization = "NSE", Region, Location,
-  Shapefile, Input = "Inputs_Basins.txt", WarmIni, WarmEnd, RunIni,
-  RunEnd, IdBasin, Remove = FALSE, No.Optim = NULL)
+  Max.Functions = 5000, Optimization = "NSE", Location, Shapefile,
+  Input = "Inputs_Basins.txt", WarmIni, WarmEnd, RunIni, RunEnd, IdBasin,
+  Remove = FALSE, No.Optim = NULL)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.}
@@ -19,8 +19,6 @@ Optim1_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \item{Max.Functions}{Maximum number of functions used in the optimization loop. 5000 as default.}
 
 \item{Optimization}{Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R).}
-
-\item{Region}{Calibration region for each subbasin.}
 
 \item{Location}{General work directory where data is located.}
 

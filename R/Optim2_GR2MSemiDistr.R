@@ -4,7 +4,6 @@
 #' @param Parameters.Min	 Minimum GR2M (X1, X2 and f) model parameters values.
 #' @param Parameters.Max	 Maximum GR2M (X1, X2 and f) model parameters values.
 #' @param Optimization		 Multi-objective evaluation criteria (NSE, lnNSE, KGE, RMSE, R)
-#' @param Region			     Calibration region for each subbasin.
 #' @param Location		 General work directory where data is located.
 #' @param Raster			 Flow direction raster in GRASS format.
 #' @param Shapefile		 Subbasins shapefile.
@@ -27,14 +26,13 @@
 #' @import  foreach
 #' @import  tictoc
 Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Optimization=c('NSE','R'),
-								                 Region, Location, Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd,
+								                 Location, Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd,
 								                 RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
 #Parameters=Model.Param
 #Parameters.Min=Model.ParMin
 #Parameters.Max=Model.ParMax
 #Optimization=Optimization=c('NSE','R')
-#Region=Model.Region
 #Location=Location
 #Shapefile=File.Shape
 #Input='Inputs_Basins.txt'
@@ -57,16 +55,18 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
       require(tictoc)
       tic()
 
-    # Filtering calibration region to exclude
-      idx <- 1:length(Parameters)
-      idy <- which(No.Optim==rep(Region,2))
-      Stb <- Parameters[idy]
 
     # Load shapefiles
       path.shp   <- file.path(Location,'Inputs', Shapefile)
       area       <- readOGR(path.shp, verbose=F)
       surf       <- area@data$Area
+      region     <- area@data$Region
       nsub       <- nrow(area@data)
+
+    # Filtering calibration region to exclude
+      idx <- 1:length(Parameters)
+      idy <- which(No.Optim==rep(region,2))
+      Stb <- Parameters[idy]
 
     # Read input data
       Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
@@ -79,18 +79,18 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
       time        <- length(Subset)
 
     # GR2M initial parameters
-      nreg      <- length(sort(unique(Region)))
-      Ini.Param <- data.frame(Region=sort(unique(Region)),
+      nreg      <- length(sort(unique(region)))
+      Ini.Param <- data.frame(Region=sort(unique(region)),
                               X1=Parameters[1:nreg],
                               X2=Parameters[(nreg+1):(2*nreg)],
                               f=Parameters[((2*nreg)+1):length(Parameters)])
 
       # Define calibration regions and parameters ranges to optimize
       if (is.null(No.Optim)==TRUE){
-        Zone       <- sort(unique(Region))
+        Zone       <- sort(unique(region))
       } else{
-        Parameters <- Parameters[!(rep(Region,2) %in% No.Optim)]
-        Zone       <- sort(unique(Region[!(Region %in% No.Optim)]))
+        Parameters <- Parameters[!(rep(region,2) %in% No.Optim)]
+        Zone       <- sort(unique(region[!(region %in% No.Optim)]))
       }
       Parameters.Min <- rep(Parameters.Min, each=length(Zone))
       Parameters.Max <- rep(Parameters.Max, each=length(Zone))
@@ -118,7 +118,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
             FixInputs  <- list()
 
             # Model parameters to run GR2M model
-            Param <- data.frame(Zona=sort(unique(Region)),
+            Param <- data.frame(Zona=sort(unique(region)),
                                 X1=Par.Optim[1:nreg],
                                 X2=Par.Optim[(nreg+1):(2*nreg)],
                                 f=Par.Optim[((2*nreg)+1):length(Par.Optim)])
@@ -130,9 +130,9 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
                                      as.numeric(format(Database$DatesR[i],'%m')))
 
                  foreach (j=1:nsub) %do% {
-                    ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==Region[j]),
-                                        subset(Param$X2, Param$Zona==Region[j]))
-                    Factor[[j]]    <- subset(Param$f, Param$Zona==Region[j])
+                    ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==region[j]),
+                                        subset(Param$X2, Param$Zona==region[j]))
+                    Factor[[j]]    <- subset(Param$f, Param$Zona==region[j])
                     Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
                     FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
                     FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR,"GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
