@@ -5,7 +5,7 @@
 \title{Optimization of GR2M model parameters with MOPSOCD algorithm.}
 \usage{
 Optim2_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Optimization = c("NSE", "R"), Region, Location, Shapefile,
+  Optimization = c("NSE", "R"), Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni, WarmEnd, RunIni, RunEnd, IdBasin,
   Remove = FALSE, No.Optim = NULL)
 }
@@ -17,8 +17,6 @@ Optim2_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \item{Parameters.Max}{Maximum GR2M (X1, X2 and f) model parameters values.}
 
 \item{Optimization}{Multi-objective evaluation criteria (NSE, lnNSE, KGE, RMSE, R)}
-
-\item{Region}{Calibration region for each subbasin.}
 
 \item{Location}{General work directory where data is located.}
 

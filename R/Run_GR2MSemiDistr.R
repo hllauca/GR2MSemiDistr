@@ -1,7 +1,6 @@
 #' Run lumped GR2M mode for each sub-basin and timestep.
 #'
 #' @param Parameters  GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.
-#' @param Region      Calibration regions for each subbasin.
 #' @param Location    General work directory where data is located.
 #' @param FlowDir     Flow direction raster in GRASS format (from 1 to 8). 'Flow_Direction.tif' as default.
 #' @param Mask        Subbasins centroids mask raster. 'Centroids_mask.tif' as default.
@@ -27,26 +26,25 @@
 #' @import  foreach
 #' @import  tictoc
 #' @import  ProgGUIinR
-Run_GR2M_SemiDistr <- function(Parameters, Region, Location, FlowDir='Flow_Direction.tif', Mask='Centroids_mask.tif',
-                               Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd, RunIni, RunEnd,
-                               IdBasin, Remove=FALSE, Plot=TRUE, IniState=NULL, wfac=TRUE){
+Run_GR2MSemiDistr <- function(Parameters, Location, FlowDir='Flow_Direction.tif', Mask='Centroids_mask.tif',
+                              Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd, RunIni, RunEnd,
+                              IdBasin, Remove=FALSE, Plot=TRUE, IniState=NULL, wfac=TRUE){
 
-Parameters=Model.Param
-FlowDir='Flow_Direction.tif'
-Mask='Centroids_mask.tif'
-Input='Inputs_Basins.txt'
-Region=Model.Region
-Location=Location
-Shapefile=File.Shape
-WarmIni=WarmUp.Ini
-WarmEnd=WarmUp.End
-RunIni=RunModel.Ini
-RunEnd=RunModel.End
-IdBasin=Optim.Basin
-Remove=Optim.Remove
-Plot=TRUE
-IniState=NULL
-wfac=WFacum
+# Parameters=Model.Param
+# FlowDir='Flow_Direction.tif'
+# Mask='Centroids_mask.tif'
+# Input='Inputs_Basins.txt'
+# Location=Location
+# Shapefile=File.Shape
+# WarmIni=WarmUp.Ini
+# WarmEnd=WarmUp.End
+# RunIni=RunModel.Ini
+# RunEnd=RunModel.End
+# IdBasin=Optim.Basin
+# Remove=Optim.Remove
+# Plot=TRUE
+# IniState=NULL
+# wfac=WFacum
 
   # Load packages
     require(ProgGUIinR)
@@ -68,6 +66,7 @@ wfac=WFacum
   # Load shapefiles and rasters
     area       <- readOGR(path.shp, verbose=F)
     surf       <- area@data$Area
+    region     <- area@data$Region
     nsub       <- nrow(area@data)
     rast       <- raster(path.rast)
 
@@ -107,9 +106,9 @@ wfac=WFacum
     FixInputs  <- list()
 
   # GR2M model parameters
-    Zone  <- sort(unique(Region))
+    Zone  <- sort(unique(region))
     nreg  <- length(Zone)
-    Param <- data.frame(Region=sort(unique(Region)),
+    Param <- data.frame(Region=sort(unique(region)),
                             X1=Parameters[1:nreg],
                             X2=Parameters[(nreg+1):(2*nreg)],
                              f=Parameters[((2*nreg)+1):length(Parameters)])
@@ -121,8 +120,8 @@ wfac=WFacum
                              as.numeric(format(Database$DatesR[i],'%m')))
 
           foreach (j=1:nsub) %do% {
-                ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==Region[j]), subset(Param$X2, Param$Region==Region[j]))
-                Factor[[j]]    <- subset(Param$f, Param$Region==Region[j])
+                ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
+                Factor[[j]]    <- subset(Param$f, Param$Region==region[j])
                 Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
                 FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
                 FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
@@ -204,8 +203,8 @@ wfac=WFacum
     PP  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
     PET <- matrix(NA, ncol=nsub, nrow=length(Subset2))
     for (w in 1:nsub){
-      PP[,w] <- subset(Param$f, Param$Region==Region[w])*Database2[,(w+1)]
-      PET[,w]<- subset(Param$f, Param$Region==Region[w])*Database2[,(nsub+w)]
+      PP[,w] <- subset(Param$f, Param$Region==region[w])*Database2[,(w+1)]
+      PET[,w]<- subset(Param$f, Param$Region==region[w])*Database2[,(nsub+w)]
     }
 
   # Model results
