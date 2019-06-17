@@ -33,7 +33,6 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 # Parameters=Model.Param
 # Parameters.Min=Model.ParMin
 # Parameters.Max=Model.ParMax
-# Max.Functions=Optim.Max
 # Optimization=Optim.Eval
 # Location=Location
 # Shapefile=File.Shape
@@ -170,7 +169,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             Qsim <- qSub[Subset2]
             Qobs <- Database2$Qm3s
             if (Remove==TRUE){
-              Qsub <- qModel
+              Qsub <- qModel[Subset2,]
               Qsim <- Qsim - Qsub[,IdBasin]
             }
 
