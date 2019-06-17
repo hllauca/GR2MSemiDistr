@@ -16,7 +16,7 @@ Optim2_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 
 \item{Parameters.Max}{Maximum GR2M (X1, X2 and f) model parameters values.}
 
-\item{Optimization}{Multi-objective evaluation criteria (NSE, lnNSE, KGE, RMSE, R)}
+\item{Optimization}{Multi-objective evaluation criteria (NSE, lnNSE, KGE, RMSE, R, PBIAS)}
 
 \item{Location}{General work directory where data is located.}
 

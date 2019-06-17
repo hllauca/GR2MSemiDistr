@@ -18,7 +18,7 @@ Optim1_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 
 \item{Max.Functions}{Maximum number of functions used in the optimization loop. 5000 as default.}
 
-\item{Optimization}{Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R).}
+\item{Optimization}{Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).}
 
 \item{Location}{General work directory where data is located.}
 
