@@ -175,12 +175,12 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             }
 
             # Evaluation criteria dataframe
-            optim.df <- data.frame(KGE=round(KGE(Qsim, Qobs, na.rm=T), 3),
-                                   NSE=round(NSE(Qsim, Qobs, na.rm=T), 3),
-                                   lnNSE=round(NSE(log(Qsim), log(Qobs), na.rm=T), 3),
-                                   RMSE=1-round(rmse(Qsim, Qobs, na.rm=T), 3),
-                                   R=round(rPearson(Qsim, Qobs, na.rm=T), 3),
-                                   PBIAS=round(pbias(Qsim, Qobs, na.rm=T), 3))
+            optim.df <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
+                                   NSE=round(NSE(Qsim, Qobs), 3),
+                                   lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
+                                   RMSE=1-round(rmse(Qsim, Qobs), 3),
+                                   R=round(rPearson(Qsim, Qobs), 3),
+                                   PBIAS=round(pbias(Qsim, Qobs), 3))
 
           # Return
           OF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])
