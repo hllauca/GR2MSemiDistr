@@ -168,7 +168,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
             Qsim <- qSub[Subset2]
             Qobs <- Database2$Qm3s
             if (Remove==TRUE){
-              Qsub <- qModel
+              Qsub <- qModel[Subset2,]
               Qsim <- Qsim - Qsub[,IdBasin]
             }
 
