@@ -5,18 +5,18 @@
 #' @param Parameters.Max  Maximum GR2M (X1, X2 and f) model parameters values.
 #' @param Max.Functions 	Maximum number of functions used in the optimization loop. 5000 as default.
 #' @param Optimization    Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R).
-#' @param Region          Calibration region for each subbasin.
-#' @param Location     		General work directory where data is located.
-#' @param Raster       		Flow direction raster in GRASS format.
-#' @param Shapefile    		Subbasins shapefile.
-#' @param Input        		Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
-#' @param WarmIni      		Initial date 'mm/yyyy' of the warm-up period.
-#' @param WarEnd       		Final date 'mm/yyyy' of the warm-up period.
-#' @param RunIni       		Initial date 'mm/yyyy' of the model evaluation period.
-#' @param RunEnd       		Final date 'mm/yyyy' of the model evaluation period.
-#' @param IdBasin      		Subbasin ID number to compute outlet model (from shapefile attribute table).
-#' @param Remove       		Logical value to remove streamflow generated in the IdBasin. FALSE as default.
-#' @param No.Optim    		Calibration regions not to optimize.
+#' @param Region      Calibration region for each subbasin.
+#' @param Location    General work directory where data is located.
+#' @param Raster      Flow direction raster in GRASS format.
+#' @param Shapefile   Subbasins shapefile.
+#' @param Input       Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
+#' @param WarmIni     Initial date 'mm/yyyy' of the warm-up period.
+#' @param WarmEnd     Final date 'mm/yyyy' of the warm-up period.
+#' @param RunIni      Initial date 'mm/yyyy' of the model evaluation period.
+#' @param RunEnd      Final date 'mm/yyyy' of the model evaluation period.
+#' @param IdBasin     Subbasin ID number to compute outlet model (from shapefile attribute table).
+#' @param Remove      Logical value to remove streamflow generated in the IdBasin. FALSE as default.
+#' @param No.Optim    Calibration regions not to optimize.
 #' @return  Best semidistribute GR2M model parameters.
 #' @export
 #' @import  ProgGUIinR
