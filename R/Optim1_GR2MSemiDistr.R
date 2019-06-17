@@ -4,7 +4,7 @@
 #' @param Parameters.Min  Minimum GR2M (X1, X2 and f) model parameters values.
 #' @param Parameters.Max  Maximum GR2M (X1, X2 and f) model parameters values.
 #' @param Max.Functions 	Maximum number of functions used in the optimization loop. 5000 as default.
-#' @param Optimization    Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R).
+#' @param Optimization    Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).
 #' @param Location    General work directory where data is located.
 #' @param Raster      Flow direction raster in GRASS format.
 #' @param Shapefile   Subbasins shapefile.
@@ -174,12 +174,13 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
               Qsim <- Qsim - Qsub[,IdBasin]
             }
 
-		      # Evaluation criteria dataframe
-            optim.df <- data.frame(KGE=1-round(KGE(Qsim, Qobs),3),
-                                   NSE=1-round(NSE(Qsim, Qobs),3),
-                                   lnNSE=1-round(NSE(ln(Qsim), ln(Qobs)),3),
-                                   RMSE=round(rmse(Qsim, Qobs),3),
-                                   R=1-round(rPearson(Qsim, Qobs),3))
+            # Evaluation criteria dataframe
+            optim.df <- data.frame(KGE=round(KGE(Qsim, Qobs, na.rm=T), 3),
+                                   NSE=round(NSE(Qsim, Qobs, na.rm=T), 3),
+                                   lnNSE=round(NSE(ln(Qsim), ln(Qobs), na.rm=T), 3),
+                                   RMSE=1-round(rmse(Qsim, Qobs, na.rm=T), 3),
+                                   R=round(rPearson(Qsim, Qobs, na.rm=T), 3),
+                                   PBIAS=round(pbias(Qsim, Qobs, na.rm=T), 3))
 
           # Return
           OF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])

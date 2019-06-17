@@ -3,7 +3,7 @@
 #' @param Parameters		   GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
 #' @param Parameters.Min	 Minimum GR2M (X1, X2 and f) model parameters values.
 #' @param Parameters.Max	 Maximum GR2M (X1, X2 and f) model parameters values.
-#' @param Optimization		 Multi-objective evaluation criteria (NSE, lnNSE, KGE, RMSE, R)
+#' @param Optimization		 Multi-objective evaluation criteria (NSE, lnNSE, KGE, RMSE, R, PBIAS)
 #' @param Location		 General work directory where data is located.
 #' @param Raster			 Flow direction raster in GRASS format.
 #' @param Shapefile		 Subbasins shapefile.
@@ -173,11 +173,12 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
             }
 
           # Evaluation criteria dataframe
-            optim.df <- data.frame(KGE=round(KGE(Qsim, Qobs),3),
-                                   NSE=round(NSE(Qsim, Qobs),3),
-                                   lnNSE=round(NSE(ln(Qsim), ln(Qobs)),3),
-                                   RMSE=1-round(rmse(Qsim, Qobs),3),
-                                   R=round(rPearson(Qsim, Qobs),3))
+            optim.df <- data.frame(KGE=round(KGE(Qsim, Qobs, na.rm=T), 3),
+                                   NSE=round(NSE(Qsim, Qobs, na.rm=T), 3),
+                                   lnNSE=round(NSE(ln(Qsim), ln(Qobs), na.rm=T), 3),
+                                   RMSE=1-round(rmse(Qsim, Qobs, na.rm=T), 3),
+                                   R=round(rPearson(Qsim, Qobs, na.rm=T), 3),
+                                   PBIAS=round(pbias(Qsim, Qobs, na.rm=T), 3))
 
           # Return
           MOF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])
