@@ -135,7 +135,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
                     ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==Region[j]),
                                          subset(Param$X2, Param$Zona==Region[j]))
                     Factor[[j]]    <- subset(Param$f, Param$Zona==Region[j])
-                    Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub2)]
+                    Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
                     FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
                     FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR,"GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
                     if (i==1){
