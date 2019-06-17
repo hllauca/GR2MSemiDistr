@@ -30,6 +30,8 @@ Optim1_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 
 \item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
 
+\item{WarmEnd}{Final date 'mm/yyyy' of the warm-up period.}
+
 \item{RunIni}{Initial date 'mm/yyyy' of the model evaluation period.}
 
 \item{RunEnd}{Final date 'mm/yyyy' of the model evaluation period.}
@@ -41,8 +43,6 @@ Optim1_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \item{No.Optim}{Calibration regions not to optimize.}
 
 \item{Raster}{Flow direction raster in GRASS format.}
-
-\item{WarEnd}{Final date 'mm/yyyy' of the warm-up period.}
 }
 \value{
 Best semidistribute GR2M model parameters.
