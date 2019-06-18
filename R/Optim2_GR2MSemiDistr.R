@@ -178,7 +178,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
                                    lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
                                    RMSE=1-round(rmse(Qsim, Qobs), 3),
                                    R=round(rPearson(Qsim, Qobs), 3),
-                                   PBIAS=round(pbias(Qsim, Qobs), 3))
+                                   PBIAS=1-round(pbias(Qsim, Qobs), 3))
 
           # Return
           MOF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])
