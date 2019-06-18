@@ -16,6 +16,14 @@
 #' @import  ncdf4
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, DateIni='1981/01/01', DateEnd='2019/02/01'){
 
+# Shapefile=File.Shape
+# Database=Database
+# Precip=File.Precip
+# PoEvap=File.PotEvap
+# Qobs=File.Qobs
+# DateIni='1981/01/01'
+# DateEnd='2019/02/01'
+
     # Load packages
       require(rgdal)
       require(raster)
@@ -48,7 +56,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Da
           xycen         <- coordinates(gCentroid(Basins[i,]))
           xy.point      <- SpatialPoints(matrix(as.numeric(xycen), ncol=2, nrow=1))
           crs(xy.point) <- crs(Basins)
-          pp.out        <- round(as.vector(extract(data_pp, xy.point, method='bilinear')),1)
+          pp.out        <- round(as.vector(extract(pp, xy.point, method='bilinear')),1)
         }else{
           pp.out        <- round(pp.mean,1)
         }
