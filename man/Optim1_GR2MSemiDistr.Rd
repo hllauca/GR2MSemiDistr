@@ -5,7 +5,7 @@
 \title{Optimization of GR2M model parameters with SCE-UA algorithm.}
 \usage{
 Optim1_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Max.Functions = 5000, Optimization = "NSE", Location, Shapefile,
+  Max.Functions = 10000, Optimization = "NSE", Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni, WarmEnd, RunIni, RunEnd, IdBasin,
   Remove = FALSE, No.Optim = NULL)
 }
