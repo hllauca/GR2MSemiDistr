@@ -186,7 +186,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, FlowDir='Flow_Direction.tif'
           Qsim <- qSub[Subset2] - qModel[Subset2]
           }
       }
-      ggof(Qsim, Qobs)
+      ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=2, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
     }
 
   # Streamflow simulated at the basin outlet and raster streamflows

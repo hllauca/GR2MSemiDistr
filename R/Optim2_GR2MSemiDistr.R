@@ -29,20 +29,20 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
 								                 Location, Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd,
 								                 RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
-#Parameters=Model.Param
-#Parameters.Min=Model.ParMin
-#Parameters.Max=Model.ParMax
-#Optimization=Optimization=c('NSE','R')
-#Location=Location
-#Shapefile=File.Shape
-#Input='Inputs_Basins.txt'
-#WarmIni=WarmUp.Ini
-#WarmEnd=WarmUp.End
-#RunIni=RunModel.Ini
-#RunEnd=RunModel.End
-#IdBasin=Optim.Basin
-#Remove=Optim.Remove
-#No.Optim=No.Region
+# Parameters=Model.Param
+# Parameters.Min=Model.ParMin
+# Parameters.Max=Model.ParMax
+# Optimization=Optimization=c('NSE','R')
+# Location=Location
+# Shapefile=File.Shape
+# Input='Inputs_Basins.txt'
+# WarmIni=WarmUp.Ini
+# WarmEnd=WarmUp.End
+# RunIni=RunModel.Ini
+# RunEnd=RunModel.End
+# IdBasin=Optim.Basin
+# Remove=Optim.Remove
+# No.Optim=No.Region
 
     # Load packages
       require(rgdal)
@@ -194,11 +194,18 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
                    upperbound=Parameters.Max,
                    opt=1) #Maximizing
 
+    fn   <- data.frame(Ans$objfnvalues)
+    pr   <- data.frame(Ans$paramvalues)
+    colnames(fn) <- Optimization
+    fn2  <- fn[colnames(fn) %in% 'NSE']
+    mof  <- subset(fn, fn2==max(fn2))
+    par  <- pr[which(fn2==max(fn2)),]
+
   # Show message
     message("Done!")
     toc()
 
   # Output
-    return(Ans)
+    return(list(par=par, value=mof))
 
 } # End (not run)

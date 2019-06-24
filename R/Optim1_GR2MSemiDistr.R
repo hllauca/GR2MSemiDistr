@@ -26,7 +26,7 @@
 #' @import  hydroGOF
 #' @import  foreach
 #' @import  tictoc
-Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=5000,
+Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=10000,
 									               Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
 									               WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
