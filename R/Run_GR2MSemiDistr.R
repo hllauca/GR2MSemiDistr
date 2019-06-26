@@ -169,10 +169,8 @@ Run_GR2MSemiDistr <- function(Parameters, Location, FlowDir='Flow_Direction.tif'
     Database2   <- Database[Subset2,]
 
 
-  # Show comparative figure
+    # Evaluation criteria at the outlet
     Qobs  <- round(Database2$Qm3s,3)
-    if (Plot==TRUE){
-      x11()
       if (Remove==FALSE){
         if (wfac == TRUE){
           Qsim <- qSub[Subset2, IdBasin]
@@ -182,10 +180,21 @@ Run_GR2MSemiDistr <- function(Parameters, Location, FlowDir='Flow_Direction.tif'
       } else{
         if (wfac == TRUE){
           Qsim <- qSub[Subset2, IdBasin] - qModel[Subset2, IdBasin]
-          } else{
+        } else{
           Qsim <- qSub[Subset2] - qModel[Subset2]
-          }
+        }
       }
+    evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
+                             NSE=round(NSE(Qsim, Qobs), 3),
+                             lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
+                             RMSE=round(rmse(Qsim, Qobs), 3),
+                             R=round(rPearson(Qsim, Qobs), 3),
+                             PBIAS=round(pbias(Qsim, Qobs), 3))
+
+
+    # Show comparative figure
+    if (Plot==TRUE){
+      x11()
       ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=2, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
     }
 
@@ -215,7 +224,8 @@ Run_GR2MSemiDistr <- function(Parameters, Location, FlowDir='Flow_Direction.tif'
               Precip=PP,
               Pevap=PET,
               Dates=Database2$DatesR,
-              EndState=EndState)
+              EndState=EndState,
+              Eval=evaluation)
 
   # Show message
   message('Done!')
