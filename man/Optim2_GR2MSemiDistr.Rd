@@ -6,7 +6,7 @@
 \usage{
 Optim2_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
   Optimization = c("NSE", "R"), Location, Shapefile,
-  Input = "Inputs_Basins.txt", WarmIni, WarmEnd, RunIni, RunEnd, IdBasin,
+  Input = "Inputs_Basins.txt", WarmIni, RunIni, RunEnd, IdBasin,
   Remove = FALSE, No.Optim = NULL)
 }
 \arguments{
@@ -25,8 +25,6 @@ Optim2_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \item{Input}{Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.}
 
 \item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
-
-\item{WarmEnd}{Final date 'mm/yyyy' of the warm-up period.}
 
 \item{RunIni}{Initial date 'mm/yyyy' of the model evaluation period.}
 

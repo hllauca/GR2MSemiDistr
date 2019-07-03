@@ -2,101 +2,75 @@
 #'
 #' @param Parameters  GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.
 #' @param Location    General work directory where data is located.
-#' @param FlowDir     Flow direction raster in GRASS format (from 1 to 8). 'Flow_Direction.tif' as default.
-#' @param Mask        Subbasins centroids mask raster. 'Centroids_mask.tif' as default.
 #' @param Shapefile   Subbasins shapefile.
 #' @param Input       Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
 #' @param WarmIni     Initial date 'mm/yyyy' of the warm-up period.
-#' @param WarEnd      Final date 'mm/yyyy' of the warm-up period.
 #' @param RunIni      Initial date 'mm/yyyy' of the model evaluation period.
 #' @param RunEnd      Final date 'mm/yyyy' of the model evaluation period.
 #' @param IdBasin     Subbasin ID number to compute outlet model (from shapefile attribute table).
 #' @param Remove      Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param Plot        Logical value to plot observed and simulated streamflow timeseries. TRUE as default.
 #' @param IniState    Initial GR2M states variables. NULL as default.
-#' @param wfac        Logical value to compute streamflows appliying the Weighted Flow Accumulation algorithm. TRUE as default.
 #' @return Semidistribute GR2M model outputs for a subbasin.
 #' @export
 #' @import  rgdal
 #' @import  raster
 #' @import  rgeos
-#' @import  rgrass7
 #' @import  rtop
 #' @import  hydroGOF
 #' @import  foreach
 #' @import  tictoc
 #' @import  ProgGUIinR
-Run_GR2MSemiDistr <- function(Parameters, Location, FlowDir='Flow_Direction.tif', Mask='Centroids_mask.tif',
-                              Shapefile, Input='Inputs_Basins.txt', WarmIni, WarmEnd, RunIni, RunEnd,
-                              IdBasin, Remove=FALSE, Plot=TRUE, IniState=NULL, wfac=TRUE){
+Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Basins.txt',
+                              WarmIni=NULL, RunIni, RunEnd, IdBasin, Remove=FALSE,
+                              Plot=TRUE, IniState=NULL){
 
 # Parameters=Model.Param
-# FlowDir='Flow_Direction.tif'
-# Mask='Centroids_mask.tif'
 # Input='Inputs_Basins.txt'
 # Location=Location
 # Shapefile=File.Shape
 # WarmIni=WarmUp.Ini
-# WarmEnd=WarmUp.End
 # RunIni=RunModel.Ini
 # RunEnd=RunModel.End
 # IdBasin=Optim.Basin
 # Remove=Optim.Remove
 # Plot=TRUE
 # IniState=NULL
-# wfac=WFacum
 
   # Load packages
     require(ProgGUIinR)
     require(rgdal)
     require(raster)
     require(rgeos)
-    require(rgrass7)
     require(rtop)
     require(hydroGOF)
     require(foreach)
     require(tictoc)
     tic()
 
-  # Shapefiles and rasters paths
+  # Load shapefile
     path.shp   <- file.path(Location,'Inputs', Shapefile)
-    path.rast  <- file.path(Location,'Inputs', FlowDir)
-    path.mask  <- file.path(Location,'Inputs', Mask)
+    basin      <- readOGR(path.shp, verbose=F)
+    area       <- basin@data$Area
+    region     <- basin@data$Region
+    nsub       <- nrow(basin@data)
 
-  # Load shapefiles and rasters
-    area       <- readOGR(path.shp, verbose=F)
-    surf       <- area@data$Area
-    region     <- area@data$Region
-    nsub       <- nrow(area@data)
-    rast       <- raster(path.rast)
-
-  # Read input data
+  # Read and subset input data for the study period
     Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
     Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
-
-  # Subset data for the study period
-    Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
-                       which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+    if(is.null(Warm.Ini)==TRUE){
+      Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
+                         which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+    } else{
+      Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
+                         which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+    }
     Database    <- Data[Subset,]
     time        <- length(Subset)
 
-  # Load GRASS (require to be installed previously)
-    if (wfac == TRUE){
-    loc <- initGRASS('C:/Program Files/GRASS GIS 7.4.4', home=getwd(),
-                     gisDbase="GRASS_TEMP", override=TRUE)
-    }
-
   # Auxiliary variables
-    qModel     <- matrix(NA, nrow=time , ncol=nsub)
-    if (wfac == TRUE){
-    qSub       <- matrix(NA, nrow=time , ncol=nsub)
-    qMask      <- raster(path.mask)
-    qRaster    <- qMask
-    qArray     <- array(NA, dim=c(nrow(qMask), ncol(qMask), time))
-    qBrick     <- brick(nr=nrow(qMask), nc=ncol(qMask), nl=time)
-    } else{
-    qSub       <- vector()
-    }
+    qSub       <- matrix(NA, nrow=time, ncol=nsub)
+    qOut       <- vector()
     ParamSub   <- list()
     OutModel   <- list()
     States     <- list()
@@ -131,20 +105,12 @@ Run_GR2MSemiDistr <- function(Parameters, Location, FlowDir='Flow_Direction.tif'
                 States[[j]]    <- OutModel[[j]]$StateEnd
                 OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
                 }
-                qModel[i,j]    <- round(OutModel[[j]]$Qsim*surf[j]/(86.4*nDays),3)
-                if (wfac == TRUE){
-                qRaster[qMask==j] <- qModel[i,j]
-                }
+                qSub[i,j]      <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
           }
 
     # Accumulate streamflow at the basin outlet
-      if (wfac == TRUE){
-        Result      <- GR2MSemiDistr::run_wfac(rast, qRaster, area, nsub, i)
-        qSub[i,]    <- round(Result$Qsub,3)
-        qArray[,,i] <- round(as.matrix(Result$Qacum),3)
-      } else{
-        qSub[i]  <- round(sum(qModel[i,], na.rm=T),3)
-      }
+      qOut[i]  <- round(sum(qSub[i,]),3)
+
     # Show message
       cat('\f')
       message('Running Semidistribute GR2M model')
@@ -152,77 +118,52 @@ Run_GR2MSemiDistr <- function(Parameters, Location, FlowDir='Flow_Direction.tif'
       message('Please wait..')
     }# End loop
 
-   # Compute streamflow raster brick
-    if (wfac == TRUE){
-      qBrick         <- setValues(qBrick, qArray)
-      crs(qBrick)    <- crs(qMask)
-      extent(qBrick) <- extent(qMask)
-      res(qBrick)    <- res(qMask)
-
-      # Clean GRASS workspace
-      unlink(file.path(getwd(), "GRASS_TEMP"), recursive=T)
+    # Subset data (without warm-up period)
+    if(is.null(Warm.Ini)==TRUE){
+      Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+                         which(format(Database$DatesR, format="%m/%Y") == RunEnd))
+      Database2   <- Database[Subset2,]
+    } else{
+      Subset2     <- Subset
+      Database2   <- Database
     }
 
-    # Subset data (without warm-up period)
-    Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
-                       which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-    Database2   <- Database[Subset2,]
-
-
     # Evaluation criteria at the outlet
-    Qobs  <- round(Database2$Qm3s,3)
-      if (Remove==FALSE){
-        if (wfac == TRUE){
-          Qsim <- qSub[Subset2, IdBasin]
-        } else{
-          Qsim <- qSub[Subset2]
-        }
-      } else{
-        if (wfac == TRUE){
-          Qsim <- qSub[Subset2, IdBasin] - qModel[Subset2, IdBasin]
-        } else{
-          Qsim <- qSub[Subset2] - qModel[Subset2]
-        }
-      }
+    Qall <- qOut
+    Qobs <- Database2$Qm3s
+    Qsim <- qOut[Subset2]
+    if (Remove==TRUE){
+      Qsim <- Qsim - qSub[Subset, IdBasin]
+      Qall <- Qall - qSub[,IdBasin]
+    }
     evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
                              NSE=round(NSE(Qsim, Qobs), 3),
                              lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
-                             RMSE=round(rmse(Qsim, Qobs), 3),
                              R=round(rPearson(Qsim, Qobs), 3),
+                             RMSE=round(rmse(Qsim, Qobs), 3),
                              PBIAS=round(pbias(Qsim, Qobs), 3))
-
 
     # Show comparative figure
     if (Plot==TRUE){
       x11()
-      ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=2, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
-    }
-
-  # Streamflow simulated at the basin outlet and raster streamflows
-    if (wfac == TRUE){
-      QOUT <- qSub[Subset2,]
-      QRAS <- qBrick[[Subset2]]
-      QRAS[QRAS==0]<-NA
-    } else{
-      QOUT <- qSub[Subset2]
-      QRAS <- NULL
+      ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
     }
 
   # Forcing data multiplying by a factor 'f'
-    PP  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-    PET <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+    pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+    pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
     for (w in 1:nsub){
-      PP[,w] <- subset(Param$f, Param$Region==region[w])*Database2[,(w+1)]
-      PET[,w]<- subset(Param$f, Param$Region==region[w])*Database2[,(nsub+w)]
+      pp[,w] <- subset(Param$f, Param$Region==region[w])*Database2[,(w+1)]
+      pet[,w]<- subset(Param$f, Param$Region==region[w])*Database2[,(nsub+w)]
     }
 
   # Model results
-  Ans <- list(Qout=QOUT,
-              Qras=QRAS,
+  Ans <- list(Qsim=Qsim,
               Qobs=Qobs,
-              Qsub=qModel[Subset2,],
-              Precip=PP,
-              Pevap=PET,
+              Qsub=qSub[Subset2,],
+              Qall=Qall,
+              Precip=pp,
+              Evaptr=pet,
               Dates=Database2$DatesR,
               EndState=EndState,
               Eval=evaluation)

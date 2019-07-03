@@ -5,8 +5,8 @@
 \title{Optimization of GR2M model parameters with SCE-UA algorithm.}
 \usage{
 Optim1_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Max.Functions = 10000, Optimization = "NSE", Location, Shapefile,
-  Input = "Inputs_Basins.txt", WarmIni, WarmEnd, RunIni, RunEnd, IdBasin,
+  Max.Functions = 5000, Optimization = "NSE", Location, Shapefile,
+  Input = "Inputs_Basins.txt", WarmIni, RunIni, RunEnd, IdBasin,
   Remove = FALSE, No.Optim = NULL)
 }
 \arguments{
@@ -27,8 +27,6 @@ Optim1_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \item{Input}{Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.}
 
 \item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
-
-\item{WarmEnd}{Final date 'mm/yyyy' of the warm-up period.}
 
 \item{RunIni}{Initial date 'mm/yyyy' of the model evaluation period.}
 
