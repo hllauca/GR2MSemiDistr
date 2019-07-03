@@ -58,7 +58,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
   # Read and subset input data for the study period
     Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
     Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
-    if(is.null(Warm.Ini)==TRUE){
+    if(is.null(WarmIni)==TRUE){
       Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
                          which(format(Data$DatesR, format="%m/%Y") == RunEnd))
     } else{
@@ -119,7 +119,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     }# End loop
 
     # Subset data (without warm-up period)
-    if(is.null(Warm.Ini)==TRUE){
+    if(is.null(WarmIni)==TRUE){
       Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
                          which(format(Database$DatesR, format="%m/%Y") == RunEnd))
       Database2   <- Database[Subset2,]
