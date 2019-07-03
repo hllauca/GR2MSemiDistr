@@ -4,19 +4,14 @@
 \alias{Run_GR2MSemiDistr}
 \title{Run lumped GR2M mode for each sub-basin and timestep.}
 \usage{
-Run_GR2MSemiDistr(Parameters, Location, FlowDir = "Flow_Direction.tif",
-  Mask = "Centroids_mask.tif", Shapefile, Input = "Inputs_Basins.txt",
-  WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove = FALSE,
-  Plot = TRUE, IniState = NULL, wfac = TRUE)
+Run_GR2MSemiDistr(Parameters, Location, Shapefile,
+  Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd, IdBasin,
+  Remove = FALSE, Plot = TRUE, IniState = NULL)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.}
 
 \item{Location}{General work directory where data is located.}
-
-\item{FlowDir}{Flow direction raster in GRASS format (from 1 to 8). 'Flow_Direction.tif' as default.}
-
-\item{Mask}{Subbasins centroids mask raster. 'Centroids_mask.tif' as default.}
 
 \item{Shapefile}{Subbasins shapefile.}
 
@@ -35,10 +30,6 @@ Run_GR2MSemiDistr(Parameters, Location, FlowDir = "Flow_Direction.tif",
 \item{Plot}{Logical value to plot observed and simulated streamflow timeseries. TRUE as default.}
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
-
-\item{wfac}{Logical value to compute streamflows appliying the Weighted Flow Accumulation algorithm. TRUE as default.}
-
-\item{WarEnd}{Final date 'mm/yyyy' of the warm-up period.}
 }
 \value{
 Semidistribute GR2M model outputs for a subbasin.

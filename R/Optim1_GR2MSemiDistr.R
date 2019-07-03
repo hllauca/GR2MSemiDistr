@@ -10,7 +10,6 @@
 #' @param Shapefile   Subbasins shapefile.
 #' @param Input       Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
 #' @param WarmIni     Initial date 'mm/yyyy' of the warm-up period.
-#' @param WarmEnd     Final date 'mm/yyyy' of the warm-up period.
 #' @param RunIni      Initial date 'mm/yyyy' of the model evaluation period.
 #' @param RunEnd      Final date 'mm/yyyy' of the model evaluation period.
 #' @param IdBasin     Subbasin ID number to compute outlet model (from shapefile attribute table).
@@ -26,9 +25,9 @@
 #' @import  hydroGOF
 #' @import  foreach
 #' @import  tictoc
-Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=10000,
+Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=5000,
 									               Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
-									               WarmIni, WarmEnd, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
+									               WarmIni, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
 
 # Parameters=Model.Param
 # Parameters.Min=Model.ParMin
@@ -38,14 +37,13 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 # Shapefile=File.Shape
 # Input='Inputs_Basins.txt'
 # WarmIni=WarmUp.Ini
-# WarmEnd=WarmUp.End
 # RunIni=RunModel.Ini
 # RunEnd=RunModel.End
 # IdBasin=Optim.Basin
 # Remove=Optim.Remove
 # No.Optim=No.Region
 
-    # Load packages
+      # Load packages
       require(rgdal)
       require(raster)
       require(rgeos)
@@ -56,31 +54,34 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       require(tictoc)
       tic()
 
-    # Load shapefiles
+      # Load shapefile
       path.shp   <- file.path(Location,'Inputs', Shapefile)
-      area       <- readOGR(path.shp, verbose=F)
-      surf       <- area@data$Area
-      region     <- area@data$Region
-      nsub       <- nrow(area@data)
+      basin      <- readOGR(path.shp, verbose=F)
+      area       <- basin@data$Area
+      region     <- basin@data$Region
+      nsub       <- nrow(basin@data)
 
-    # Filtering calibration region no to optimize
+      # Filtering calibration region no to optimize
       idx <- 1:length(Parameters)
       idy <- which(No.Optim==rep(region,2))
       Stb <- Parameters[idy]
 
-    # Read input data
+      # Read and subset input data for the study period
       Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
       Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
-
-    # Subset data for the study period
-      Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
-                         which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+      if(is.null(Warm.Ini)==TRUE){
+        Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
+                           which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+      } else{
+        Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
+                           which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+      }
       Database    <- Data[Subset,]
       time        <- length(Subset)
 
-    # GR2M initial parameters
-      nreg      <- length(sort(unique(region)))
-      Ini.Param <- data.frame(Region=sort(unique(region)),
+      # GR2M initial parameters
+      nreg        <- length(sort(unique(region)))
+      Ini.Param   <- data.frame(Region=sort(unique(region)),
                               X1=Parameters[1:nreg],
                               X2=Parameters[(nreg+1):(2*nreg)],
                               f=Parameters[((2*nreg)+1):length(Parameters)])
@@ -107,8 +108,8 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             }
 
             # Auxiliary variables
-            qModel     <- matrix(NA, nrow=time, ncol=nsub)
-            qSub       <- vector()
+            qSub       <- matrix(NA, nrow=time, ncol=nsub)
+            qOut       <- vector()
             ParamSub   <- list()
             OutModel   <- list()
             States     <- list()
@@ -129,23 +130,23 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
               nDays <- days.in.month(as.numeric(format(Database$DatesR[i],'%Y')),
                                      as.numeric(format(Database$DatesR[i],'%m')))
 
-                 foreach (j=1:nsub) %do% {
-                    ParamSub[[j]]  <- c(subset(Param$X1, Param$Zona==region[j]),
-                                         subset(Param$X2, Param$Zona==region[j]))
-                    Factor[[j]]    <- subset(Param$f, Param$Zona==region[j])
-                    Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
-                    FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
-                    FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR,"GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
-                    if (i==1){
-                      IniState      <- NULL
-                      OutModel[[j]] <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState, Date)
-                    }else{
-                      States[[j]]   <- OutModel[[j]]$StateEnd
-                      OutModel[[j]] <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
-                    }
-                    qModel[i,j]     <- round(OutModel[[j]]$Qsim*surf[j]/(86.4*nDays),3)
+              foreach (j=1:nsub) %do% {
+                ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
+                Factor[[j]]    <- subset(Param$f, Param$Region==region[j])
+                Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
+                FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
+                FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
+                if (i==1){
+                  OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
+                }else{
+                  States[[j]]    <- OutModel[[j]]$StateEnd
+                  OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
                 }
-              qSub[i] <- round(sum(qModel[i,], na.rm=T),3)
+                qSub[i,j]      <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
+              }
+
+              # Accumulate streamflow at the basin outlet
+              qOut[i]  <- round(sum(qSub[i,]),3)
 
               # Show message
                 cat('\f')
@@ -159,25 +160,29 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
                 message('Please wait..')
             } #End loop
 
-          # Subset data (without warm-up period)
-            Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
-                               which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-            Database2   <- Database[Subset2,]
-
-          # Streamflow simulated at the basin outlet and raster streamflows
-            Qsim <- qSub[Subset2]
-            Qobs <- Database2$Qm3s
-            if (Remove==TRUE){
-              Qsub <- qModel[Subset2,]
-              Qsim <- Qsim - Qsub[,IdBasin]
+            # Subset data (without warm-up period)
+            if(is.null(Warm.Ini)==TRUE){
+              Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+                                 which(format(Database$DatesR, format="%m/%Y") == RunEnd))
+              Database2   <- Database[Subset2,]
+            } else{
+              Subset2     <- Subset
+              Database2   <- Database
             }
 
-            # Evaluation criteria dataframe
+            # Evaluation criteria at the outlet
+            Qobs <- Database2$Qm3s
+            Qsim <- qOut[Subset2]
+            if (Remove==TRUE){
+              Qsim <- Qsim - qSub[Subset, IdBasin]
+            }
+
+            # Evaluation criteria dataframe (only minimizing)
             optim.df <- data.frame(KGE=1-round(KGE(Qsim, Qobs), 3),
                                    NSE=1-round(NSE(Qsim, Qobs), 3),
                                    lnNSE=1-round(NSE(log(Qsim), log(Qobs)), 3),
-                                   RMSE=round(rmse(Qsim, Qobs), 3),
                                    R=1-round(rPearson(Qsim, Qobs), 3),
+                                   RMSE=round(rmse(Qsim, Qobs), 3),
                                    PBIAS=round(pbias(Qsim, Qobs), 3))
 
           # Return
@@ -186,14 +191,22 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
     } # End objective function
 
-  # Optimization with SCE-UA
-    Ans <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max, maxn=Max.Functions)
+    # Optimization with SCE-UA
+    Calibration <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max, maxn=Max.Functions)
 
-  # Show message
+    # Extracting results
+    if (Optimization == 'PBIAS' | Optimization == 'RMSE'){
+    fo <- round(Calibration$value,3)
+    } else{
+    fo <- round(1-Ans$value,3)
+    }
+    Ans <- list(Param=round(Calibration$par,3), Value=fo)
+
+    # Show message
     message("Done!")
     toc()
 
-  # Output
+    # Output
     return(Ans)
 
 } # End (not run)
