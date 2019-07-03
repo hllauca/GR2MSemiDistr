@@ -18,7 +18,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir, Mask='Ce
   require(foreach)
   require(rgdal)
   require(raster)
-  require(tic)
+  require(tictoc)
   tic()
 
   # Load rasters
@@ -54,7 +54,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir, Mask='Ce
     }
 
     # Import Qsim rasters to GRASS
-    writeRAST(as(qRaster, 'SpatialGridDataFrame'), "qweight", overwrite=T)
+    writeRAST(as(qRas, 'SpatialGridDataFrame'), "qweight", overwrite=T)
 
     # Weighted flow accumulation
     execGRASS("r.accumulate", flags=c("overwrite"),  Sys_show.output.on.console=F,
