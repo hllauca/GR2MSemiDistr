@@ -3,7 +3,7 @@
 #' @param Location		 General work directory where data is located.
 #' @param Qmodel       Simulated streamflow matrix (time, subbasin) from Run_GR2MSemiDistr
 #' @param Shapefile		 Subbasins shapefile.
-#' @param FlowDir			 Flow direction raster in GRASS format.
+#' @param FlowDir			 Flow direction raster in GRASS format. 'Flow_Direction.tif' as default.
 #' @param Mask         Subbasins centroids mask raster. 'Centroids_mask.tif' as default.
 #' @return  Routing streamflow for each subbasin.
 #' @export
@@ -12,7 +12,13 @@
 #' @import  raster
 #' @import  foreach
 #' @import  tictoc
-Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir, Mask='Centroids_mask.tif'){
+Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir='Flow_Direction.tif', Mask='Centroids_mask.tif'){
+
+# Location=Location
+# Qmodel=Ans2$Qsub
+# Shapefile=File.Shape
+# FlowDir='Flow_Direction.tif'
+# Mask='Centroids_mask.tif'
 
   require(rgrass7)
   require(foreach)
@@ -51,7 +57,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir, Mask='Ce
     # Show message
     cat('\f')
     message('Routing outputs from Semidistribute GR2M model')
-    message(paste0('Timestep: ', i, "from", nrow(Qmodel)))
+    message(paste0('Timestep: ', i, " from ", nrow(Qmodel)))
     message('Please wait..')
 
     # Replace values for each subbasin (from Run_GR2MSemiDistr)
@@ -68,7 +74,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir, Mask='Ce
 
     # Load GRASS raster into R
     qAcum <- raster(readRAST('qacum'))
-    cat('\f')
+    # cat('\f')
 
     # Extract routing Qsim for each subbasin
     foreach (w=1:ncol(Qmodel)) %do% {

@@ -4,8 +4,8 @@
 \alias{Routing_GR2MSemiDistr}
 \title{Optimization of GR2M model parameters with MOPSOCD algorithm.}
 \usage{
-Routing_GR2MSemiDistr(Location, Qmodel, Shapefile, FlowDir,
-  Mask = "Centroids_mask.tif")
+Routing_GR2MSemiDistr(Location, Qmodel, Shapefile,
+  FlowDir = "Flow_Direction.tif", Mask = "Centroids_mask.tif")
 }
 \arguments{
 \item{Location}{General work directory where data is located.}
@@ -14,7 +14,7 @@ Routing_GR2MSemiDistr(Location, Qmodel, Shapefile, FlowDir,
 
 \item{Shapefile}{Subbasins shapefile.}
 
-\item{FlowDir}{Flow direction raster in GRASS format.}
+\item{FlowDir}{Flow direction raster in GRASS format. 'Flow_Direction.tif' as default.}
 
 \item{Mask}{Subbasins centroids mask raster. 'Centroids_mask.tif' as default.}
 }
