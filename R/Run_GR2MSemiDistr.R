@@ -106,6 +106,12 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                 OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
                 }
                 qSub[i,j]      <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
+
+                # Save last state from GR2M
+                if(i==time){
+                EndState[[j]]  <- OutModel[[j]]$StateEnd
+                }
+
           }
 
     # Accumulate streamflow at the basin outlet
