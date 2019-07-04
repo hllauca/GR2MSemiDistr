@@ -15,6 +15,7 @@
 #' @param IdBasin     Subbasin ID number to compute outlet model (from shapefile attribute table).
 #' @param Remove      Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param No.Optim    Calibration regions not to optimize.
+#' @param IniState    Initial GR2M states variables. NULL as default.
 #' @return  Best semidistribute GR2M model parameters.
 #' @export
 #' @import  ProgGUIinR
@@ -27,7 +28,7 @@
 #' @import  tictoc
 Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=5000,
 									               Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
-									               WarmIni, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
+									               WarmIni, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL, IniState=NULL){
 
 # Parameters=Model.Param
 # Parameters.Min=Model.ParMin
@@ -42,6 +43,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 # IdBasin=Optim.Basin
 # Remove=Optim.Remove
 # No.Optim=No.Region
+# IniState=NULL
 
       # Load packages
       require(rgdal)
@@ -82,9 +84,9 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       # GR2M initial parameters
       nreg        <- length(sort(unique(region)))
       Ini.Param   <- data.frame(Region=sort(unique(region)),
-                              X1=Parameters[1:nreg],
-                              X2=Parameters[(nreg+1):(2*nreg)],
-                              f=Parameters[((2*nreg)+1):length(Parameters)])
+                                X1=Parameters[1:nreg],
+                                X2=Parameters[(nreg+1):(2*nreg)],
+                                f=Parameters[((2*nreg)+1):length(Parameters)])
 
       # Define calibration regions and parameters ranges to optimize
       if (is.null(No.Optim)==TRUE){
@@ -119,7 +121,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             FixInputs  <- list()
 
             # Model parameters to run GR2M model
-            Param <- data.frame(Zona=sort(unique(region)),
+            Param <- data.frame(Region=sort(unique(region)),
                                 X1=Par.Optim[1:nreg],
                                 X2=Par.Optim[(nreg+1):(2*nreg)],
                                 f=Par.Optim[((2*nreg)+1):length(Par.Optim)])
@@ -161,14 +163,10 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             } #End loop
 
             # Subset data (without warm-up period)
-            if(is.null(WarmIni)==TRUE){
               Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
                                  which(format(Database$DatesR, format="%m/%Y") == RunEnd))
               Database2   <- Database[Subset2,]
-            } else{
-              Subset2     <- Subset
-              Database2   <- Database
-            }
+
 
             # Evaluation criteria at the outlet
             Qobs <- Database2$Qm3s

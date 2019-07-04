@@ -14,6 +14,7 @@
 #' @param IdBasin   	 Subbasin ID number to compute outlet model (from shapefile attribute table).
 #' @param Remove    	 Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param No.Optim     Calibration regions to exclude
+#' @param IniState    Initial GR2M states variables. NULL as default.
 #' @return  Best semidistribute GR2M model parameters.
 #' @export
 #' @import  ProgGUIinR
@@ -26,7 +27,7 @@
 #' @import  tictoc
 Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Optimization=c('NSE','R'),
 								                 Location, Shapefile, Input='Inputs_Basins.txt', WarmIni,
-								                 RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL){
+								                 RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL, IniState=NULL){
 
 # Parameters=Model.Param
 # Parameters.Min=Model.ParMin
@@ -41,6 +42,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
 # IdBasin=Optim.Basin
 # Remove=Optim.Remove
 # No.Optim=No.Region
+# IniState=NULL
 
         # Load packages
         require(rgdal)
@@ -118,7 +120,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           FixInputs  <- list()
 
           # Model parameters to run GR2M model
-          Param <- data.frame(Zona=sort(unique(region)),
+          Param <- data.frame(Region=sort(unique(region)),
                               X1=Par.Optim[1:nreg],
                               X2=Par.Optim[(nreg+1):(2*nreg)],
                               f=Par.Optim[((2*nreg)+1):length(Par.Optim)])
@@ -141,7 +143,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
                 States[[j]]    <- OutModel[[j]]$StateEnd
                 OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
               }
-              qSub[i,j]      <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
+              qSub[i,j]        <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
             }
 
             # Accumulate streamflow at the basin outlet
@@ -160,14 +162,9 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           } #End loop
 
           # Subset data (without warm-up period)
-          if(is.null(WarmIni)==TRUE){
             Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
                                which(format(Database$DatesR, format="%m/%Y") == RunEnd))
             Database2   <- Database[Subset2,]
-          } else{
-            Subset2     <- Subset
-            Database2   <- Database
-          }
 
           # Evaluation criteria at the outlet
           Qobs <- Database2$Qm3s
