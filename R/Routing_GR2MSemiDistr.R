@@ -48,9 +48,15 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir, Mask='Ce
 
   for (i in 1:nrow(Qmodel)){
 
+    # Show message
+    cat('\f')
+    message('Routing outputs from Semidistribute GR2M model')
+    message(paste0('Timestep: ', i, "from", nrow(Qmodel)))
+    message('Please wait..')
+
     # Replace values for each subbasin (from Run_GR2MSemiDistr)
     foreach (j=1:ncol(Qmodel)) %do% {
-      qRaster[qMask==j] <- Qmodel[i,j]
+      qRas[qMask==j] <- Qmodel[i,j]
     }
 
     # Import Qsim rasters to GRASS
@@ -72,6 +78,11 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir, Mask='Ce
     # Store Qacum data
     qArray[,,i] <- round(as.matrix(qAcum),3)
   }
+
+  # Show message
+  cat('\f')
+  message('Generating a raster brick')
+  message('Please wait..')
 
   # Convert an array to a raster brick
   qBrick         <- setValues(qBrick, qArray)
