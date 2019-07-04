@@ -7,7 +7,7 @@
 Optim2_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
   Optimization = c("NSE", "R"), Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni, RunIni, RunEnd, IdBasin,
-  Remove = FALSE, No.Optim = NULL)
+  Remove = FALSE, No.Optim = NULL, IniState = NULL)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.}
@@ -35,6 +35,8 @@ Optim2_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \item{Remove}{Logical value to remove streamflow generated in the IdBasin. FALSE as default.}
 
 \item{No.Optim}{Calibration regions to exclude}
+
+\item{IniState}{Initial GR2M states variables. NULL as default.}
 
 \item{Raster}{Flow direction raster in GRASS format.}
 }
