@@ -125,35 +125,30 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     }# End loop
 
     # Subset data (without warm-up period)
-    if(is.null(WarmIni)==TRUE){
       Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
                          which(format(Database$DatesR, format="%m/%Y") == RunEnd))
       Database2   <- Database[Subset2,]
-    } else{
-      Subset2     <- Subset
-      Database2   <- Database
-    }
 
     # Evaluation criteria at the outlet
-    Qall <- qOut
-    Qobs <- Database2$Qm3s
-    Qsim <- qOut[Subset2]
-    if (Remove==TRUE){
-      Qsim <- Qsim - qSub[Subset, IdBasin]
-      Qall <- Qall - qSub[,IdBasin]
-    }
-    evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
-                             NSE=round(NSE(Qsim, Qobs), 3),
-                             lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
-                             R=round(rPearson(Qsim, Qobs), 3),
-                             RMSE=round(rmse(Qsim, Qobs), 3),
-                             PBIAS=round(pbias(Qsim, Qobs), 3))
+      Qall <- qOut
+      Qobs <- Database2$Qm3s
+      Qsim <- qOut[Subset2]
+      if (Remove==TRUE){
+        Qsim <- Qsim - qSub[Subset2, IdBasin]
+        Qall <- Qall - qSub[,IdBasin]
+      }
+      evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
+                               NSE=round(NSE(Qsim, Qobs), 3),
+                               lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
+                               R=round(rPearson(Qsim, Qobs), 3),
+                               RMSE=round(rmse(Qsim, Qobs), 3),
+                               PBIAS=round(pbias(Qsim, Qobs), 3))
 
     # Show comparative figure
-    if (Plot==TRUE){
-      x11()
-      ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
-    }
+      if (Plot==TRUE){
+        x11()
+        ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
+      }
 
   # Forcing data multiplying by a factor 'f'
     pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
@@ -164,20 +159,20 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     }
 
   # Model results
-  Ans <- list(Qsim=Qsim,
-              Qobs=Qobs,
-              Qsub=qSub[Subset2,],
-              Qall=Qall,
-              Precip=pp,
-              Evaptr=pet,
-              Dates=Database2$DatesR,
-              EndState=EndState,
-              Eval=evaluation)
+    Ans <- list(Qsim=Qsim,
+                Qobs=Qobs,
+                Qsub=qSub[Subset2,],
+                Qall=Qall,
+                Precip=pp,
+                Evaptr=pet,
+                Dates=Database2$DatesR,
+                EndState=EndState,
+                Eval=evaluation)
 
   # Show message
-  message('Done!')
-  toc()
+    message('Done!')
+    toc()
 
   # Output
-  return(Ans)
+    return(Ans)
 }
