@@ -85,7 +85,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
         Ini.Param   <- data.frame(Region=sort(unique(region)),
                                   X1=Parameters[1:nreg],
                                   X2=Parameters[(nreg+1):(2*nreg)],
-                                  f=Parameters[((2*nreg)+1):length(Parameters)])
+                                  Fpet=Parameters[((2*nreg)+1):length(Parameters)])
 
         # Define calibration regions and parameters ranges to optimize
         if (is.null(No.Optim)==TRUE){
@@ -115,7 +115,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           OutModel   <- list()
           States     <- list()
           EndState   <- list()
-          Factor     <- list()
+          FactorPET  <- list()
           Inputs     <- list()
           FixInputs  <- list()
 
@@ -123,7 +123,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           Param <- data.frame(Region=sort(unique(region)),
                               X1=Par.Optim[1:nreg],
                               X2=Par.Optim[(nreg+1):(2*nreg)],
-                              f=Par.Optim[((2*nreg)+1):length(Par.Optim)])
+                              Fpet=Par.Optim[((2*nreg)+1):length(Par.Optim)])
 
           # Start loop for each timestep
           for (i in 1:time){
@@ -133,9 +133,9 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
 
             foreach (j=1:nsub) %do% {
               ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
-              Factor[[j]]    <- subset(Param$f, Param$Region==region[j])
+              FactorPET[[j]] <- subset(Param$Fpet, Param$Region==region[j])
               Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
-              FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
+              FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=Inputs[[j]][,2], E=round(FactorPET[[j]]*Inputs[[j]][,3],2))
               FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
               if (i==1){
                 OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
@@ -143,7 +143,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
                 States[[j]]    <- OutModel[[j]]$StateEnd
                 OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
               }
-              qSub[i,j]        <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
+              qSub[i,j]      <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
             }
 
             # Accumulate streamflow at the basin outlet
