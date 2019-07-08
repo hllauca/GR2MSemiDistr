@@ -12,9 +12,9 @@ Optim1_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.}
 
-\item{Parameters.Min}{Minimum GR2M (X1, X2 and f) model parameters values.}
+\item{Parameters.Min}{Minimum GR2M (X1, X2 and Fpet) model parameters values.}
 
-\item{Parameters.Max}{Maximum GR2M (X1, X2 and f) model parameters values.}
+\item{Parameters.Max}{Maximum GR2M (X1, X2 and Fpet) model parameters values.}
 
 \item{Max.Functions}{Maximum number of functions used in the optimization loop. 5000 as default.}
 

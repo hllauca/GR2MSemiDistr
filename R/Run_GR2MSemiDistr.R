@@ -25,17 +25,17 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                               WarmIni=NULL, RunIni, RunEnd, IdBasin, Remove=FALSE,
                               Plot=TRUE, IniState=NULL){
 
-# Parameters=Model.Param
-# Input='Inputs_Basins.txt'
-# Location=Location
-# Shapefile=File.Shape
-# WarmIni=WarmUp.Ini
-# RunIni=RunModel.Ini
-# RunEnd=RunModel.End
-# IdBasin=Optim.Basin
-# Remove=Optim.Remove
-# Plot=TRUE
-# IniState=NULL
+Parameters=Model.Param
+Input='Inputs_Basins.txt'
+Location=Location
+Shapefile=File.Shape
+WarmIni=WarmUp.Ini
+RunIni=RunModel.Ini
+RunEnd=RunModel.End
+IdBasin=Optim.Basin
+Remove=Optim.Remove
+Plot=TRUE
+IniState=NULL
 
   # Load packages
     require(ProgGUIinR)
@@ -75,7 +75,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     OutModel   <- list()
     States     <- list()
     EndState   <- list()
-    Factor     <- list()
+    FactorPET  <- list()
     Inputs     <- list()
     FixInputs  <- list()
 
@@ -85,7 +85,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     Param <- data.frame(Region=sort(unique(region)),
                             X1=Parameters[1:nreg],
                             X2=Parameters[(nreg+1):(2*nreg)],
-                             f=Parameters[((2*nreg)+1):length(Parameters)])
+                            Fpet=Parameters[((2*nreg)+1):length(Parameters)])
 
   # Start loop for each timestep
     for (i in 1:time){
@@ -95,9 +95,9 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
           foreach (j=1:nsub) %do% {
                 ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
-                Factor[[j]]    <- subset(Param$f, Param$Region==region[j])
+                FactorPET[[j]] <- subset(Param$Fpet, Param$Region==region[j])
                 Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
-                FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
+                FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=Inputs[[j]][,2], E=round(FactorPET[[j]]*Inputs[[j]][,3],2))
                 FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
                 if (i==1){
                 OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
@@ -150,12 +150,12 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
       }
 
-  # Forcing data multiplying by a factor 'f'
+  # Forcing data multiplying by a factor 'Fpet'
     pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
     pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
     for (w in 1:nsub){
-      pp[,w] <- subset(Param$f, Param$Region==region[w])*Database2[,(w+1)]
-      pet[,w]<- subset(Param$f, Param$Region==region[w])*Database2[,(nsub+w)]
+      pp[,w] <- Database2[,(w+1)]
+      pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
     }
 
   # Model results
