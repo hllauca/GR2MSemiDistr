@@ -25,17 +25,17 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                               WarmIni=NULL, RunIni, RunEnd, IdBasin, Remove=FALSE,
                               Plot=TRUE, IniState=NULL){
 
-# Parameters=Model.Param
-# Input='Inputs_Basins.txt'
-# Location=Location
-# Shapefile=File.Shape
-# WarmIni=WarmUp.Ini
-# RunIni=RunModel.Ini
-# RunEnd=RunModel.End
-# IdBasin=Optim.Basin
-# Remove=Optim.Remove
-# Plot=TRUE
-# IniState=NULL
+Parameters=Model.Param
+Input='Inputs_Basins.txt'
+Location=Location
+Shapefile=File.Shape
+WarmIni=WarmUp.Ini
+RunIni=RunModel.Ini
+RunEnd=RunModel.End
+IdBasin=Optim.Basin
+Remove=Optim.Remove
+Plot=TRUE
+IniState=NULL
 
   # Load packages
     require(ProgGUIinR)

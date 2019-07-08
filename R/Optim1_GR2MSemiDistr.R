@@ -26,8 +26,8 @@
 #' @import  hydroGOF
 #' @import  foreach
 #' @import  tictoc
-Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=5000,
-									               Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
+Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=10000,
+                                 Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
 									               WarmIni, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL, IniState=NULL){
 
 # Parameters=Model.Param
@@ -190,7 +190,8 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     } # End objective function
 
     # Optimization with SCE-UA
-    Calibration <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max, maxn=Max.Functions)
+    Calibration <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max,
+                         plog=c(TRUE, TRUE, FALSE), maxn=Max.Functions)
 
     # Extracting results
     if (Optimization == 'PBIAS' | Optimization == 'RMSE'){
