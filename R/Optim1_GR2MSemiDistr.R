@@ -1,8 +1,8 @@
 #' Optimization of GR2M model parameters with SCE-UA algorithm.
 #'
 #' @param Parameters      GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
-#' @param Parameters.Min  Minimum GR2M (X1, X2 and f) model parameters values.
-#' @param Parameters.Max  Maximum GR2M (X1, X2 and f) model parameters values.
+#' @param Parameters.Min  Minimum GR2M (X1, X2 and Fpet) model parameters values.
+#' @param Parameters.Max  Maximum GR2M (X1, X2 and Fpet) model parameters values.
 #' @param Max.Functions 	Maximum number of functions used in the optimization loop. 5000 as default.
 #' @param Optimization    Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).
 #' @param Location    General work directory where data is located.
@@ -86,7 +86,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       Ini.Param   <- data.frame(Region=sort(unique(region)),
                                 X1=Parameters[1:nreg],
                                 X2=Parameters[(nreg+1):(2*nreg)],
-                                 f=Parameters[((2*nreg)+1):length(Parameters)])
+                                Fpet=Parameters[((2*nreg)+1):length(Parameters)])
 
       # Define calibration regions and parameters ranges to optimize
       if (is.null(No.Optim)==TRUE){
@@ -116,7 +116,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             OutModel   <- list()
             States     <- list()
             EndState   <- list()
-            Factor     <- list()
+            FactorPET  <- list()
             Inputs     <- list()
             FixInputs  <- list()
 
@@ -124,7 +124,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             Param <- data.frame(Region=sort(unique(region)),
                                     X1=Par.Optim[1:nreg],
                                     X2=Par.Optim[(nreg+1):(2*nreg)],
-                                     f=Par.Optim[((2*nreg)+1):length(Par.Optim)])
+                                    Fpet=Par.Optim[((2*nreg)+1):length(Par.Optim)])
 
             # Start loop for each timestep
             for (i in 1:time){
@@ -134,9 +134,9 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
               foreach (j=1:nsub) %do% {
                   ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
-                  Factor[[j]]    <- subset(Param$f, Param$Region==region[j])
+                  FactorPET[[j]] <- subset(Param$Fpet, Param$Region==region[j])
                   Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
-                  FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], Factor[[j]]*Inputs[[j]][,c(2,3)])
+                  FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=Inputs[[j]][,2], E=round(FactorPET[[j]]*Inputs[[j]][,3],2))
                   FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
                   if (i==1){
                     OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
