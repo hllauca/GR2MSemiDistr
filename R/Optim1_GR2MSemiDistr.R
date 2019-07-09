@@ -90,6 +90,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       }
       Parameters.Min <- rep(Parameters.Min, each=length(Zone))
       Parameters.Max <- rep(Parameters.Max, each=length(Zone))
+      Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Zone))
 
       # Objective function
       OFUN <- function(Variable){
@@ -116,10 +117,10 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             # Model parameters to run GR2M model
             nreg  <- length(sort(unique(region)))
             Param <- data.frame(Region=sort(unique(region)),
-                                    X1=Par.Optim[1:nreg],
-                                    X2=Par.Optim[(nreg+1):(2*nreg)],
-                                    Fpet=Par.Optim[((2*nreg)+1):length(Par.Optim)])
-
+                                X1=Par.Optim[1:nreg],
+                                X2=Par.Optim[(nreg+1):(2*nreg)],
+                                Fpp=Par.Optim[(2*nreg+1):(3*nreg)],
+                                Fpet=Par.Optim[(3*nreg+1):length(Par.Optim)])
             # Start loop for each timestep
             for (i in 1:time){
               Date  <- format(Database$DatesR[i], "%m/%Y")
@@ -127,22 +128,23 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
                                      as.numeric(format(Database$DatesR[i],'%m')))
 
               foreach (j=1:nsub) %do% {
-                  ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
-                  FactorPET[[j]] <- subset(Param$Fpet, Param$Region==region[j])
-                  Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
-                  FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=Inputs[[j]][,2], E=round(FactorPET[[j]]*Inputs[[j]][,3],2))
-                  FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
-                  if (i==1){
-                    OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
-                  }else{
-                    States[[j]]    <- OutModel[[j]]$StateEnd
-                    OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
-                  }
-                  qSub[i,j]      <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
+                ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
+                FactorPP[[j]]  <- subset(Param$Fpp, Param$Region==region[j])
+                FactorPET[[j]] <- subset(Param$Fpet, Param$Region==region[j])
+                Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
+                FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=round(FactorPP[[j]]*Inputs[[j]][,2],1), E=round(FactorPET[[j]]*Inputs[[j]][,3],1))
+                FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
+                if (i==1){
+                  OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
+                }else{
+                  States[[j]]    <- OutModel[[j]]$StateEnd
+                  OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
+                }
+                qSub[i,j]      <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
               }
 
               # Accumulate streamflow at the basin outlet
-              qOut[i]  <- round(sum(qSub[i,]),3)
+              qOut[i]  <- round(sum(qSub[i,]),2)
 
             } #End loop
 
@@ -180,7 +182,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     message("==============================")
     message('Please wait...')
     Calibration <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max,
-                         plog=c(TRUE, TRUE, FALSE), maxn=Max.Functions)
+                         plog=Parameters.Log, maxn=Max.Functions)
 
     # Extracting results
     if (Optimization == 'PBIAS' | Optimization == 'RMSE'){
