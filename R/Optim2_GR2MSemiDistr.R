@@ -174,8 +174,9 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
   # Optimization with MOPSOCD
   # Show message
     cat('\f')
-    message(paste('Optimizing ', Optimization,' with MOPSOCD'))
-    message('Please wait..')
+    message(paste('Optimizing', Optimization, 'with MOPSOCD'))
+    message("==============================")
+    message('Please wait...')
     Calibration <- mopsocd(OFUN, varcnt=length(Parameters), fncnt=length(Optimization),
                    lowerbound=Parameters.Min, upperbound=Parameters.Max, opt=1) # Maximizing
     fn   <- data.frame(Calibration$objfnvalues)
