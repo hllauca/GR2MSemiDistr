@@ -144,10 +144,6 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
               # Accumulate streamflow at the basin outlet
               qOut[i]  <- round(sum(qSub[i,]),3)
 
-              # Show message
-                cat('\f')
-                message('Optimizing with SCE-UA')
-                message('Please wait..')
             } #End loop
 
             # Subset data (without warm-up period)
@@ -178,6 +174,9 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     } # End objective function
 
     # Optimization with SCE-UA
+    # Show message
+    message(paste('Optimizing ', Optimization,' with SCE-UA'))
+    message('Please wait..')
     Calibration <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max,
                          plog=c(TRUE, TRUE, FALSE), maxn=Max.Functions)
 
