@@ -62,6 +62,10 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
     # Extract monthly precipitation data for each subbasin
     # Because of subbasins with less area than PISCOO pixel, we obtain the time series
     # for the centroid of the subbasin
+    # Show message
+      cat('\f')
+      message('Extracting monthly precipitation [mm]')
+      message('Please wait...')
     # Read precipitation data
       pp      <- brick(file.path(Database, Precip))
 
@@ -80,9 +84,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       cl=makeCluster(detectCores()-1) #detectar y asignar numero de cluster
       clusterEvalQ(cl,c(library(raster))) #cargar paquete para aplicar a cada nodo
       clusterExport(cl,varlist=c("pp.res","pp.crop","positionPP","mask_Fast_Extract"),envir=environment())
-      cat('\f')
-      message('Extracting monthly precipitation [mm]')
-      message('Please wait...')
+
       mean.pp <- parLapply(cl, 1:nlayers(pp.crop), function(z) {
                      res <- raster::resample(pp.crop[[z]], pp.res, method='ngb')
                      ans <- mask_Fast_Extract(cov=res, positionPP, fun=mean, na.rm=T)
@@ -96,8 +98,12 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
     # Extract monthly potential evapotranspiration for each subbasin
     # Because of subbasins with less area than PISCOO pixel, we obtain the time series
     # for the centroid of the subbasin
+    # Show message
+      cat('\f')
+      message('Extracting monthly evapotranspiration [mm]')
+      message('Please wait...')
+
     # Read potential evapotranspiration data
-    # Read precipitation data
       pet      <- brick(file.path(Database, PotEvap))
 
     # Crop for basin domain
@@ -116,9 +122,6 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       clusterEvalQ(cl,c(library(raster))) #cargar paquete para aplicar a cada nodo
       clusterExport(cl,varlist=c("pet.res","pet.crop","positionPET","mask_Fast_Extract"),envir=environment())
 
-      cat('\f')
-      message('Extracting monthly evapotranspiration [mm]')
-      message('Please wait...')
       mean.pet <- parLapply(cl, 1:nlayers(pet.crop), function(z) {
         res <- raster::resample(pet.crop[[z]], pet.res, method='ngb')
         ans <- mask_Fast_Extract(cov=res, positionPET, fun=mean, na.rm=T)
@@ -126,13 +129,17 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       })
       stopCluster(cl) #Close the cluster
       mean.pet <- do.call(rbind, mean.pet)
+      message('Done!')
 
     # Create a vector of dates
       DatesMonths <- seq(as.Date(DateIni), as.Date(DateEnd), by='month')
 
-    # Save dataframe as .txt
-      Qobs <- read.table(Qobs, sep='\t', header=F)
-      df   <- data.frame(DatesMonths, mean.pp, mean.pet, Qobs)
+    # Subset streamflow data
+      Obs     <- read.table(Qobs, sep='\t', header=F)
+      Ind_Obs <- seq(which(as.Date(Obs[,1]) == DateIni),
+                     which(as.Date(Obs[,1]) == DateEnd))
+      Qobs    <- Obs[Ind_Obs,2]
+      df      <- data.frame(DatesMonths, mean.pp, mean.pet, Qobs)
       colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qm3s')
       write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
       toc()
