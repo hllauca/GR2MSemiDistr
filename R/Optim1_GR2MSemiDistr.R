@@ -110,6 +110,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             OutModel   <- list()
             States     <- list()
             EndState   <- list()
+            FactorPP   <- list()
             FactorPET  <- list()
             Inputs     <- list()
             FixInputs  <- list()
