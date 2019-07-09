@@ -21,7 +21,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
 # Shapefile=File.Shape
 # Database=Database
 # Precip=File.Precip
-# PoEvap=File.PotEvap
+# PotEvap=File.PotEvap
 # Qobs=File.Qobs
 # Resolution=0.01
 # DateIni='1981/01/01'
@@ -56,12 +56,14 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
         })
       }
 
+    # Create a vector of dates
+      DatesMonths <- seq(as.Date(DateIni), as.Date(DateEnd), by='month')
+
     # Load subbasins shapefiles
       Basins  <- readOGR(file.path(getwd(),'Inputs', Shapefile))
+      nBasins <- length(Basins)
 
     # Extract monthly precipitation data for each subbasin
-    # Because of subbasins with less area than PISCOO pixel, we obtain the time series
-    # for the centroid of the subbasin
     # Show message
       cat('\f')
       message('Extracting monthly precipitation [mm]')
@@ -90,14 +92,13 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
                      ans <- mask_Fast_Extract(cov=res, positionPP, fun=mean, na.rm=T)
                      return(ans)
                  })
-      stopCluster(cl) #Close the cluster
+      # stopCluster(cl) #Close the cluster
       mean.pp <- do.call(rbind, mean.pp)
+      mean.pp <- mean.pp[1:length(DatesMonths),]
       message('Done!')
 
 
     # Extract monthly potential evapotranspiration for each subbasin
-    # Because of subbasins with less area than PISCOO pixel, we obtain the time series
-    # for the centroid of the subbasin
     # Show message
       cat('\f')
       message('Extracting monthly evapotranspiration [mm]')
@@ -118,7 +119,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       positionPET  <- generate_mask_geom(pet.res[[1]], Basins)
 
     # Mean areal evapotranspiration for each subbasin
-      cl=makeCluster(detectCores()-1) #detectar y asignar numero de cluster
+      # cl=makeCluster(detectCores()-1) #detectar y asignar numero de cluster
       clusterEvalQ(cl,c(library(raster))) #cargar paquete para aplicar a cada nodo
       clusterExport(cl,varlist=c("pet.res","pet.crop","positionPET","mask_Fast_Extract"),envir=environment())
 
@@ -131,15 +132,12 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       mean.pet <- do.call(rbind, mean.pet)
       message('Done!')
 
-    # Create a vector of dates
-      DatesMonths <- seq(as.Date(DateIni), as.Date(DateEnd), by='month')
-
     # Subset streamflow data
-      Obs     <- read.table(Qobs, sep='\t', header=F)
+      Obs     <- read.table(file.path("Inputs",Qobs), sep='\t', header=F)
       Ind_Obs <- seq(which(as.Date(Obs[,1]) == DateIni),
                      which(as.Date(Obs[,1]) == DateEnd))
-      Qobs    <- Obs[Ind_Obs,2]
-      df      <- data.frame(DatesMonths, mean.pp, mean.pet, Qobs)
+      qobs    <- Obs[Ind_Obs,2]
+      df      <- data.frame(DatesMonths, mean.pp, mean.pet, qobs)
       colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qm3s')
       write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
       toc()
