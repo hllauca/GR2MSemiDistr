@@ -68,6 +68,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       cat('\f')
       message('Extracting monthly precipitation [mm]')
       message('Please wait...')
+
     # Read precipitation data
       pp      <- brick(file.path(Database, Precip))
 
@@ -94,8 +95,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
                  })
       # stopCluster(cl) #Close the cluster
       mean.pp <- do.call(rbind, mean.pp)
-      mean.pp <- mean.pp[1:length(DatesMonths),]
-      message('Done!')
+      mean.pp <- round(mean.pp[1:length(DatesMonths),],1)
 
 
     # Extract monthly potential evapotranspiration for each subbasin
@@ -130,7 +130,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       })
       stopCluster(cl) #Close the cluster
       mean.pet <- do.call(rbind, mean.pet)
-      message('Done!')
+      mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
 
     # Subset streamflow data
       Obs     <- read.table(file.path("Inputs",Qobs), sep='\t', header=F)
@@ -140,6 +140,6 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       df      <- data.frame(DatesMonths, mean.pp, mean.pet, qobs)
       colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qm3s')
       write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
-      toc()
       message('Done!')
+      toc()
 }# End (not run)
