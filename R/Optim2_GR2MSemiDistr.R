@@ -25,7 +25,7 @@
 #' @import  hydroGOF
 #' @import  foreach
 #' @import  tictoc
-Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Optimization=c('NSE','R'),
+Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Optimization=c('NSE','KGE'),
 								                 Location, Shapefile, Input='Inputs_Basins.txt', WarmIni,
 								                 RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL, IniState=NULL){
 
@@ -80,13 +80,6 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
         Database    <- Data[Subset,]
         time        <- length(Subset)
 
-        # GR2M initial parameters
-        nreg        <- length(sort(unique(region)))
-        Ini.Param   <- data.frame(Region=sort(unique(region)),
-                                  X1=Parameters[1:nreg],
-                                  X2=Parameters[(nreg+1):(2*nreg)],
-                                  Fpet=Parameters[((2*nreg)+1):length(Parameters)])
-
         # Define calibration regions and parameters ranges to optimize
         if (is.null(No.Optim)==TRUE){
           Zone       <- sort(unique(region))
@@ -120,6 +113,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           FixInputs  <- list()
 
           # Model parameters to run GR2M model
+          nreg  <- length(sort(unique(region)))
           Param <- data.frame(Region=sort(unique(region)),
                               X1=Par.Optim[1:nreg],
                               X2=Par.Optim[(nreg+1):(2*nreg)],
@@ -152,12 +146,6 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
             # Show message
             cat('\f')
             message('Optimizing with SCE-UA')
-            message('======================')
-            message('Initial parameters:')
-            message(paste0(capture.output(Ini.Param), collapse = "\n"))
-            message(' ')
-            message('Running Semidistribute GR2M model')
-            message(paste0('Time step: ', format(Database$DatesR[i], "%b-%Y")))
             message('Please wait..')
           } #End loop
 
