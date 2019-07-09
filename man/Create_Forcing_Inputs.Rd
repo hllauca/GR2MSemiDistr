@@ -5,7 +5,7 @@
 \title{Create a TXT file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).}
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs,
-  DateIni = "1981/01/01", DateEnd = "2019/02/01")
+  Resolution = 0.01, DateIni = "1981/01/01", DateEnd = "2016/12/01")
 }
 \arguments{
 \item{Shapefile}{Subbasins shapefile.}
@@ -18,9 +18,11 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs,
 
 \item{Qobs}{Observed streamflow data (in m3/s) for the study period.}
 
+\item{Resolution}{Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.}
+
 \item{DateIni}{Initial subset date in 'yyyy/mm/dd' format. '1981/01/01' as default}
 
-\item{DateEnd}{Final subset date in 'yyyy/mm/dd' format. '2019/02/01' as default}
+\item{DateEnd}{Final subset date in 'yyyy/mm/dd' format. '2016/12/01' as default}
 }
 \value{
 Export a text file with forcing data inputs to run semidistribute GR2M model.
