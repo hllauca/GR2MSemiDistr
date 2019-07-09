@@ -25,17 +25,17 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                               WarmIni=NULL, RunIni, RunEnd, IdBasin, Remove=FALSE,
                               Plot=TRUE, IniState=NULL){
 
-Parameters=Model.Param
-Input='Inputs_Basins.txt'
-Location=Location
-Shapefile=File.Shape
-WarmIni=WarmUp.Ini
-RunIni=RunModel.Ini
-RunEnd=RunModel.End
-IdBasin=Optim.Basin
-Remove=Optim.Remove
-Plot=TRUE
-IniState=NULL
+# Parameters=Model.Param
+# Input='Inputs_Basins.txt'
+# Location=Location
+# Shapefile=File.Shape
+# WarmIni=WarmUp.Ini
+# RunIni=RunModel.Ini
+# RunEnd=RunModel.End
+# IdBasin=Optim.Basin
+# Remove=Optim.Remove
+# Plot=TRUE
+# IniState=NULL
 
   # Load packages
     require(ProgGUIinR)
@@ -75,6 +75,7 @@ IniState=NULL
     OutModel   <- list()
     States     <- list()
     EndState   <- list()
+    FactorPP   <- list()
     FactorPET  <- list()
     Inputs     <- list()
     FixInputs  <- list()
@@ -85,7 +86,8 @@ IniState=NULL
     Param <- data.frame(Region=sort(unique(region)),
                             X1=Parameters[1:nreg],
                             X2=Parameters[(nreg+1):(2*nreg)],
-                            Fpet=Parameters[((2*nreg)+1):length(Parameters)])
+                            Fpp=Parameters[(2*nreg+1):(3*nreg)],
+                            Fpet=Parameters[(3*nreg+1):length(Parameters)])
 
   # Start loop for each timestep
     for (i in 1:time){
@@ -95,9 +97,10 @@ IniState=NULL
 
           foreach (j=1:nsub) %do% {
                 ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
+                FactorPP[[j]]  <- subset(Param$Fpp, Param$Region==region[j])
                 FactorPET[[j]] <- subset(Param$Fpet, Param$Region==region[j])
                 Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
-                FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=Inputs[[j]][,2], E=round(FactorPET[[j]]*Inputs[[j]][,3],2))
+                FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=round(FactorPP[[j]]*Inputs[[j]][,2],1), E=round(FactorPET[[j]]*Inputs[[j]][,3],1))
                 FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
                 if (i==1){
                 OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
@@ -115,7 +118,7 @@ IniState=NULL
           }
 
     # Accumulate streamflow at the basin outlet
-      qOut[i]  <- round(sum(qSub[i,]),3)
+      qOut[i]  <- round(sum(qSub[i,]),2)
 
     # Show message
       cat('\f')
@@ -154,7 +157,7 @@ IniState=NULL
     pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
     pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
     for (w in 1:nsub){
-      pp[,w] <- Database2[,(w+1)]
+      pp[,w] <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
       pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
     }
 
