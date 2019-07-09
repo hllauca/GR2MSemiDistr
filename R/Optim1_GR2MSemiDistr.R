@@ -175,6 +175,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
     # Optimization with SCE-UA
     # Show message
+    cat('\f')
     message(paste('Optimizing ', Optimization,' with SCE-UA'))
     message('Please wait..')
     Calibration <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max,
