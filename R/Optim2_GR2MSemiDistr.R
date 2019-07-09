@@ -143,10 +143,6 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
             # Accumulate streamflow at the basin outlet
             qOut[i]  <- round(sum(qSub[i,]),3)
 
-            # Show message
-            cat('\f')
-            message('Optimizing with SCE-UA')
-            message('Please wait..')
           } #End loop
 
           # Subset data (without warm-up period)
@@ -176,6 +172,9 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
     } # End objective function
 
   # Optimization with MOPSOCD
+  # Show message
+    message(paste('Optimizing ', Optimization,' with MOPSOCD'))
+    message('Please wait..')
     Calibration <- mopsocd(OFUN, varcnt=length(Parameters), fncnt=length(Optimization),
                    lowerbound=Parameters.Min, upperbound=Parameters.Max, opt=1) # Maximizing
     fn   <- data.frame(Calibration$objfnvalues)
