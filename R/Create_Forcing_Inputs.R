@@ -114,7 +114,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
     # Mean areal evapotranspiration for each subbasin
       cl=makeCluster(detectCores()-1) #detectar y asignar numero de cluster
       clusterEvalQ(cl,c(library(raster))) #cargar paquete para aplicar a cada nodo
-      clusterExport(cl,varlist=c("pet.res","pet.crop","positionP","mask_Fast_Extract"),envir=environment())
+      clusterExport(cl,varlist=c("pet.res","pet.crop","positionPET","mask_Fast_Extract"),envir=environment())
 
       cat('\f')
       message('Extracting monthly evapotranspiration [mm]')
