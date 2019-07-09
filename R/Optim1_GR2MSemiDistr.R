@@ -81,13 +81,6 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       Database    <- Data[Subset,]
       time        <- length(Subset)
 
-      # GR2M initial parameters
-      nreg        <- length(sort(unique(region)))
-      Ini.Param   <- data.frame(Region=sort(unique(region)),
-                                X1=Parameters[1:nreg],
-                                X2=Parameters[(nreg+1):(2*nreg)],
-                                Fpet=Parameters[((2*nreg)+1):length(Parameters)])
-
       # Define calibration regions and parameters ranges to optimize
       if (is.null(No.Optim)==TRUE){
         Zone       <- sort(unique(region))
@@ -121,6 +114,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
             FixInputs  <- list()
 
             # Model parameters to run GR2M model
+            nreg  <- length(sort(unique(region)))
             Param <- data.frame(Region=sort(unique(region)),
                                     X1=Par.Optim[1:nreg],
                                     X2=Par.Optim[(nreg+1):(2*nreg)],
@@ -153,12 +147,6 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
               # Show message
                 cat('\f')
                 message('Optimizing with SCE-UA')
-                message('======================')
-                message('Initial parameters:')
-                message(paste0(capture.output(Ini.Param), collapse = "\n"))
-                message(' ')
-                message('Running Semidistribute GR2M model')
-                message(paste0('Time step: ', format(Database$DatesR[i], "%b-%Y")))
                 message('Please wait..')
             } #End loop
 
@@ -199,7 +187,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     } else{
     fo <- round(1-Calibration$value,3)
     }
-    Ans <- list(Param=round(Calibration$par,3), Value=fo)
+    Ans <- list(Param=round(Calibration$par,3), Value=fo, Fun=Calibration)
 
     # Show message
     message("Done!")

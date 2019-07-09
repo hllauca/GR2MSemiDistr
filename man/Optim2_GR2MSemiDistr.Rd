@@ -5,7 +5,7 @@
 \title{Optimization of GR2M model parameters with MOPSOCD algorithm.}
 \usage{
 Optim2_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Optimization = c("NSE", "R"), Location, Shapefile,
+  Optimization = c("NSE", "KGE"), Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni, RunIni, RunEnd, IdBasin,
   Remove = FALSE, No.Optim = NULL, IniState = NULL)
 }
