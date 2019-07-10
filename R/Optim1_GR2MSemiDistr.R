@@ -44,6 +44,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 # Remove=Optim.Remove
 # No.Optim=No.Region
 # IniState=NULL
+# Max.Functions=1000
 
       # Load packages
       require(rgdal)
@@ -122,6 +123,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
                                 X2=Par.Optim[(nreg+1):(2*nreg)],
                                 Fpp=Par.Optim[(2*nreg+1):(3*nreg)],
                                 Fpet=Par.Optim[(3*nreg+1):length(Par.Optim)])
+
             # Start loop for each timestep
             for (i in 1:time){
               Date  <- format(Database$DatesR[i], "%m/%Y")
@@ -183,7 +185,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     message("==============================")
     message('Please wait...')
     Calibration <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max,
-                         plog=Parameters.Log, maxn=Max.Functions)
+                         plog=Parameters.Log, maxn=Max.Functions, kstop=3, pcento=0.1)
 
     # Extracting results
     if (Optimization == 'PBIAS' | Optimization == 'RMSE'){

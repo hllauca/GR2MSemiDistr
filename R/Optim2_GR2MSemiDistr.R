@@ -108,6 +108,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           OutModel   <- list()
           States     <- list()
           EndState   <- list()
+          FactorPP   <- list()
           FactorPET  <- list()
           Inputs     <- list()
           FixInputs  <- list()
@@ -117,7 +118,8 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           Param <- data.frame(Region=sort(unique(region)),
                               X1=Par.Optim[1:nreg],
                               X2=Par.Optim[(nreg+1):(2*nreg)],
-                              Fpet=Par.Optim[((2*nreg)+1):length(Par.Optim)])
+                              Fpp=Par.Optim[(2*nreg+1):(3*nreg)],
+                              Fpet=Par.Optim[(3*nreg+1):length(Par.Optim)])
 
           # Start loop for each timestep
           for (i in 1:time){
@@ -127,9 +129,10 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
 
             foreach (j=1:nsub) %do% {
               ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
+              FactorPP[[j]]  <- subset(Param$Fpp, Param$Region==region[j])
               FactorPET[[j]] <- subset(Param$Fpet, Param$Region==region[j])
               Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
-              FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=Inputs[[j]][,2], E=round(FactorPET[[j]]*Inputs[[j]][,3],2))
+              FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=round(FactorPP[[j]]*Inputs[[j]][,2],1), E=round(FactorPET[[j]]*Inputs[[j]][,3],1))
               FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
               if (i==1){
                 OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
