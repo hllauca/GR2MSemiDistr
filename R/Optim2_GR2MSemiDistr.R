@@ -157,7 +157,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           Qobs <- Database2$Qm3s
           Qsim <- qOut[Subset2]
           if (Remove==TRUE){
-            Qsim <- Qsim - qSub[Subset, IdBasin]
+            Qsim <- Qsim - qSub[Subset2, IdBasin]
           }
 
           # Evaluation criteria dataframe

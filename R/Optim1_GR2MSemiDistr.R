@@ -156,12 +156,11 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
                                  which(format(Database$DatesR, format="%m/%Y") == RunEnd))
               Database2   <- Database[Subset2,]
 
-
             # Evaluation criteria at the outlet
             Qobs <- Database2$Qm3s
             Qsim <- qOut[Subset2]
             if (Remove==TRUE){
-              Qsim <- Qsim - qSub[Subset, IdBasin]
+              Qsim <- Qsim - qSub[Subset2, IdBasin]
             }
 
             # Evaluation criteria dataframe (only minimizing)
