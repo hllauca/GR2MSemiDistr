@@ -142,78 +142,77 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     # Close the cluster
       stopCluster(cl)
 
-  #   # Main model results (Qsim in m3/s and EndState variables)
-  #     if (nsub==1){
-  #     # Streamflow at the basin outlet
-  #       qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
-  #       qOut <- qSub
-  #
-  #     # End state variables
-  #     EndState <- list(ResModel[[1]]$StateEnd)
-  #
-  #     } else{
-  #     # Streamflow at the basin outlet
-  #       Qlist <- list()
-  #       for(w in 1:nsub){Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)}
-  #       qSub <- do.call(cbind, Qlist)
-  #       qOut <- round(apply(qSub, 1, FUN=sum),2)
-  #
-  #     # End state variables
-  #       EndState <- list()
-  #       for(w in 1:nsub){EndState[[w]] <- ResModel[[w]]$StateEnd}
-  #     }
-  #
-  #   # Subset data (without warm-up period)
-  #     Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
-  #                        which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-  #     Database2   <- Database[Subset2,]
-  #
-  #   # Evaluation criteria at the outlet
-  #     Qall <- qOut
-  #     Qobs <- Database2$Qm3s
-  #     Qsim <- qOut[Subset2]
-  #     if (Remove==TRUE){
-  #       Qsim <- Qsim - qSub[Subset2, IdBasin]
-  #       Qall <- Qall - qSub[,IdBasin]
-  #     }
-  #     evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
-  #                              NSE=round(NSE(Qsim, Qobs), 3),
-  #                              lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
-  #                              R=round(rPearson(Qsim, Qobs), 3),
-  #                              RMSE=round(rmse(Qsim, Qobs), 3),
-  #                              PBIAS=round(pbias(Qsim, Qobs), 3))
-  #
-  #   # Show comparative figure
-  #     if (Plot==TRUE){
-  #       x11()
-  #       ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
-  #     }
-  #
-  # # Forcing data multiplying by a factor Fpp and Fpet
-  #   pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-  #   pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-  #   for (w in 1:nsub){
-  #     pp[,w] <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
-  #     pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
-  #   }
-  #
-  # # Model results
-  #   Ans <- list(Qsim=Qsim,
-  #               Qobs=Qobs,
-  #               Qsub=qSub[Subset2,],
-  #               Qall=Qall,
-  #               Precip=pp,
-  #               Evaptr=pet,
-  #               Dates=Database2$DatesR,
-  #               EndState=EndState,
-  #               Eval=evaluation)
-  #
-  # # Show message
-  #   message('Done!')
-  #   toc()
-  #
-  # # Output
-  #   return(Ans)
-      toc()
-      return(ResModel)
+    # Main model results (Qsim in m3/s and EndState variables)
+      if (nsub==1){
+      # Streamflow at the basin outlet
+        qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
+        qOut <- qSub
+
+      # End state variables
+      EndState <- list(ResModel[[1]]$StateEnd)
+
+      } else{
+      # Streamflow at the basin outlet
+        Qlist <- list()
+        for(w in 1:nsub){Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)}
+        qSub <- do.call(cbind, Qlist)
+        qOut <- round(apply(qSub, 1, FUN=sum),2)
+
+      # End state variables
+        EndState <- list()
+        for(w in 1:nsub){EndState[[w]] <- ResModel[[w]]$StateEnd}
+      }
+
+    # Subset data (without warm-up period)
+      Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+                         which(format(Database$DatesR, format="%m/%Y") == RunEnd))
+      Database2   <- Database[Subset2,]
+
+    # Evaluation criteria at the outlet
+      Qall <- qOut
+      Qobs <- Database2$Qm3s
+      Qsim <- qOut[Subset2]
+      if (Remove==TRUE){
+        Qsim <- Qsim - qSub[Subset2, IdBasin]
+        Qall <- Qall - qSub[,IdBasin]
+      }
+      evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
+                               NSE=round(NSE(Qsim, Qobs), 3),
+                               lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
+                               R=round(rPearson(Qsim, Qobs), 3),
+                               RMSE=round(rmse(Qsim, Qobs), 3),
+                               PBIAS=round(pbias(Qsim, Qobs), 3))
+
+    # Show comparative figure
+      if (Plot==TRUE){
+        x11()
+        ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
+      }
+
+  # Forcing data multiplying by a factor Fpp and Fpet
+    pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+    pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+    for (w in 1:nsub){
+      pp[,w] <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
+      pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
+    }
+
+  # Model results
+    Ans <- list(Qsim=Qsim,
+                Qobs=Qobs,
+                Qsub=qSub[Subset2,],
+                Qall=Qall,
+                Precip=pp,
+                Evaptr=pet,
+                Dates=Database2$DatesR,
+                EndState=EndState,
+                Eval=evaluation)
+
+  # Show message
+    message('Done!')
+    toc()
+
+  # Output
+    # return(Ans)
+    return(cl)
 }
