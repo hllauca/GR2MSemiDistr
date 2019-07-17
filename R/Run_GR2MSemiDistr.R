@@ -60,11 +60,11 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
     Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
     if(is.null(WarmIni)==TRUE){
-      Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
-                         which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+      Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
+                       which(format(Data$DatesR, format="%m/%Y") == RunEnd))
     } else{
-      Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
-                         which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+      Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
+                       which(format(Data$DatesR, format="%m/%Y") == RunEnd))
     }
     Database    <- Data[Subset,]
     time        <- length(Subset)
@@ -104,12 +104,10 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     cat('\f')
     message(paste('Running GR2M model', nsub, 'subbasins'))
     message('Please wait...')
-    toc()
 
-    # Run GR2M for each subbasin
-    tic()
+  # Run GR2M for each subbasin
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(airGR))) # Load package to each node
+    clusterEvalQ(cl,c(library(airGR), library(GR2MSemiDistr))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
                                "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
@@ -135,7 +133,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                                                    verbose=FALSE,
                                                    warnings=FALSE)
                   } else{
-                    # Set-up running options
+                  # Set-up running options
                     RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
                                                    InputsModel=InputsModel,
                                                    IniStates=IniState[[i]],
@@ -155,10 +153,8 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
     # Close the cluster
       stopCluster(cl)
-      toc()
 
     # Main model results (Qsim in m3/s and EndState variables)
-      tic()
       if (nsub==1){
       # Streamflow at the basin outlet
         qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
