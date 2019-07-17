@@ -107,7 +107,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
   # Run GR2M for each subbasin
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(airGR), library(GR2MSemiDistr))) # Load package to each node
+    clusterEvalQ(cl,c(library(GR2MSemiDistr))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
                                "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
