@@ -141,8 +141,10 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
     # Close the cluster
       stopCluster(cl)
+      toc()
 
     # Main model results (Qsim in m3/s and EndState variables)
+      tic()
       if (nsub==1){
       # Streamflow at the basin outlet
         qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
@@ -214,5 +216,5 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
   # Output
     # return(Ans)
-    return(cl)
+    return(Ans)
 }
