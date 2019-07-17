@@ -1,7 +1,7 @@
 Package: GR2MSemiDistr
 Type: Package
 Title: A package for hydrological modelling with a semidistribute GR2M model version
-Version: 3.1.2
+Version: 4.1.1
 Author: Harold Llauca <hllauca@gmail.com>
 Maintainer: Harold Llauca <hllauca@gmail.com>
 Description: This package run a semidistributed GR2M version applying a Weighted Flow Accumulation algorithm using GRASS v7.4 gis
