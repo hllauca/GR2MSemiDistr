@@ -102,7 +102,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
   # Show message
     cat('\f')
-    message(paste('Running GR2M model', nsub, 'subbasins'))
+    message(paste('Running GR2M model for', nsub, 'subbasins'))
     message('Please wait...')
 
   # Run GR2M for each subbasin
