@@ -85,6 +85,21 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                             Fpp=Parameters[(2*nreg+1):(3*nreg)],
                             Fpet=Parameters[(3*nreg+1):length(Parameters)])
 
+  # Utils fucntions
+    Subset_Param <- function(Param, Region){
+        ParamSub  <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
+        return(ParamSub)
+    }
+
+    Forcing_Subbasin <- function(Param, Region, Database, Nsub, ID){
+        FactorPP  <- subset(Param$Fpp, Param$Region==Region)
+        FactorPET <- subset(Param$Fpet, Param$Region==Region)
+        Inputs    <- Database[,c(1,ID+1,ID+1+Nsub)]
+        FixInputs <- data.frame(DatesR=Inputs[,1], P=round(FactorPP*Inputs[,2],1), E=round(FactorPET*Inputs[,3],1))
+        FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
+        return(FixInputs)
+    }
+
   # Show message
     cat('\f')
     message(paste('Running GR2M model', nsub, 'subbasins'))
@@ -95,17 +110,14 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     tic()
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
     clusterEvalQ(cl,c(library(airGR))) # Load package to each node
-    clusterExport(cl,varlist=c("Param","region","nsub","Database","time", "IniState"),envir=environment())
+    clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
+                               "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
     ResModel <- parLapply(cl, 1:nsub, function(i) {
 
                 # Parameters and factors to run the model
-                  ParamSub  <- c(subset(Param$X1, Param$Region==region[i]), subset(Param$X2, Param$Region==region[i]))
-                  FactorPP  <- subset(Param$Fpp, Param$Region==region[i])
-                  FactorPET <- subset(Param$Fpet, Param$Region==region[i])
-                  Inputs    <- Database[,c(1,i+1,i+1+nsub)]
-                  FixInputs <- data.frame(DatesR=Inputs[,1], P=round(FactorPP*Inputs[,2],1), E=round(FactorPET*Inputs[,3],1))
-                  FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
+                  ParamSub  <- Subset_Param(Param, region[i])
+                  FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
 
                 # Prepare model inputs
                   InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
