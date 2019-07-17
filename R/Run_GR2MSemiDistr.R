@@ -18,9 +18,10 @@
 #' @import  rgeos
 #' @import  rtop
 #' @import  hydroGOF
-#' @import  foreach
+#' @import  airGR
 #' @import  tictoc
 #' @import  ProgGUIinR
+#' @import  parallel
 Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Basins.txt',
                               WarmIni=NULL, RunIni, RunEnd, IdBasin, Remove=FALSE,
                               Plot=TRUE, IniState=NULL){
@@ -44,8 +45,9 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     require(rgeos)
     require(rtop)
     require(hydroGOF)
-    require(foreach)
+    require(airGR)
     require(tictoc)
+    require(parallel)
     tic()
 
   # Load shapefile
@@ -68,17 +70,12 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     Database    <- Data[Subset,]
     time        <- length(Subset)
 
-  # Auxiliary variables
-    qSub       <- matrix(NA, nrow=time, ncol=nsub)
-    qOut       <- vector()
-    ParamSub   <- list()
-    OutModel   <- list()
-    States     <- list()
-    EndState   <- list()
-    FactorPP   <- list()
-    FactorPET  <- list()
-    Inputs     <- list()
-    FixInputs  <- list()
+  # Number of days in a month (to convert mm to m3/s)
+    nDays <- c()
+    for (j in 1:time){
+      nDays[j] <- days.in.month(as.numeric(format(Database$DatesR[j],'%Y')),
+                                as.numeric(format(Database$DatesR[j],'%m')))
+    }
 
   # GR2M model parameters
     Zone  <- sort(unique(region))
@@ -89,43 +86,83 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                             Fpp=Parameters[(2*nreg+1):(3*nreg)],
                             Fpet=Parameters[(3*nreg+1):length(Parameters)])
 
-  # Start loop for each timestep
-    for (i in 1:time){
-      Date  <- format(Database$DatesR[i], "%m/%Y")
-      nDays <- days.in.month(as.numeric(format(Database$DatesR[i],'%Y')),
-                             as.numeric(format(Database$DatesR[i],'%m')))
+  # Show message
+    cat('\f')
+    message(paste('Running GR2M model', nsub, 'subbasins'))
+    message('Please wait..')
 
-          foreach (j=1:nsub) %do% {
-                ParamSub[[j]]  <- c(subset(Param$X1, Param$Region==region[j]), subset(Param$X2, Param$Region==region[j]))
-                FactorPP[[j]]  <- subset(Param$Fpp, Param$Region==region[j])
-                FactorPET[[j]] <- subset(Param$Fpet, Param$Region==region[j])
-                Inputs[[j]]    <- Database[,c(1,j+1,j+1+nsub)]
-                FixInputs[[j]] <- data.frame(DatesR=Inputs[[j]][,1], P=round(FactorPP[[j]]*Inputs[[j]][,2],1), E=round(FactorPET[[j]]*Inputs[[j]][,3],1))
-                FixInputs[[j]]$DatesR <- as.POSIXct(FixInputs[[j]]$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
-                if (i==1){
-                OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], IniState[[j]], Date)
-                }else{
-                States[[j]]    <- OutModel[[j]]$StateEnd
-                OutModel[[j]]  <- GR2MSemiDistr::run_gr2m_step(FixInputs[[j]], ParamSub[[j]], States[[j]], Date)
-                }
-                qSub[i,j]      <- round(OutModel[[j]]$Qsim*area[j]/(86.4*nDays),3)
+    # Run GR2M for each subbasin
+    cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
+    clusterEvalQ(cl,c(library(airGR))) # Load package to each node
+    clusterExport(cl,varlist=c("Param","region","nsub","Database","time", "IniState"),envir=environment())
 
-                # Save last state from GR2M
-                if(i==time){
-                EndState[[j]]  <- OutModel[[j]]$StateEnd
-                }
+    ResModel <- parLapply(cl, 1:nsub, function(i) {
 
-          }
+                # Parameters and factors to run the model
+                  ParamSub  <- c(subset(Param$X1, Param$Region==region[i]), subset(Param$X2, Param$Region==region[i]))
+                  FactorPP  <- subset(Param$Fpp, Param$Region==region[i])
+                  FactorPET <- subset(Param$Fpet, Param$Region==region[i])
+                  Inputs    <- Database[,c(1,i+1,i+1+nsub)]
+                  FixInputs <- data.frame(DatesR=Inputs[,1], P=round(FactorPP*Inputs[,2],1), E=round(FactorPET*Inputs[,3],1))
+                  FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
 
-    # Accumulate streamflow at the basin outlet
-      qOut[i]  <- round(sum(qSub[i,]),2)
+                # Prepare model inputs
+                  InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
+                                                   DatesR=FixInputs$DatesR,
+                                                   Precip=FixInputs$P,
+                                                   PotEvap=FixInputs$E)
 
-    # Show message
-      cat('\f')
-      message('Running Semidistribute GR2M model')
-      message(paste0('Timestep: ', format(Database$DatesR[i], "%b-%Y")))
-      message('Please wait..')
-    }# End loop
+                # Run GR2M model by an specific initial conditions
+                  if(is.null(IniState)==TRUE){
+
+                  # Set-up running options
+                    RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
+                                                   InputsModel=InputsModel,
+                                                   IndPeriod_Run=1:time,
+                                                   verbose=FALSE,
+                                                   warnings=FALSE)
+                  } else{
+                    # Set-up running options
+                    RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
+                                                   InputsModel=InputsModel,
+                                                   IniStates=IniState[[i]],
+                                                   IndPeriod_Run=1:time,
+                                                   verbose=FALSE,
+                                                   warnings=FALSE)
+                  }
+
+                # Run GR2M
+                  OutputsModel <- RunModel(InputsModel=InputsModel,
+                                           RunOptions=RunOptions,
+                                           Param=ParamSub,
+                                           FUN=RunModel_GR2M)
+
+                return(OutputsModel)
+                })
+
+    # Close the cluster
+      stopCluster(cl)
+
+    # Main model results (Qsim in m3/s and EndState variables)
+      if (nsub==1){
+      # Streamflow at the basin outlet
+        qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
+        qOut <- qSub
+
+      # End state variables
+      EndState <- list(ResModel[[1]]$StateEnd)
+
+      } else{
+      # Streamflow at the basin outlet
+        Qlist <- list()
+        for(w in 1:nsub){Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)}
+        qSub <- do.call(cbind, Qlist)
+        qOut <- round(apply(qSub, 1, FUN=sum),2)
+
+      # End state variables
+        EndState <- list()
+        for(w in 1:nsub){EndState[[w]] <- ResModel[[w]]$StateEnd}
+      }
 
     # Subset data (without warm-up period)
       Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
@@ -153,7 +190,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
       }
 
-  # Forcing data multiplying by a factor 'Fpet'
+  # Forcing data multiplying by a factor Fpp and Fpet
     pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
     pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
     for (w in 1:nsub){
