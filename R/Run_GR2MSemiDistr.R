@@ -27,9 +27,9 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                               Plot=TRUE, IniState=NULL){
 
 # Parameters=Model.Param
-# Input='Inputs_Basins.txt'
 # Location=Location
 # Shapefile=File.Shape
+# Input='Inputs_Basins.txt'
 # WarmIni=WarmUp.Ini
 # RunIni=RunModel.Ini
 # RunEnd=RunModel.End
@@ -45,7 +45,6 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     require(rgeos)
     require(rtop)
     require(hydroGOF)
-    require(airGR)
     require(tictoc)
     require(parallel)
     tic()
@@ -89,10 +88,11 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
   # Show message
     cat('\f')
     message(paste('Running GR2M model', nsub, 'subbasins'))
-    message('Please wait..')
+    message('Please wait...')
 
     # Run GR2M for each subbasin
-    cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
+    # cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
+    cl=11
     clusterEvalQ(cl,c(library(airGR))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time", "IniState"),envir=environment())
 
