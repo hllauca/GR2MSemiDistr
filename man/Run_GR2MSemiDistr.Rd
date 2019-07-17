@@ -6,7 +6,7 @@
 \usage{
 Run_GR2MSemiDistr(Parameters, Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd, IdBasin,
-  Remove = FALSE, Plot = TRUE, IniState = NULL)
+  Remove = FALSE, Plot = TRUE, IniState = NULL, cl)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.}

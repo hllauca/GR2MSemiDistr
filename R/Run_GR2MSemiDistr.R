@@ -24,7 +24,7 @@
 #' @import  parallel
 Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Basins.txt',
                               WarmIni=NULL, RunIni, RunEnd, IdBasin, Remove=FALSE,
-                              Plot=TRUE, IniState=NULL){
+                              Plot=TRUE, IniState=NULL, cl){
 
 # Parameters=Model.Param
 # Location=Location
@@ -92,7 +92,6 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
     # Run GR2M for each subbasin
     # cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    cl=11
     clusterEvalQ(cl,c(library(airGR))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time", "IniState"),envir=environment())
 
