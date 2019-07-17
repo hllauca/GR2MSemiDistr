@@ -209,10 +209,17 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
       pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
     }
 
+  # Subset Qsim for each subbasin (Qsub)
+    if(is.null(ncol(qSub))==TRUE){
+      Qsub <- qSub[Subset2]
+    } else {
+      Qsub <- qSub[Subset2,]
+    }
+
   # Model results
     Ans <- list(Qsim=Qsim,
                 Qobs=Qobs,
-                Qsub=qSub[Subset2,],
+                Qsub=Qsub,
                 Qall=Qall,
                 Precip=pp,
                 Evaptr=pet,
