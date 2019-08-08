@@ -80,10 +80,10 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     Zone  <- sort(unique(region))
     nreg  <- length(Zone)
     Param <- data.frame(Region=sort(unique(region)),
-                            X1=Parameters[1:nreg],
-                            X2=Parameters[(nreg+1):(2*nreg)],
-                            Fpp=Parameters[(2*nreg+1):(3*nreg)],
-                            Fpet=Parameters[(3*nreg+1):length(Parameters)])
+                        X1=Parameters[1:nreg],
+                        X2=Parameters[(nreg+1):(2*nreg)],
+                        Fpp=Parameters[(2*nreg+1):(3*nreg)],
+                        Fpet=Parameters[(3*nreg+1):length(Parameters)])
 
   # Utils fucntions
     Subset_Param <- function(Param, Region){
@@ -108,8 +108,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
   # Run GR2M for each subbasin
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
     clusterEvalQ(cl,c(library(GR2MSemiDistr))) # Load package to each node
-    clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
-                               "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
+    clusterExport(cl,varlist=c("Param","region","nsub","Database","time","IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
     ResModel <- parLapply(cl, 1:nsub, function(i) {
 

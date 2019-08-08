@@ -18,14 +18,14 @@
 #' @import  parallel
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Resolution=0.01, DateIni='1981/01/01', DateEnd='2016/12/01'){
 
-# Shapefile=File.Shape
-# Database=Database
-# Precip=File.Precip
-# PotEvap=File.PotEvap
-# Qobs=File.Qobs
-# Resolution=0.01
-# DateIni='1981/01/01'
-# DateEnd='2016/12/01'
+Shapefile=File.Shape
+Database=Database
+Precip=File.Precip
+PotEvap=File.PotEvap
+Qobs=File.Qobs
+Resolution=0.01
+DateIni='1981/01/01'
+DateEnd='2016/12/01'
 
     # Load packages
       require(rgdal)
@@ -73,7 +73,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       pp      <- brick(file.path(Database, Precip))
 
     # Crop for basin domain
-      pp.crop <- crop(pp, extent(Basins)*1.5)
+      pp.crop <- crop(pp, extent(Basins)*1.1)
 
     # Mask for resampling using 'ngb' method
       pp.res      <- raster(extent(pp.crop[[1]]))
@@ -87,9 +87,9 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       cl=makeCluster(detectCores()-1) #detectar y asignar numero de cluster
       clusterEvalQ(cl,c(library(raster))) #cargar paquete para aplicar a cada nodo
       clusterExport(cl,varlist=c("pp.res","pp.crop","positionPP","mask_Fast_Extract"),envir=environment())
-
+      # nlayers(pp.crop)
       mean.pp <- parLapply(cl, 1:nlayers(pp.crop), function(z) {
-                     res <- raster::resample(pp.crop[[z]], pp.res, method='ngb')
+                     res <- resample(pp.crop[[z]], pp.res, method='ngb')
                      ans <- mask_Fast_Extract(cov=res, positionPP, fun=mean, na.rm=T)
                      return(ans)
                  })
