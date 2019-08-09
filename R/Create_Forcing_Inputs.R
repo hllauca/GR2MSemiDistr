@@ -18,14 +18,14 @@
 #' @import  parallel
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Resolution=0.01, DateIni='1981/01/01', DateEnd='2016/12/01'){
 
-Shapefile=File.Shape
-Database=Database
-Precip=File.Precip
-PotEvap=File.PotEvap
-Qobs=File.Qobs
-Resolution=0.01
-DateIni='1981/01/01'
-DateEnd='2016/12/01'
+# Shapefile=File.Shape
+# Database=Database
+# Precip=File.Precip
+# PotEvap=File.PotEvap
+# Qobs=File.Qobs
+# Resolution=0.01
+# DateIni='1981/01/01'
+# DateEnd='2016/12/01'
 
     # Load packages
       require(rgdal)
