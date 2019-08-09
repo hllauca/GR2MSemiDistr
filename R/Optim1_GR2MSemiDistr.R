@@ -232,13 +232,19 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     Calibration <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max,
                          plog=Parameters.Log, maxn=Max.Functions, kstop=3, pcento=0.1)
 
-    # Extracting results
+    # Extracting calibration results
     if (Optimization == 'PBIAS' | Optimization == 'RMSE'){
-    fo <- round(Calibration$value,3)
+      fo <- round(Calibration$value,3)
     } else{
-    fo <- round(1-Calibration$value,3)
+      fo <- round(1-Calibration$value,3)
     }
-    Ans <- list(Param=round(Calibration$par,3), Value=fo, Fun=Calibration)
+    if (is.null(No.Optim)==TRUE){
+      Par.Optim <- round(Calibration$par,3)
+    } else{
+      New.Parameters <- rbind(cbind(id.pars[-id.stb], round(Calibration$par,3)), cbind(id.stb, par.stb))
+      Par.Optim      <- New.Parameters[match(id.pars, New.Parameters[,1]), 2]
+    }
+    Ans <- list(Param=Par.Optim, Value=fo)
 
     # Show message
     message("Done!")
