@@ -92,6 +92,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
 
         # Define calibration regions and parameters ranges to optimize
         if (is.null(No.Optim)==TRUE){
+          Opt.Parameters <- Parameters
           Opt.Region     <- unique(region)
         } else{
           Opt.Parameters <- Parameters[!(rep(sort(unique(region)),4) %in% No.Optim)]
