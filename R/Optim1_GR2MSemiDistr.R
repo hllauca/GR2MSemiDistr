@@ -46,7 +46,6 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 # No.Optim=No.Region
 # IniState=NULL
 # Max.Functions=1000
-# Variable=Model.Param
 
       # Load packages
       require(rgdal)
@@ -88,20 +87,20 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       }
 
       # Filtering calibration region and parameters not to optimize
-      id.pars <- 1:length(Parameters)
-      id.stb  <- which(No.Optim==rep(unique(region),4))
-      par.stb <- Parameters[id.stb]
+      Num.Parameters      <- 1:length(Parameters)
+      IDStable.Parameters <- which(No.Optim==rep(sort(unique(region)),4))
+      Stable.Parameters   <- Parameters[IDStable.Parameters]
 
       # Define calibration regions and parameters ranges to optimize
       if (is.null(No.Optim)==TRUE){
-        Zone       <- unique(region)
+        Opt.Region     <- unique(region)
       } else{
-        Parameters <- Parameters[!(rep(unique(region),4) %in% No.Optim)]
-        Zone       <- unique(region[!(region %in% No.Optim)])
+        Opt.Parameters <- Parameters[!(rep(sort(unique(region)),4) %in% No.Optim)]
+        Opt.Region     <- unique(region[!(region %in% No.Optim)])
       }
-      Parameters.Min <- rep(Parameters.Min, each=length(Zone))
-      Parameters.Max <- rep(Parameters.Max, each=length(Zone))
-      Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Zone))
+      Opt.Parameters.Min <- rep(Parameters.Min, each=length(Opt.Region))
+      Opt.Parameters.Min <- rep(Parameters.Max, each=length(Opt.Region))
+      Opt.Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Opt.Region))
 
       # Utils fucntions
       Subset_Param <- function(Param, Region){
@@ -123,19 +122,19 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
 
             # Select model parameters to optimize
             if (is.null(No.Optim)==TRUE){
-              Par.Optim <- Variable
+              All.Parameters <- Variable
             } else{
-              New.Parameters <- rbind(cbind(id.pars[-id.stb], Variable), cbind(id.stb, par.stb))
-              Par.Optim      <- New.Parameters[match(id.pars, New.Parameters[,1]), 2]
+              New.Parameters <- rbind(cbind(Num.Parameters[-IDStable.Parameters], Variable), cbind(IDStable.Parameters, Stable.Parameters))
+              All.Parameters      <- New.Parameters[match(Num.Parameters, New.Parameters[,1]), 2]
             }
 
             # Model parameters to run GR2M model
             nreg  <- length(sort(unique(region)))
             Param <- data.frame(Region=sort(unique(region)),
-                                X1=Par.Optim[1:nreg],
-                                X2=Par.Optim[(nreg+1):(2*nreg)],
-                                Fpp=Par.Optim[(2*nreg+1):(3*nreg)],
-                                Fpet=Par.Optim[(3*nreg+1):length(Par.Optim)])
+                                X1=All.Parameters[1:nreg],
+                                X2=All.Parameters[(nreg+1):(2*nreg)],
+                                Fpp=All.Parameters[(2*nreg+1):(3*nreg)],
+                                Fpet=All.Parameters[(3*nreg+1):length(All.Parameters)])
 
             cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
             clusterEvalQ(cl,c(library(GR2MSemiDistr))) # Load package to each node
@@ -229,8 +228,8 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     cat('\f')
     message(paste('Optimizing', Optimization, 'with SCE-UA'))
     message('Please wait...')
-    Calibration <- sceua(OFUN, pars=Parameters, lower=Parameters.Min, upper=Parameters.Max,
-                         plog=Parameters.Log, maxn=Max.Functions, kstop=3, pcento=0.1)
+    Calibration <- sceua(OFUN, pars=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Min,
+                         plog=Opt.Parameters.Log, maxn=Max.Functions, kstop=3, pcento=0.1)
 
     # Extracting calibration results
     if (Optimization == 'PBIAS' | Optimization == 'RMSE'){
@@ -239,12 +238,12 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       fo <- round(1-Calibration$value,3)
     }
     if (is.null(No.Optim)==TRUE){
-      Par.Optim <- round(Calibration$par,3)
+      All.Parameters <- round(Calibration$par,3)
     } else{
-      New.Parameters <- rbind(cbind(id.pars[-id.stb], round(Calibration$par,3)), cbind(id.stb, par.stb))
-      Par.Optim      <- New.Parameters[match(id.pars, New.Parameters[,1]), 2]
+      New.Parameters <- rbind(cbind(Num.Parameters[-IDStable.Parameters], round(Calibration$par,3)), cbind(IDStable.Parameters, Stable.Parameters))
+      All.Parameters <- New.Parameters[match(Num.Parameters, New.Parameters[,1]), 2]
     }
-    Ans <- list(Param=Par.Optim, Value=fo)
+    Ans <- list(Param=All.Parameters, Value=fo)
 
     # Show message
     message("Done!")
