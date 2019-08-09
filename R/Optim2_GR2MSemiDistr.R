@@ -65,20 +65,15 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
         region     <- basin@data$Region
         nsub       <- nrow(basin@data)
 
-        # Filtering calibration region no to optimize
-        idx <- 1:length(Parameters)
-        idy <- which(No.Optim==rep(region,2))
-        Stb <- Parameters[idy]
-
         # Read and subset input data for the study period
         Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
         Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
         if(is.null(WarmIni)==TRUE){
-          Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
-                             which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+          Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
+                           which(format(Data$DatesR, format="%m/%Y") == RunEnd))
         } else{
-          Subset      <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
-                             which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+          Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
+                           which(format(Data$DatesR, format="%m/%Y") == RunEnd))
         }
         Database    <- Data[Subset,]
         time        <- length(Subset)
@@ -90,15 +85,21 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
                                     as.numeric(format(Database$DatesR[j],'%m')))
         }
 
+        # Filtering calibration region and parameters not to optimize
+        id.pars <- 1:length(Parameters)
+        id.stb  <- which(No.Optim==rep(unique(region),4))
+        par.stb <- Parameters[id.stb]
+
         # Define calibration regions and parameters ranges to optimize
         if (is.null(No.Optim)==TRUE){
-          Zone       <- sort(unique(region))
+          Zone       <- unique(region)
         } else{
-          Parameters <- Parameters[!(rep(region,2) %in% No.Optim)]
-          Zone       <- sort(unique(region[!(region %in% No.Optim)]))
+          Parameters <- Parameters[!(rep(unique(region),4) %in% No.Optim)]
+          Zone       <- unique(region[!(region %in% No.Optim)])
         }
         Parameters.Min <- rep(Parameters.Min, each=length(Zone))
         Parameters.Max <- rep(Parameters.Max, each=length(Zone))
+        Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Zone))
 
         # Utils fucntions
         Subset_Param <- function(Param, Region){
@@ -122,8 +123,8 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           if (is.null(No.Optim)==TRUE){
             Par.Optim <- Variable
           } else{
-            dta       <- rbind(cbind(idx2[-idy], Variable), cbind(idy, Stb))
-            Par.Optim <- dta[match(sort(dta[,1]), dta[,1]), 2]
+            New.Parameters <- rbind(cbind(id.pars[-id.stb], Variable), cbind(id.stb, par.stb))
+            Par.Optim      <- New.Parameters[match(id.pars, New.Parameters[,1]), 2]
           }
 
           # Model parameters to run GR2M model
@@ -195,11 +196,10 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
             qOut <- round(apply(qSub, 1, FUN=sum),2)
           }
 
-
           # Subset data (without warm-up period)
-            Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
-                               which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-            Database2   <- Database[Subset2,]
+          Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+                             which(format(Database$DatesR, format="%m/%Y") == RunEnd))
+          Database2   <- Database[Subset2,]
 
           # Evaluation criteria at the outlet
           Qobs <- Database2$Qm3s
