@@ -99,7 +99,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           Opt.Region     <- unique(region[!(region %in% No.Optim)])
         }
         Opt.Parameters.Min <- rep(Parameters.Min, each=length(Opt.Region))
-        Opt.Parameters.Min <- rep(Parameters.Max, each=length(Opt.Region))
+        Opt.Parameters.Max <- rep(Parameters.Max, each=length(Opt.Region))
         Opt.Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Opt.Region))
 
         # Utils fucntions
