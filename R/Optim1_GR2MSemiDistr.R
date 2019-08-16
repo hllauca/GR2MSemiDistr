@@ -100,7 +100,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
         Opt.Region     <- unique(region[!(region %in% No.Optim)])
       }
       Opt.Parameters.Min <- rep(Parameters.Min, each=length(Opt.Region))
-      Opt.Parameters.Min <- rep(Parameters.Max, each=length(Opt.Region))
+      Opt.Parameters.Max <- rep(Parameters.Max, each=length(Opt.Region))
       Opt.Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Opt.Region))
 
       # Utils fucntions
@@ -229,7 +229,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
     cat('\f')
     message(paste('Optimizing', Optimization, 'with SCE-UA'))
     message('Please wait...')
-    Calibration <- sceua(OFUN, pars=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Min,
+    Calibration <- sceua(OFUN, pars=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max,
                          plog=Opt.Parameters.Log, maxn=Max.Functions, kstop=3, pcento=0.1)
 
     # Extracting calibration results
