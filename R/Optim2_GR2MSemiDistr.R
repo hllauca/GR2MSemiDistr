@@ -87,7 +87,8 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
 
         # Filtering calibration region and parameters not to optimize
         Num.Parameters      <- 1:length(Parameters)
-        IDStable.Parameters <- which(No.Optim==rep(sort(unique(region)),4))
+        Vect.Parameters     <- as.vector(rep(sort(unique(region)),4))
+        IDStable.Parameters <- Vect.Parameters %in% No.Optim
         Stable.Parameters   <- Parameters[IDStable.Parameters]
 
         # Define calibration regions and parameters ranges to optimize
@@ -102,7 +103,7 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
         Opt.Parameters.Max <- rep(Parameters.Max, each=length(Opt.Region))
         Opt.Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Opt.Region))
 
-        # Utils fucntions
+        # Utils functions
         Subset_Param <- function(Param, Region){
           ParamSub  <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
           return(ParamSub)
@@ -116,7 +117,6 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
           return(FixInputs)
         }
-
         # Objective function
         OFUN <- function(Variable){
 
@@ -124,8 +124,9 @@ Optim2_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Opt
           if (is.null(No.Optim)==TRUE){
             All.Parameters <- Variable
           } else{
-            New.Parameters <- rbind(cbind(Num.Parameters[-IDStable.Parameters], Variable), cbind(IDStable.Parameters, Stable.Parameters))
-            All.Parameters      <- New.Parameters[match(Num.Parameters, New.Parameters[,1]), 2]
+            New.Parameters <- rbind(cbind(Num.Parameters[!IDStable.Parameters], Variable),
+                                    cbind(Num.Parameters[IDStable.Parameters], Stable.Parameters))
+            All.Parameters <- New.Parameters[match(Num.Parameters, New.Parameters[,1]), 2]
           }
 
           # Model parameters to run GR2M model
