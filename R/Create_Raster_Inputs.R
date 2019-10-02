@@ -1,17 +1,16 @@
 #' Create raster inputs (.TIF) to run the Semidistribute GR2M version.
 #'
+#' @param Location  General work directory where data is located.
 #' @param Shapefile Subbasins shapefile.
 #' @param Dem Raster DEM for the study area.
 #' @return Export centroids mask and flow direction rasters for the study subbasins.
 #' @export
-#' @import  rgrass7
 #' @import  rgdal
 #' @import  raster
 #' @import  rgeos
-Create_Raster_Inputs <- function(Shapefile, Dem){
+Create_Raster_Inputs <- function(Location, Shapefile, Dem){
 
   # Load packages
-    require(rgrass7)
     require(rgdal)
     require(raster)
     require(rgeos)
@@ -49,25 +48,14 @@ Create_Raster_Inputs <- function(Shapefile, Dem){
   # Save raster of mask
     writeRaster(QMask, filename=file.path(getwd(), 'Inputs', 'Centroids_mask.tif'), overwrite=T)
 
-  # Load GRASS
-    loc <- initGRASS('C:/Program Files/GRASS GIS 7.4.4', home=getwd(),
-                     gisDbase="GRASS_TEMP", override=TRUE)
+  # Pitremove
+    setwd(file.path(Location,'Inputs'))
+    system(paste0("mpiexec -n 8 pitremove -z ",File.Raster," -fel Ras.tif"))
 
-  # Importar raster DEM
-    execGRASS("r.in.gdal", Sys_show.output.on.console=F, flags=c('o','overwrite'), parameters=list(input=file.path(getwd(),'Inputs',Dem), output="dem"))
-
-  # Setup extention
-    execGRASS("g.region", Sys_show.output.on.console=F, parameters=list(raster="dem"))
-
-  # Create flow direction D8
-    execGRASS("r.watershed", Sys_show.output.on.console=F, flags=c("overwrite", "s", "a"), parameters=list(elevation="dem", drainage='fdr'))
-
-  # Save raster of flow direction
-    execGRASS("r.out.gdal", Sys_show.output.on.console=F, flags='overwrite',
-              parameters=list(input='fdr', output=file.path(getwd(),'Inputs','Flow_Direction.tif'), format='GTiff'))
-
-  # Clean GRASS workspace
-    unlink(file.path(getwd(), "GRASS_TEMP"), recursive=T)
+  # D8 flow directions
+    system("mpiexec -n 8 D8Flowdir -p Flow_Direction.tif -fel Ras.tif",show.output.on.console=F,invisible=F)
+    file.remove('Ras.tif')
+    file.remove('Ši.tif')
 
     message('Done!')
 }

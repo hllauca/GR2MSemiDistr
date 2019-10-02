@@ -7,7 +7,6 @@
 #' @param Mask         Subbasins centroids mask raster. 'Centroids_mask.tif' as default.
 #' @return  Routing streamflow for each subbasin.
 #' @export
-#' @import  rgrass7
 #' @import  rgdal
 #' @import  raster
 #' @import  foreach
@@ -20,7 +19,6 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir='Flow_Dir
 # FlowDir='Flow_Direction.tif'
 # Mask='Centroids_mask.tif'
 
-  require(rgrass7)
   require(foreach)
   require(rgdal)
   require(raster)
@@ -28,23 +26,16 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir='Flow_Dir
   tic()
 
   # Load rasters
-  path.fdr  <- file.path(Location,'Inputs', FlowDir)
-  path.mask <- file.path(Location,'Inputs', Mask)
-  flowdir   <- raster(path.fdr)
-  qMask     <- raster(path.mask)
+  setwd(file.path(Location,'Inputs'))
+  # path.fdr  <- file.path(Location,'Inputs', FlowDir)
+  # path.mask <- file.path(Location,'Inputs', Mask)
+  # flowdir   <- raster(path.fdr)
+  # qMask     <- raster(path.mask)
 
   # Load shapefile
   path.shp   <- file.path(Location,'Inputs', Shapefile)
   basin      <- readOGR(path.shp, verbose=F)
 
-  # Load GRASS (require to be installed previously)
-  loc <- initGRASS('C:/Program Files/GRASS GIS 7.4.4', home=getwd(), gisDbase="GRASS_TEMP", override=TRUE)
-
-  # Import raster to GRASS
-  writeRAST(as(flowdir, 'SpatialGridDataFrame'), "fdr", overwrite=T)
-
-  # Set an study extention
-  execGRASS("g.region", Sys_show.output.on.console=F, parameters=list(raster="fdr"))
 
   # Auxiliary variables
   qRas   <- qMask
@@ -65,16 +56,9 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir='Flow_Dir
       qRas[qMask==j] <- Qmodel[i,j]
     }
 
-    # Import Qsim rasters to GRASS
-    writeRAST(as(qRas, 'SpatialGridDataFrame'), "qweight", overwrite=T)
-
-    # Weighted flow accumulation
-    execGRASS("r.accumulate", flags=c("overwrite"),  Sys_show.output.on.console=F,
-              parameters=list(direction="fdr", weight='qweight', accumulation="qacum"))
-
-    # Load GRASS raster into R
-    qAcum <- raster(readRAST('qacum'))
-    # cat('\f')
+    # Weighted Flow Accumulation
+    system("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Centroids_mask.tif -ad8 Flow_Accumulation.tif")
+    qAcum=raster("Flow_Accumulation.tif")
 
     # Extract routing Qsim for each subbasin
     foreach (w=1:ncol(Qmodel)) %do% {
@@ -97,8 +81,6 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir='Flow_Dir
   res(qBrick)    <- res(qMask)
   # qBrick[qBrick==0]<-NA
 
-  # Clean GRASS workspace
-  unlink(file.path(getwd(), "GRASS_TEMP"), recursive=T)
   toc()
 
   # Results

@@ -4,9 +4,11 @@
 \alias{Create_Raster_Inputs}
 \title{Create raster inputs (.TIF) to run the Semidistribute GR2M version.}
 \usage{
-Create_Raster_Inputs(Shapefile, Dem)
+Create_Raster_Inputs(Location, Shapefile, Dem)
 }
 \arguments{
+\item{Location}{General work directory where data is located.}
+
 \item{Shapefile}{Subbasins shapefile.}
 
 \item{Dem}{Raster DEM for the study area.}
