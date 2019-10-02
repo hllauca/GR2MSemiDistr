@@ -4,7 +4,7 @@
 #' @param Database Path where precipitacion and Pot. evapotranspiration files are located.
 #' @param Precip Precipitation filename (in NetCDF format).
 #' @param PotEvap Potential evapotranspiration filename (in NetCDF format).
-#' @param Qobs Observed streamflow data (in m3/s) for the study period.
+#' @param Qobs Observed streamflow data (in m3/s) for the study period. Null as default.
 #' @param Resolution Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.
 #' @param DateIni Initial subset date in 'yyyy/mm/dd' format. '1981/01/01' as default
 #' @param DateEnd Final subset date in 'yyyy/mm/dd' format. '2016/12/01' as default
@@ -16,7 +16,7 @@
 #' @import  tictoc
 #' @import  ncdf4
 #' @import  parallel
-Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Resolution=0.01, DateIni='1981/01/01', DateEnd='2016/12/01'){
+Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, Resolution=0.01, DateIni='1981/01/01', DateEnd='2016/12/01'){
 
 # Shapefile=File.Shape
 # Database=Database
@@ -132,13 +132,18 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs, Re
       mean.pet <- do.call(rbind, mean.pet)
       mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
 
-    # Subset streamflow data
-      Obs     <- read.table(file.path("Inputs",Qobs), sep='\t', header=F)
-      Ind_Obs <- seq(which(as.Date(Obs[,1]) == DateIni),
-                     which(as.Date(Obs[,1]) == DateEnd))
-      qobs    <- Obs[Ind_Obs,2]
-      df      <- data.frame(DatesMonths, mean.pp, mean.pet, qobs)
-      colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qm3s')
+      if(is.null(Qobs)==TRUE){
+        df      <- data.frame(DatesMonths, mean.pp, mean.pet)
+        colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins))
+      } else{
+        # Subset streamflow data
+        Obs     <- read.table(file.path("Inputs",Qobs), sep='\t', header=F)
+        Ind_Obs <- seq(which(as.Date(Obs[,1]) == DateIni),
+                       which(as.Date(Obs[,1]) == DateEnd))
+        qobs    <- Obs[Ind_Obs,2]
+        df      <- data.frame(DatesMonths, mean.pp, mean.pet, qobs)
+        colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qm3s')
+      }
       write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
       message('Done!')
       toc()

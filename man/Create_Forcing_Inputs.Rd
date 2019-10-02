@@ -4,7 +4,7 @@
 \alias{Create_Forcing_Inputs}
 \title{Create a TXT file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).}
 \usage{
-Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs,
+Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
   Resolution = 0.01, DateIni = "1981/01/01", DateEnd = "2016/12/01")
 }
 \arguments{
@@ -16,7 +16,7 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs,
 
 \item{PotEvap}{Potential evapotranspiration filename (in NetCDF format).}
 
-\item{Qobs}{Observed streamflow data (in m3/s) for the study period.}
+\item{Qobs}{Observed streamflow data (in m3/s) for the study period. Null as default.}
 
 \item{Resolution}{Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.}
 
