@@ -2,7 +2,7 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Create a TXT file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).}
+\title{Create a text file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).}
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
   Resolution = 0.01, DateIni = "1981/01/01", DateEnd = "2016/12/01")
@@ -28,5 +28,5 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
 Export a text file with forcing data inputs to run semidistribute GR2M model.
 }
 \description{
-Create a TXT file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).
+Create a text file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).
 }

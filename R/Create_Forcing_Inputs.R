@@ -1,4 +1,4 @@
-#' Create a TXT file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).
+#' Create a text file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).
 #'
 #' @param Shapefile Subbasins shapefile.
 #' @param Database Path where precipitacion and Pot. evapotranspiration files are located.
