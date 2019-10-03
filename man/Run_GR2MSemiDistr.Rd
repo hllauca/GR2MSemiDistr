@@ -5,8 +5,9 @@
 \title{Run lumped GR2M mode for each sub-basin and timestep.}
 \usage{
 Run_GR2MSemiDistr(Parameters, Location, Shapefile,
-  Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd, IdBasin,
-  Remove = FALSE, Plot = TRUE, IniState = NULL)
+  Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd,
+  IdBasin = NULL, Remove = FALSE, Plot = TRUE, IniState = NULL,
+  Regional = FALSE)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.}
@@ -30,6 +31,8 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
 \item{Plot}{Logical value to plot observed and simulated streamflow timeseries. TRUE as default.}
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
+
+\item{Regional}{Logical value to simulate regional streamflows mode.}
 }
 \value{
 Semidistribute GR2M model outputs for a subbasin.

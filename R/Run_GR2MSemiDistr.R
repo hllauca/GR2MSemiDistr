@@ -11,6 +11,7 @@
 #' @param Remove      Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param Plot        Logical value to plot observed and simulated streamflow timeseries. TRUE as default.
 #' @param IniState    Initial GR2M states variables. NULL as default.
+#' @param Regional    Logical value to simulate regional streamflows mode.
 #' @return Semidistribute GR2M model outputs for a subbasin.
 #' @export
 #' @import  rgdal
@@ -23,8 +24,8 @@
 #' @import  ProgGUIinR
 #' @import  parallel
 Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Basins.txt',
-                              WarmIni=NULL, RunIni, RunEnd, IdBasin, Remove=FALSE,
-                              Plot=TRUE, IniState=NULL){
+                              WarmIni=NULL, RunIni, RunEnd, IdBasin=NULL, Remove=FALSE,
+                              Plot=TRUE, IniState=NULL, Regional=FALSE){
 
 # Parameters=Model.Param
 # Location=Location
@@ -35,7 +36,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 # RunEnd=RunModel.End
 # IdBasin=Optim.Basin
 # Remove=Optim.Remove
-# Plot=TRUE
+# Plot=FALSE
 # IniState=NULL
 
   # Load packages
@@ -179,7 +180,20 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                          which(format(Database$DatesR, format="%m/%Y") == RunEnd))
       Database2   <- Database[Subset2,]
 
-    # Evaluation criteria at the outlet
+
+    # Forcing data multiplying by a factor Fpp and Fpet
+      pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+      pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+      for (w in 1:nsub){
+        pp[,w] <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
+        pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
+      }
+
+
+    # Not regional mode
+    if(Regional==FALSE){
+
+      # Evaluation criteria at the outlet
       Qall <- qOut
       Qobs <- Database2$Qm3s
       Qsim <- qOut[Subset2]
@@ -194,43 +208,43 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                                RMSE=round(rmse(Qsim, Qobs), 3),
                                PBIAS=round(pbias(Qsim, Qobs), 3))
 
-    # Show comparative figure
+      # Show comparative figure
       if (Plot==TRUE){
         x11()
         ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
       }
 
-  # Forcing data multiplying by a factor Fpp and Fpet
-    pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-    pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-    for (w in 1:nsub){
-      pp[,w] <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
-      pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
-    }
+      # Subset Qsim for each subbasin (Qsub)
+      if(is.null(ncol(qSub))==TRUE){
+        Qsub <- qSub[Subset2]
+      } else {
+        Qsub <- qSub[Subset2,]
+      }
 
-  # Subset Qsim for each subbasin (Qsub)
-    if(is.null(ncol(qSub))==TRUE){
-      Qsub <- qSub[Subset2]
-    } else {
-      Qsub <- qSub[Subset2,]
-    }
+      # Model results
+      Ans <- list(Qsim=Qsim,
+                  Qobs=Qobs,
+                  Qsub=Qsub,
+                  Qall=Qall,
+                  Precip=pp,
+                  Evaptr=pet,
+                  Dates=Database2$DatesR,
+                  EndState=EndState,
+                  Eval=evaluation)
 
-  # Model results
-    Ans <- list(Qsim=Qsim,
-                Qobs=Qobs,
-                Qsub=Qsub,
-                Qall=Qall,
-                Precip=pp,
-                Evaptr=pet,
-                Dates=Database2$DatesR,
-                EndState=EndState,
-                Eval=evaluation)
+    } else{
+      # Model results
+      Ans <- list(Qsub=qSub,
+                  Precip=pp,
+                  Evaptr=pet,
+                  Dates=Database2$DatesR,
+                  EndState=EndState)
+    }
 
   # Show message
     message('Done!')
     toc()
 
   # Output
-    # return(Ans)
-    return(Ans)
-}
+  return(Ans)
+} # End (not run)
