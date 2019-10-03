@@ -1,26 +1,31 @@
-#' Optimization of GR2M model parameters with MOPSOCD algorithm.
+#' Routing simulated monthly streamflow.
 #'
-#' @param Location		 General work directory where data is located.
-#' @param Qmodel       Simulated streamflow matrix (time, subbasin) from Run_GR2MSemiDistr
+#' @param Location		 Work directory where 'Inputs' folder is located.
+#' @param Qmodel       Simulated streamflow matrix (time, subbasins) from Run_GR2MSemiDistr
 #' @param Shapefile		 Subbasins shapefile.
-#' @param FlowDir			 Flow direction raster in GRASS format. 'Flow_Direction.tif' as default.
-#' @param Mask         Subbasins centroids mask raster. 'Centroids_mask.tif' as default.
+#' @param Dem          Raster DEM.
+#' @param RunIni       Initial date in format 'mm/yyyy'.
+#' @param RunEnd       Final date in format 'mm/yyyy'.
+#' @param Save         Conditional to save Flow Accumulation rasters. TRUE as default.
 #' @return  Routing streamflow for each subbasin.
 #' @export
 #' @import  rgdal
 #' @import  raster
+#' @import  rgeos
 #' @import  foreach
 #' @import  tictoc
-Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir='Flow_Direction.tif', Mask='Centroids_mask.tif'){
+Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunEnd, Save=TRUE){
 
 # Location=Location
 # Qmodel=Ans2$Qsub
 # Shapefile=File.Shape
-# FlowDir='Flow_Direction.tif'
-# Mask='Centroids_mask.tif'
+# RunIni <- '01/1981'
+# RunEnd <- '12/2016'
 
+  # Load packages
   require(foreach)
   require(rgdal)
+  require(rgeos)
   require(raster)
   require(tictoc)
   tic()
@@ -28,58 +33,110 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir='Flow_Dir
   # Set work directory
   setwd(file.path(Location,'Inputs'))
 
-  # Load shapefile
-  path.shp   <- file.path(Location,'Inputs', Shapefile)
-  basin      <- readOGR(path.shp, verbose=F)
+  # Load inputs
+  area  <- readOGR(file.path(Location,'Inputs', Shapefile), verbose=F)
+  dem   <- raster(file.path(Location,'Inputs', Dem))
 
-  # Auxiliary variables
-  qRas   <- qMask
-  qSub   <- matrix(NA, nrow=nrow(Qmodel), ncol=ncol(Qmodel))          # Streamflow time series
-  qArray <- array(NA, dim=c(nrow(qMask), ncol(qMask), nrow(Qmodel)))  # Streamflow matrix for each time-step
-  qBrick <- brick(nr=nrow(qMask), nc=ncol(qMask), nl=nrow(Qmodel))    # Streamflow raster for each time-step
+  # Create dates
+  dates <- seq(as.Date(paste0('01/',RunIni), format='%d/%m/%Y'),
+                as.Date(paste0('01/',RunEnd), format='%d/%m/%Y'),
+                by='months')
 
-  for (i in 1:nrow(Qmodel)){
+  # Auxiliary function (from https://stackoverflow.com/questions/44327994/calculate-centroid-within-inside-a-spatialpolygon)
+  gCentroidWithin <- function(pol) {
+    require(rgeos)
 
-    # Show message
-    cat('\f')
-    message('Routing outputs from Semidistribute GR2M model')
-    message(paste0('Timestep: ', i, " from ", nrow(Qmodel)))
-    message('Please wait..')
+    pol$.tmpID <- 1:length(pol)
+    # initially create centroid points with gCentroid
+    initialCents <- gCentroid(pol, byid = T)
 
-    # Replace values for each subbasin (from Run_GR2MSemiDistr)
-    foreach (j=1:ncol(Qmodel)) %do% {
-      qRas[qMask==j] <- Qmodel[i,j]
+    # add data of the polygons to the centroids
+    centsDF <- SpatialPointsDataFrame(initialCents, pol@data)
+    centsDF$isCentroid <- TRUE
+
+    # check whether the centroids are actually INSIDE their polygon
+    centsInOwnPoly <- sapply(1:length(pol), function(x) {
+      gIntersects(pol[x,], centsDF[x, ])
+    })
+
+    if(all(centsInOwnPoly) == TRUE){
+      return(centsDF)
+    } else {
+      # substitue outside centroids with points INSIDE the polygon
+      newPoints <- SpatialPointsDataFrame(gPointOnSurface(pol[!centsInOwnPoly, ],
+                                                          byid = T), pol@data[!centsInOwnPoly,])
+      newPoints$isCentroid <- FALSE
+      centsDF <- rbind(centsDF[centsInOwnPoly,], newPoints)
+
+      # order the points like their polygon counterpart based on `.tmpID`
+      centsDF <- centsDF[order(centsDF$.tmpID),]
+
+      # remove `.tmpID` column
+      centsDF@data <- centsDF@data[, - which(names(centsDF@data) == ".tmpID")]
+
+      cat(paste(length(pol), "polygons;", sum(centsInOwnPoly), "actual centroids;",
+                sum(!centsInOwnPoly), "Points corrected \n"))
+
+      return(centsDF)
+    }}
+
+  # Create mask points
+  qMask <- dem
+  values(qMask) <- 0
+  xycen <- gCentroidWithin(area)
+  val   <- extract(qMask, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
+
+  # Pitremove DEM
+  system(paste0("mpiexec -n 8 pitremove -z ",Dem," -fel Ras.tif"))
+
+  # Create Flow Direction raster
+  system("mpiexec -n 8 D8Flowdir -p Flow_Direction.tif -fel Ras.tif",show.output.on.console=F,invisible=F)
+  file.remove('Ras.tif')
+
+  # For each time step
+  qSub <- matrix(NA, nrow=nrow(Qmodel), ncol=ncol(Qmodel))  # Streamflow time series
+    for (i in 1:nrow(Qmodel)){
+
+      # Show message
+      cat('\f')
+      message('Routing outputs from Semidistribute GR2M model')
+      message(paste0('Timestep: ', format(dates[i],'%m-%Y')))
+      message('Please wait..')
+
+      # Replace values for each subbasin (from Run_GR2MSemiDistr)
+      qMask[val$cells] <- Qmodel[i,]
+
+      # Save raster
+      writeRaster(qMask, filename='Weights.tif', overwrite=T)
+
+      # Weighted Flow Accumulation
+      name   <- paste0(i,'_GR2M_Qmonthly_',format(dates[i], '%b_%Y'),'.tif')
+      system(paste0("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 ",name))
+      qAcum=raster(name)
+
+      if(Save==TRUE){
+        # Create 'Ouput' folder
+        dir.create(file.path(Location,'Raster_simulation'))
+        file.copy(name, file.path(Location,'Outputs','Raster_simulation'))
+      }
+      file.remove(name)
+
+      # Extract routing Qsim for each subbasin
+      foreach (w=1:ncol(Qmodel)) %do% {
+        qSub[i,w] <- maxValue(setMinMax(mask(qAcum, area[w,])))
+      }
+
+      # Remove auxiliary raster
+      file.remove('Weights.tif')
     }
-
-    # Weighted Flow Accumulation
-    system("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Centroids_mask.tif -ad8 Flow_Accumulation.tif")
-    qAcum=raster("Flow_Accumulation.tif")
-
-    # Extract routing Qsim for each subbasin
-    foreach (w=1:ncol(Qmodel)) %do% {
-      qSub[i,w] <- maxValue(setMinMax(mask(qAcum, basin[w,])))
-    }
-
-    # Store Qacum data
-    qArray[,,i] <- round(as.matrix(qAcum),3)
-  }
-
-  # Show message
-  cat('\f')
-  message('Generating a raster brick')
-  message('Please wait..')
-
-  # Convert an array to a raster brick
-  qBrick         <- setValues(qBrick, qArray)
-  crs(qBrick)    <- crs(qMask)
-  extent(qBrick) <- extent(qMask)
-  res(qBrick)    <- res(qMask)
-  # qBrick[qBrick==0]<-NA
-
   toc()
 
+  # Show message
+  message('Done!')
+
   # Results
-  Ans <- list(Qsub=qSub, Qacum=qBrick)
+  Ans <- data.frame(dates, qSub)
+  colnames(Ans) <- c('Fecha', paste0('ID_',1:ncol(Qmodel)))
   return(Ans)
 
 } #End (not run)

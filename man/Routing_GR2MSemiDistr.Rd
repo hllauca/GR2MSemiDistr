@@ -2,25 +2,29 @@
 % Please edit documentation in R/Routing_GR2MSemiDistr.R
 \name{Routing_GR2MSemiDistr}
 \alias{Routing_GR2MSemiDistr}
-\title{Optimization of GR2M model parameters with MOPSOCD algorithm.}
+\title{Routing simulated monthly streamflow.}
 \usage{
-Routing_GR2MSemiDistr(Location, Qmodel, Shapefile,
-  FlowDir = "Flow_Direction.tif", Mask = "Centroids_mask.tif")
+Routing_GR2MSemiDistr(Location, Qmodel, Shapefile, Dem, RunIni, RunEnd,
+  Save = TRUE)
 }
 \arguments{
-\item{Location}{General work directory where data is located.}
+\item{Location}{Work directory where 'Inputs' folder is located.}
 
-\item{Qmodel}{Simulated streamflow matrix (time, subbasin) from Run_GR2MSemiDistr}
+\item{Qmodel}{Simulated streamflow matrix (time, subbasins) from Run_GR2MSemiDistr}
 
 \item{Shapefile}{Subbasins shapefile.}
 
-\item{FlowDir}{Flow direction raster in GRASS format. 'Flow_Direction.tif' as default.}
+\item{Dem}{Raster DEM.}
 
-\item{Mask}{Subbasins centroids mask raster. 'Centroids_mask.tif' as default.}
+\item{RunIni}{Initial date in format 'mm/yyyy'.}
+
+\item{RunEnd}{Final date in format 'mm/yyyy'.}
+
+\item{Save}{Conditional to save Flow Accumulation rasters. TRUE as default.}
 }
 \value{
 Routing streamflow for each subbasin.
 }
 \description{
-Optimization of GR2M model parameters with MOPSOCD algorithm.
+Routing simulated monthly streamflow.
 }
