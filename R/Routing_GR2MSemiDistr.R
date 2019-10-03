@@ -16,11 +16,13 @@
 #' @import  tictoc
 Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunEnd, Save=TRUE){
 
-# Location=Location
-# Qmodel=Ans2$Qsub
-# Shapefile=File.Shape
-# RunIni <- '01/1981'
-# RunEnd <- '12/2016'
+# Location  <- Location
+# Qmodel    <- Mod$Qsub
+# Shapefile <- File.Shape
+# Dem       <- File.Raster
+# RunIni    <- RunModel.Ini
+# RunEnd    <- RunModel.End
+# Save      <- TRUE
 
   # Load packages
   require(foreach)
@@ -28,6 +30,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
   require(rgeos)
   require(raster)
   require(tictoc)
+  require(parallel)
   tic()
 
   # Set work directory
@@ -90,8 +93,9 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
   system(paste0("mpiexec -n 8 pitremove -z ",Dem," -fel Ras.tif"))
 
   # Create Flow Direction raster
-  system("mpiexec -n 8 D8Flowdir -p Flow_Direction.tif -fel Ras.tif",show.output.on.console=F,invisible=F)
+  system("mpiexec -n 8 D8Flowdir -p Flow_Direction.tif -sd8 X.tif -fel Ras.tif",show.output.on.console=F,invisible=F)
   file.remove('Ras.tif')
+  file.remove('X.tif')
 
   # For each time step
   qSub <- matrix(NA, nrow=nrow(Qmodel), ncol=ncol(Qmodel))  # Streamflow time series
@@ -100,7 +104,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
       # Show message
       cat('\f')
       message('Routing outputs from Semidistribute GR2M model')
-      message(paste0('Timestep: ', format(dates[i],'%m-%Y')))
+      message(paste0('Timestep: ', format(dates[i],'%b-%Y')))
       message('Please wait..')
 
       # Replace values for each subbasin (from Run_GR2MSemiDistr)
@@ -112,24 +116,44 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
       # Weighted Flow Accumulation
       name   <- paste0(i,'_GR2M_Qmonthly_',format(dates[i], '%b_%Y'),'.tif')
       system(paste0("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 ",name))
-      qAcum=raster(name)
+      qAcum <- raster(name)
 
       if(Save==TRUE){
         # Create 'Ouput' folder
         dir.create(file.path(Location,'Raster_simulation'))
-        file.copy(name, file.path(Location,'Outputs','Raster_simulation'))
+        file.copy(name, file.path(Location,'Raster_simulation',name))
       }
-      file.remove(name)
 
       # Extract routing Qsim for each subbasin
-      foreach (w=1:ncol(Qmodel)) %do% {
-        qSub[i,w] <- maxValue(setMinMax(mask(qAcum, area[w,])))
+      if(i==1){
+        # Mean areal rainfall for each subbasin
+        cl=makeCluster(detectCores()-1) #detectar y asignar numero de cluster
+        clusterEvalQ(cl,c(library(raster))) #cargar paquete para aplicar a cada nodo
+        clusterExport(cl,varlist=c("area","qAcum"),envir=environment())
+
+        xycoord <- parLapply(cl, 1:ncol(Qmodel), function(z) {
+          ans <- extract(qAcum, area[z,], cellnumbers=TRUE, df=TRUE)$cell
+          return(ans)
+        })
       }
 
-      # Remove auxiliary raster
-      file.remove('Weights.tif')
+      # Extract routing Qsim for each subbasin
+      clusterExport(cl,varlist=c("area","qAcum","xycoord"),envir=environment())
+      qAcumOut <- parLapply(cl, 1:ncol(Qmodel), function(z) {
+          # ans <- maxValue(mask(qAcum, area[z,]))
+          ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),3)
+          return(ans)
+        })
+      qSub[i,] <- unlist(qAcumOut)
+      file.remove(name)
     }
-  toc()
+    # Remove auxiliary raster
+    file.remove('Weights.tif')
+
+    # Close the cluster
+    stopCluster(cl)
+
+    toc()
 
   # Show message
   message('Done!')
