@@ -25,17 +25,12 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, FlowDir='Flow_Dir
   require(tictoc)
   tic()
 
-  # Load rasters
+  # Set work directory
   setwd(file.path(Location,'Inputs'))
-  # path.fdr  <- file.path(Location,'Inputs', FlowDir)
-  # path.mask <- file.path(Location,'Inputs', Mask)
-  # flowdir   <- raster(path.fdr)
-  # qMask     <- raster(path.mask)
 
   # Load shapefile
   path.shp   <- file.path(Location,'Inputs', Shapefile)
   basin      <- readOGR(path.shp, verbose=F)
-
 
   # Auxiliary variables
   qRas   <- qMask

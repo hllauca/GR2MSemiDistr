@@ -2,20 +2,20 @@
 % Please edit documentation in R/Create_Raster_Inputs.R
 \name{Create_Raster_Inputs}
 \alias{Create_Raster_Inputs}
-\title{Create raster inputs (.TIF) to run the Semidistribute GR2M version.}
+\title{Create raster inputs for routing monthly streamflow. Require TauDEM installed.}
 \usage{
 Create_Raster_Inputs(Location, Shapefile, Dem)
 }
 \arguments{
-\item{Location}{General work directory where data is located.}
+\item{Location}{Work directory where 'Inputs' folder is located.}
 
 \item{Shapefile}{Subbasins shapefile.}
 
-\item{Dem}{Raster DEM for the study area.}
+\item{Dem}{Raster DEM.}
 }
 \value{
-Export centroids mask and flow direction rasters for the study subbasins.
+Export centroids mask and flow direction rasters.
 }
 \description{
-Create raster inputs (.TIF) to run the Semidistribute GR2M version.
+Create raster inputs for routing monthly streamflow. Require TauDEM installed.
 }
