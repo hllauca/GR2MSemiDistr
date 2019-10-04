@@ -8,7 +8,7 @@
 #' @param Resolution Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.
 #' @param DateIni Initial subset date in 'yyyy/mm/dd' format. '1981/01/01' as default
 #' @param DateEnd Final subset date in 'yyyy/mm/dd' format. '2016/12/01' as default
-#' @return Export a text file with forcing data inputs to run semidistribute GR2M model.
+#' @return Export a text file with forcing data inputs to run the semidistribute GR2M model.
 #' @export
 #' @import  rgdal
 #' @import  raster
@@ -17,7 +17,8 @@
 #' @import  ncdf4
 #' @import  parallel
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, Resolution=0.01, DateIni='1981/01/01', DateEnd='2016/12/01'){
-# Shapefile=File.Shape
+
+  # Shapefile=File.Shape
 # Database=Database
 # Precip=File.Precip
 # PotEvap=File.PotEvap

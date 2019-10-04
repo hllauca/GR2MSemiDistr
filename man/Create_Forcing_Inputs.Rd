@@ -25,7 +25,7 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
 \item{DateEnd}{Final subset date in 'yyyy/mm/dd' format. '2016/12/01' as default}
 }
 \value{
-Export a text file with forcing data inputs to run semidistribute GR2M model.
+Export a text file with forcing data inputs to run the semidistribute GR2M model.
 }
 \description{
 Create a text file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).
