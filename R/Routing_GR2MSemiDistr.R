@@ -114,7 +114,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
       writeRaster(qMask, filename='Weights.tif', overwrite=T)
 
       # Weighted Flow Accumulation
-      name   <- paste0(i,'_GR2M_Qmonthly_',format(dates[i], '%b_%Y'),'.tif')
+      name   <- paste0('GR2MSemiDistr_',format(dates[i], '%Y-%m'),'.tif')
       system(paste0("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 ",name))
       qAcum <- raster(name)
 
