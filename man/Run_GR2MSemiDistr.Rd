@@ -2,7 +2,7 @@
 % Please edit documentation in R/Run_GR2MSemiDistr.R
 \name{Run_GR2MSemiDistr}
 \alias{Run_GR2MSemiDistr}
-\title{Run lumped GR2M mode for each sub-basin and timestep.}
+\title{Run GR2M model for sub-basins.}
 \usage{
 Run_GR2MSemiDistr(Parameters, Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd,
@@ -10,9 +10,9 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
   Regional = FALSE)
 }
 \arguments{
-\item{Parameters}{GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.}
+\item{Parameters}{GR2M model parameters (X1 and X2) and a multiplying factors for P and PET.}
 
-\item{Location}{General work directory where data is located.}
+\item{Location}{Work directory where 'Inputs' folder is located.}
 
 \item{Shapefile}{Subbasins shapefile.}
 
@@ -20,9 +20,9 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
 
 \item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
 
-\item{RunIni}{Initial date 'mm/yyyy' of the model evaluation period.}
+\item{RunIni}{Initial date 'mm/yyyy' of the model simulation period.}
 
-\item{RunEnd}{Final date 'mm/yyyy' of the model evaluation period.}
+\item{RunEnd}{Final date 'mm/yyyy' of the model simulation period.}
 
 \item{IdBasin}{Subbasin ID number to compute outlet model (from shapefile attribute table).}
 
@@ -32,11 +32,11 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
 
-\item{Regional}{Logical value to simulate regional streamflows mode.}
+\item{Regional}{Logical value to simulate in a regional mode.}
 }
 \value{
 Semidistribute GR2M model outputs for a subbasin.
 }
 \description{
-Run lumped GR2M mode for each sub-basin and timestep.
+Run GR2M model for sub-basins.
 }

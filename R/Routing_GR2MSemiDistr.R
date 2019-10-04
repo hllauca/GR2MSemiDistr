@@ -1,13 +1,13 @@
-#' Routing simulated monthly streamflow.
+#' Routing simulated monthly streamflows.
 #'
 #' @param Location		 Work directory where 'Inputs' folder is located.
 #' @param Qmodel       Simulated streamflow matrix (time, subbasins) from Run_GR2MSemiDistr
 #' @param Shapefile		 Subbasins shapefile.
 #' @param Dem          Raster DEM.
-#' @param RunIni       Initial date in format 'mm/yyyy'.
-#' @param RunEnd       Final date in format 'mm/yyyy'.
-#' @param Save         Conditional to save Flow Accumulation rasters. TRUE as default.
-#' @return  Routing streamflow for each subbasin.
+#' @param RunIni       Initial date 'mm/yyyy' of the model simulation period.
+#' @param RunEnd       Final date 'mm/yyyy' of the model simulation period.
+#' @param Save         Conditional to save Weighted Flow Accumulation rasters. TRUE as default.
+#' @return  Routed streamflows for each subbasin.
 #' @export
 #' @import  rgdal
 #' @import  raster
@@ -120,8 +120,8 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
 
       if(Save==TRUE){
         # Create 'Ouput' folder
-        dir.create(file.path(Location,'Raster_simulation'))
-        file.copy(name, file.path(Location,'Raster_simulation',name))
+        dir.create(file.path(Location,'Outputs','Raster_simulation'))
+        file.copy(name, file.path(Location,'Outputs','Raster_simulation',name))
       }
 
       # Extract routing Qsim for each subbasin
@@ -155,12 +155,13 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
 
     toc()
 
-  # Show message
-  message('Done!')
-
   # Results
   Ans <- data.frame(dates, qSub)
-  colnames(Ans) <- c('Fecha', paste0('ID_',1:ncol(Qmodel)))
+  colnames(Ans) <- c('Dates', paste0('ID_',1:ncol(Qmodel)))
+  write.table(Ans, file=file.path(Location,'Outputs','Routing_GR2MSemiDistr.csv'), sep='\t', row.names=FALSE)
+
+  # Show message
+  message('Done!')
   return(Ans)
 
 } #End (not run)

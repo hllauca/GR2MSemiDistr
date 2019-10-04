@@ -1,22 +1,21 @@
 #' Optimization of GR2M model parameters with SCE-UA algorithm.
 #'
 #' @param Parameters      GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
-#' @param Parameters.Min  Minimum GR2M (X1, X2 and Fpet) model parameters values.
-#' @param Parameters.Max  Maximum GR2M (X1, X2 and Fpet) model parameters values.
-#' @param Max.Functions 	Maximum number of functions used in the optimization loop. 5000 as default.
+#' @param Parameters.Min  Minimum GR2M (X1, X2, fprecip and fpet) model parameters values.
+#' @param Parameters.Max  Maximum GR2M (X1, X2, fprecip and fpet) model parameters values.
+#' @param Max.Functions 	Maximum number of functions used in the optimization loop. 10000 as default.
 #' @param Optimization    Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).
-#' @param Location    General work directory where data is located.
-#' @param Raster      Flow direction raster in GRASS format.
+#' @param Location    Work directory where 'Inputs' folder is located.
 #' @param Shapefile   Subbasins shapefile.
 #' @param Input       Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
 #' @param WarmIni     Initial date 'mm/yyyy' of the warm-up period.
-#' @param RunIni      Initial date 'mm/yyyy' of the model evaluation period.
-#' @param RunEnd      Final date 'mm/yyyy' of the model evaluation period.
-#' @param IdBasin     Subbasin ID number to compute outlet model (from shapefile attribute table).
-#' @param Remove      Logical value to remove streamflow generated in the IdBasin. FALSE as default.
+#' @param RunIni      Initial date 'mm/yyyy' of the model simulation period.
+#' @param RunEnd      Final date 'mm/yyyy' of the model simulation period.
+#' @param IdBasin     Subbasin ID number to compute the outlet model (from shapefile attribute table).
+#' @param Remove      Logical value to remove the streamflow generated in the IdBasin. FALSE as default.
 #' @param No.Optim    Calibration regions not to optimize.
 #' @param IniState    Initial GR2M states variables. NULL as default.
-#' @return  Best semidistribute GR2M model parameters.
+#' @return  Best GR2M model parameters.
 #' @export
 #' @import  ProgGUIinR
 #' @import  rgdal
@@ -27,7 +26,7 @@
 #' @import  parallel
 #' @import  tictoc
 #' @import  airGR
-Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=10000,
+Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=10000,
                                  Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
 									               WarmIni, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL, IniState=NULL){
 
@@ -59,14 +58,14 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       require(airGR)
       tic()
 
-      # Load shapefile
+      # Read sub-basins
       path.shp   <- file.path(Location,'Inputs', Shapefile)
       basin      <- readOGR(path.shp, verbose=F)
       area       <- basin@data$Area
       region     <- basin@data$Region
       nsub       <- nrow(basin@data)
 
-      # Read and subset input data for the study period
+      # Read and subset input data
       Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
       Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
       if(is.null(WarmIni)==TRUE){
@@ -104,7 +103,7 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       Opt.Parameters.Max <- rep(Parameters.Max, each=length(Opt.Region))
       Opt.Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Opt.Region))
 
-      # Utils functions
+      # Auxiliary functions
       Subset_Param <- function(Param, Region){
         ParamSub  <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
         return(ParamSub)
@@ -248,6 +247,16 @@ Optim1_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max
       All.Parameters <- New.Parameters[match(Num.Parameters, New.Parameters[,1]), 2]
     }
     Ans <- list(Param=All.Parameters, Value=fo)
+
+    # Create output folder ans save simulation
+    dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
+    save(Ans, file=file.path(Location,'Outputs','Optimization_GR2MSemiDistr.Rda'))
+
+    # Print results
+    print("Optimization results:")
+    print("======================")
+    print(paste0(rep(c('X1=','X2=', 'fprecip=', 'fpet='), each=length(Ans$Param)/4), Ans$Param))
+    print(paste0(Optim.Eval,'=', Ans$Value))
 
     # Show message
     message("Done!")

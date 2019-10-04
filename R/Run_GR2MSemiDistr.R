@@ -1,17 +1,17 @@
-#' Run lumped GR2M mode for each sub-basin and timestep.
+#' Run GR2M model for sub-basins.
 #'
-#' @param Parameters  GR2M (X1 and X2) parameters and a multiplying factor to adjust monthly P and PET values.
-#' @param Location    General work directory where data is located.
+#' @param Parameters  GR2M model parameters (X1 and X2) and a multiplying factors for P and PET.
+#' @param Location    Work directory where 'Inputs' folder is located.
 #' @param Shapefile   Subbasins shapefile.
 #' @param Input       Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
 #' @param WarmIni     Initial date 'mm/yyyy' of the warm-up period.
-#' @param RunIni      Initial date 'mm/yyyy' of the model evaluation period.
-#' @param RunEnd      Final date 'mm/yyyy' of the model evaluation period.
+#' @param RunIni      Initial date 'mm/yyyy' of the model simulation period.
+#' @param RunEnd      Final date 'mm/yyyy' of the model simulation period.
 #' @param IdBasin     Subbasin ID number to compute outlet model (from shapefile attribute table).
 #' @param Remove      Logical value to remove streamflow generated in the IdBasin. FALSE as default.
 #' @param Plot        Logical value to plot observed and simulated streamflow timeseries. TRUE as default.
 #' @param IniState    Initial GR2M states variables. NULL as default.
-#' @param Regional    Logical value to simulate regional streamflows mode.
+#' @param Regional    Logical value to simulate in a regional mode.
 #' @return Semidistribute GR2M model outputs for a subbasin.
 #' @export
 #' @import  rgdal
@@ -50,14 +50,13 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     require(parallel)
     tic()
 
-  # Load shapefile
-    path.shp   <- file.path(Location,'Inputs', Shapefile)
-    basin      <- readOGR(path.shp, verbose=F)
+  # Read subbasin data
+    basin      <- readOGR(file.path(Location,'Inputs', Shapefile), verbose=F)
     area       <- basin@data$Area
     region     <- basin@data$Region
     nsub       <- nrow(basin@data)
 
-  # Read and subset input data for the study period
+  # Read and subset input data
     Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
     Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
     if(is.null(WarmIni)==TRUE){
@@ -86,7 +85,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                         Fpp=Parameters[(2*nreg+1):(3*nreg)],
                         Fpet=Parameters[(3*nreg+1):length(Parameters)])
 
-  # Utils fucntions
+  # Auxiliary functions
     Subset_Param <- function(Param, Region){
         ParamSub  <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
         return(ParamSub)
@@ -240,6 +239,10 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                   Dates=Database2$DatesR,
                   EndState=EndState)
     }
+
+  # Create output folder ans save simulation
+    dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
+    save(Ans, file=file.path(Location,'Outputs','Simulation_GR2MSemiDistr.Rda'))
 
   # Show message
     message('Done!')

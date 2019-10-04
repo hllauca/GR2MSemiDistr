@@ -2,7 +2,7 @@
 % Please edit documentation in R/Routing_GR2MSemiDistr.R
 \name{Routing_GR2MSemiDistr}
 \alias{Routing_GR2MSemiDistr}
-\title{Routing simulated monthly streamflow.}
+\title{Routing simulated monthly streamflows.}
 \usage{
 Routing_GR2MSemiDistr(Location, Qmodel, Shapefile, Dem, RunIni, RunEnd,
   Save = TRUE)
@@ -16,15 +16,15 @@ Routing_GR2MSemiDistr(Location, Qmodel, Shapefile, Dem, RunIni, RunEnd,
 
 \item{Dem}{Raster DEM.}
 
-\item{RunIni}{Initial date in format 'mm/yyyy'.}
+\item{RunIni}{Initial date 'mm/yyyy' of the model simulation period.}
 
-\item{RunEnd}{Final date in format 'mm/yyyy'.}
+\item{RunEnd}{Final date 'mm/yyyy' of the model simulation period.}
 
-\item{Save}{Conditional to save Flow Accumulation rasters. TRUE as default.}
+\item{Save}{Conditional to save Weighted Flow Accumulation rasters. TRUE as default.}
 }
 \value{
-Routing streamflow for each subbasin.
+Routed streamflows for each subbasin.
 }
 \description{
-Routing simulated monthly streamflow.
+Routing simulated monthly streamflows.
 }
