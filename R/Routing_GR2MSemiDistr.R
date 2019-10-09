@@ -39,11 +39,13 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
   # Load inputs
   area  <- readOGR(file.path(Location,'Inputs', Shapefile), verbose=F)
   dem   <- raster(file.path(Location,'Inputs', Dem))
+  rcrop <- !is.na(mask(dem, area))
+  rcrop[rcrop==0] <- NA
 
   # Create dates
   dates <- seq(as.Date(paste0('01/',RunIni), format='%d/%m/%Y'),
-                as.Date(paste0('01/',RunEnd), format='%d/%m/%Y'),
-                by='months')
+               as.Date(paste0('01/',RunEnd), format='%d/%m/%Y'),
+               by='months')
 
   # Auxiliary function (from https://stackoverflow.com/questions/44327994/calculate-centroid-within-inside-a-spatialpolygon)
   gCentroidWithin <- function(pol) {
@@ -116,12 +118,12 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
       # Weighted Flow Accumulation
       name   <- paste0('GR2MSemiDistr_',format(dates[i], '%Y-%m'),'.tif')
       system(paste0("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 ",name))
-      qAcum <- raster(name)
+      qAcum <- raster(name)*rcrop
 
       if(Save==TRUE){
         # Create 'Ouput' folder
         dir.create(file.path(Location,'Outputs','Raster_simulation'))
-        file.copy(name, file.path(Location,'Outputs','Raster_simulation',name))
+        writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',name))
       }
 
       # Extract routing Qsim for each subbasin
@@ -149,6 +151,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
     }
     # Remove auxiliary raster
     file.remove('Weights.tif')
+    file.remove(name)
 
     # Close the cluster
     stopCluster(cl)
