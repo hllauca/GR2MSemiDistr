@@ -47,7 +47,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
                as.Date(paste0('01/',RunEnd), format='%d/%m/%Y'),
                by='months')
 
-  if(save==TRUE){
+  if(Save==TRUE){
     baseName <- readline(prompt="Enter WFAC raster basename: " )
   }
 
