@@ -47,6 +47,10 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
                as.Date(paste0('01/',RunEnd), format='%d/%m/%Y'),
                by='months')
 
+  if(save==TRUE){
+    baseName <- readline(prompt="Enter WFAC raster basename: " )
+  }
+
   # Auxiliary function (from https://stackoverflow.com/questions/44327994/calculate-centroid-within-inside-a-spatialpolygon)
   gCentroidWithin <- function(pol) {
     require(rgeos)
@@ -116,13 +120,13 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
       writeRaster(qMask, filename='Weights.tif', overwrite=T)
 
       # Weighted Flow Accumulation
-      name   <- paste0('GR2MSemiDistr_',format(dates[i], '%Y-%m'),'.tif')
-      system(paste0("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 ",name))
-      qAcum <- raster(name)*rcrop
+      system("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 Flow_Accumulation.tif")
+      qAcum <- raster("Flow_Accumulation.tif")*rcrop
 
       if(Save==TRUE){
         # Create 'Ouput' folder
         dir.create(file.path(Location,'Outputs','Raster_simulation'))
+        name   <- paste0(baseName,'_',format(dates[i],'%Y-%m'),'.tif')
         writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',name))
       }
 
@@ -151,7 +155,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
     }
     # Remove auxiliary raster
     file.remove('Weights.tif')
-    file.remove(name)
+    file.remove("Flow_Accumulation.tif")
 
     # Close the cluster
     stopCluster(cl)
