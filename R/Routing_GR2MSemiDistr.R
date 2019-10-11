@@ -129,7 +129,7 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
         name   <- paste0(baseName,'_',format(dates[i],'%Y-%m'),'.tif')
         qAcum2 <- qAcum
         qAcum2[qAcum2==0] <- NA
-        writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',name))
+        writeRaster(qAcum2, file=file.path(Location,'Outputs','Raster_simulation',name))
       }
 
       # Extract routing Qsim for each subbasin
