@@ -1,18 +1,18 @@
-#' Run GR2M model for sub-basins.
+#' Run GR2M model for each subbasins.
 #'
 #' @param Parameters  GR2M model parameters (X1 and X2) and a multiplying factors for P and PET.
 #' @param Location    Work directory where 'Inputs' folder is located.
 #' @param Shapefile   Subbasins shapefile.
 #' @param Input       Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
-#' @param WarmIni     Initial date 'mm/yyyy' of the warm-up period.
-#' @param RunIni      Initial date 'mm/yyyy' of the model simulation period.
-#' @param RunEnd      Final date 'mm/yyyy' of the model simulation period.
-#' @param IdBasin     Subbasin ID number to compute outlet model (from shapefile attribute table).
-#' @param Remove      Logical value to remove streamflow generated in the IdBasin. FALSE as default.
+#' @param WarmIni     Initial date (in 'mm/yyyy' format) of the warm-up period.
+#' @param RunIni      Initial date (in 'mm/yyyy' format) of the model simulation period.
+#' @param RunEnd      Final date (in 'mm/yyyy' format) of the model simulation period.
+#' @param IdBasin     ID for the outlet subbasin (from shapefile attribute table).
+#' @param Remove      Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.
 #' @param Plot        Logical value to plot observed and simulated streamflow timeseries. TRUE as default.
 #' @param IniState    Initial GR2M states variables. NULL as default.
-#' @param Regional    Logical value to simulate in a regional mode.
-#' @return Semidistribute GR2M model outputs for a subbasin.
+#' @param Regional    Logical value to simulate in a regional mode (more than one outlet).
+#' @return GR2M model outputs for each subbasin.
 #' @export
 #' @import  rgdal
 #' @import  raster

@@ -1,12 +1,12 @@
 #' Routing simulated monthly streamflows.
 #'
 #' @param Location		 Work directory where 'Inputs' folder is located.
-#' @param Qmodel       Simulated streamflow matrix (time, subbasins) from Run_GR2MSemiDistr
+#' @param Qmodel       Simulated streamflow matrix (Dates, ID) from Run_GR2MSemiDistr
 #' @param Shapefile		 Subbasins shapefile.
 #' @param Dem          Raster DEM.
 #' @param RunIni       Initial date 'mm/yyyy' of the model simulation period.
 #' @param RunEnd       Final date 'mm/yyyy' of the model simulation period.
-#' @param Save         Conditional to save Weighted Flow Accumulation rasters. TRUE as default.
+#' @param Save         Logical value to save Streamflow Accumulation rasters. TRUE as default.
 #' @return  Routed streamflows for each subbasin.
 #' @export
 #' @import  rgdal

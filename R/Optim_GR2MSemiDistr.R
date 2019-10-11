@@ -8,12 +8,12 @@
 #' @param Location    Work directory where 'Inputs' folder is located.
 #' @param Shapefile   Subbasins shapefile.
 #' @param Input       Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
-#' @param WarmIni     Initial date 'mm/yyyy' of the warm-up period.
-#' @param RunIni      Initial date 'mm/yyyy' of the model simulation period.
-#' @param RunEnd      Final date 'mm/yyyy' of the model simulation period.
-#' @param IdBasin     Subbasin ID number to compute the outlet model (from shapefile attribute table).
-#' @param Remove      Logical value to remove the streamflow generated in the IdBasin. FALSE as default.
-#' @param No.Optim    Calibration regions not to optimize.
+#' @param WarmIni     Initial date (in 'mm/yyyy' format) of the warm-up period.
+#' @param RunIni      Initial date (in 'mm/yyyy' format) of the model simulation period.
+#' @param RunEnd      Final date (in 'mm/yyyy' format) of the model simulation period.
+#' @param IdBasin     ID for the outlet subbasin (from shapefile attribute table).
+#' @param Remove      Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.
+#' @param No.Optim    Calibration regions not to be optimized.
 #' @param IniState    Initial GR2M states variables. NULL as default.
 #' @return  Best GR2M model parameters.
 #' @export

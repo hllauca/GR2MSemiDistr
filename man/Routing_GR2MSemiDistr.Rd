@@ -10,7 +10,7 @@ Routing_GR2MSemiDistr(Location, Qmodel, Shapefile, Dem, RunIni, RunEnd,
 \arguments{
 \item{Location}{Work directory where 'Inputs' folder is located.}
 
-\item{Qmodel}{Simulated streamflow matrix (time, subbasins) from Run_GR2MSemiDistr}
+\item{Qmodel}{Simulated streamflow matrix (Dates, ID) from Run_GR2MSemiDistr}
 
 \item{Shapefile}{Subbasins shapefile.}
 
@@ -20,7 +20,7 @@ Routing_GR2MSemiDistr(Location, Qmodel, Shapefile, Dem, RunIni, RunEnd,
 
 \item{RunEnd}{Final date 'mm/yyyy' of the model simulation period.}
 
-\item{Save}{Conditional to save Weighted Flow Accumulation rasters. TRUE as default.}
+\item{Save}{Logical value to save Streamflow Accumulation rasters. TRUE as default.}
 }
 \value{
 Routed streamflows for each subbasin.

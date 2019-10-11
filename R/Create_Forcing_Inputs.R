@@ -1,14 +1,14 @@
-#' Create a text file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).
+#' Create a text file with data inputs for the model
 #'
 #' @param Shapefile Subbasins shapefile.
-#' @param Database Path where precipitacion and Pot. evapotranspiration files are located.
-#' @param Precip Precipitation filename (in NetCDF format).
-#' @param PotEvap Potential evapotranspiration filename (in NetCDF format).
-#' @param Qobs Observed streamflow data (in m3/s) for the study period. Null as default.
+#' @param Database Directory where precipitation and evapotranspiration data (as netCDF) are located.
+#' @param Precip Precipitation filename.
+#' @param PotEvap Evapotranspiration filename.
+#' @param Qobs Observed streamflow filename (data in m3/s). NULL as default.
 #' @param Resolution Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.
-#' @param DateIni Initial subset date in 'yyyy/mm/dd' format. '1981/01/01' as default
-#' @param DateEnd Final subset date in 'yyyy/mm/dd' format. '2016/12/01' as default
-#' @return Export a text file with forcing data inputs to run the semidistribute GR2M model.
+#' @param DateIni Initial date (in 'yyyy/mm/dd' format) to subset data. '1981/01/01' as default
+#' @param DateEnd Final date (in 'yyyy/mm/dd' format) to subset data. '2016/12/01' as default
+#' @return Export a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
 #' @export
 #' @import  rgdal
 #' @import  raster
@@ -18,7 +18,7 @@
 #' @import  parallel
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, Resolution=0.01, DateIni='1981/01/01', DateEnd='2016/12/01'){
 
-  # Shapefile=File.Shape
+# Shapefile=File.Shape
 # Database=Database
 # Precip=File.Precip
 # PotEvap=File.PotEvap
