@@ -26,17 +26,17 @@ Optim_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 
 \item{Input}{Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.}
 
-\item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
+\item{WarmIni}{Initial date (in 'mm/yyyy' format) of the warm-up period.}
 
-\item{RunIni}{Initial date 'mm/yyyy' of the model simulation period.}
+\item{RunIni}{Initial date (in 'mm/yyyy' format) of the model simulation period.}
 
-\item{RunEnd}{Final date 'mm/yyyy' of the model simulation period.}
+\item{RunEnd}{Final date (in 'mm/yyyy' format) of the model simulation period.}
 
-\item{IdBasin}{Subbasin ID number to compute the outlet model (from shapefile attribute table).}
+\item{IdBasin}{ID for the outlet subbasin (from shapefile attribute table).}
 
-\item{Remove}{Logical value to remove the streamflow generated in the IdBasin. FALSE as default.}
+\item{Remove}{Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.}
 
-\item{No.Optim}{Calibration regions not to optimize.}
+\item{No.Optim}{Calibration regions not to be optimized.}
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Create a text file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).}
+\title{Create a text file with data inputs for the model}
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
   Resolution = 0.01, DateIni = "1981/01/01", DateEnd = "2016/12/01")
@@ -10,23 +10,23 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
 \arguments{
 \item{Shapefile}{Subbasins shapefile.}
 
-\item{Database}{Path where precipitacion and Pot. evapotranspiration files are located.}
+\item{Database}{Directory where precipitation and evapotranspiration data (as netCDF) are located.}
 
-\item{Precip}{Precipitation filename (in NetCDF format).}
+\item{Precip}{Precipitation filename.}
 
-\item{PotEvap}{Potential evapotranspiration filename (in NetCDF format).}
+\item{PotEvap}{Evapotranspiration filename.}
 
-\item{Qobs}{Observed streamflow data (in m3/s) for the study period. Null as default.}
+\item{Qobs}{Observed streamflow filename (data in m3/s). NULL as default.}
 
 \item{Resolution}{Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.}
 
-\item{DateIni}{Initial subset date in 'yyyy/mm/dd' format. '1981/01/01' as default}
+\item{DateIni}{Initial date (in 'yyyy/mm/dd' format) to subset data. '1981/01/01' as default}
 
-\item{DateEnd}{Final subset date in 'yyyy/mm/dd' format. '2016/12/01' as default}
+\item{DateEnd}{Final date (in 'yyyy/mm/dd' format) to subset data. '2016/12/01' as default}
 }
 \value{
-Export a text file with forcing data inputs to run the semidistribute GR2M model.
+Export a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
 }
 \description{
-Create a text file with forcing data inputs (DatesR, Precipitation, Potential Evapotranspiration and Observed streamflow).
+Create a text file with data inputs for the model
 }

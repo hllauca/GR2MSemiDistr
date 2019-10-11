@@ -2,7 +2,7 @@
 % Please edit documentation in R/Run_GR2MSemiDistr.R
 \name{Run_GR2MSemiDistr}
 \alias{Run_GR2MSemiDistr}
-\title{Run GR2M model for sub-basins.}
+\title{Run GR2M model for each subbasins.}
 \usage{
 Run_GR2MSemiDistr(Parameters, Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd,
@@ -18,25 +18,25 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
 
 \item{Input}{Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.}
 
-\item{WarmIni}{Initial date 'mm/yyyy' of the warm-up period.}
+\item{WarmIni}{Initial date (in 'mm/yyyy' format) of the warm-up period.}
 
-\item{RunIni}{Initial date 'mm/yyyy' of the model simulation period.}
+\item{RunIni}{Initial date (in 'mm/yyyy' format) of the model simulation period.}
 
-\item{RunEnd}{Final date 'mm/yyyy' of the model simulation period.}
+\item{RunEnd}{Final date (in 'mm/yyyy' format) of the model simulation period.}
 
-\item{IdBasin}{Subbasin ID number to compute outlet model (from shapefile attribute table).}
+\item{IdBasin}{ID for the outlet subbasin (from shapefile attribute table).}
 
-\item{Remove}{Logical value to remove streamflow generated in the IdBasin. FALSE as default.}
+\item{Remove}{Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.}
 
 \item{Plot}{Logical value to plot observed and simulated streamflow timeseries. TRUE as default.}
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
 
-\item{Regional}{Logical value to simulate in a regional mode.}
+\item{Regional}{Logical value to simulate in a regional mode (more than one outlet).}
 }
 \value{
-Semidistribute GR2M model outputs for a subbasin.
+GR2M model outputs for each subbasin.
 }
 \description{
-Run GR2M model for sub-basins.
+Run GR2M model for each subbasins.
 }
