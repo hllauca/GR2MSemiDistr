@@ -4,23 +4,23 @@
 \alias{Routing_GR2MSemiDistr}
 \title{Routing simulated monthly streamflows.}
 \usage{
-Routing_GR2MSemiDistr(Location, Qmodel, Shapefile, Dem, RunIni, RunEnd,
+Routing_GR2MSemiDistr(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
   Save = TRUE)
 }
 \arguments{
 \item{Location}{Work directory where 'Inputs' folder is located.}
 
-\item{Qmodel}{Simulated streamflow matrix (Dates, ID) from Run_GR2MSemiDistr}
+\item{Model}{Model results from Run_GR2MSemiDistr}
 
 \item{Shapefile}{Subbasins shapefile.}
 
 \item{Dem}{Raster DEM.}
 
-\item{RunIni}{Initial date 'mm/yyyy' of the model simulation period.}
+\item{AcumIni}{Initial date 'mm/yyyy' for flow accumulation.}
 
-\item{RunEnd}{Final date 'mm/yyyy' of the model simulation period.}
+\item{AcumEnd}{Final date 'mm/yyyy' for flow accumulation.}
 
-\item{Save}{Logical value to save Streamflow Accumulation rasters. TRUE as default.}
+\item{Save}{Logical value to save results as rasters. TRUE as default.}
 }
 \value{
 Routed streamflows for each subbasin.

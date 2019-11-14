@@ -1,12 +1,12 @@
 #' Routing simulated monthly streamflows.
 #'
 #' @param Location		 Work directory where 'Inputs' folder is located.
-#' @param Qmodel       Simulated streamflow matrix (Dates, ID) from Run_GR2MSemiDistr
+#' @param Model        Model results from Run_GR2MSemiDistr
 #' @param Shapefile		 Subbasins shapefile.
 #' @param Dem          Raster DEM.
-#' @param RunIni       Initial date 'mm/yyyy' of the model simulation period.
-#' @param RunEnd       Final date 'mm/yyyy' of the model simulation period.
-#' @param Save         Logical value to save Streamflow Accumulation rasters. TRUE as default.
+#' @param AcumIni      Initial date 'mm/yyyy' for flow accumulation.
+#' @param AcumEnd      Final date 'mm/yyyy' for flow accumulation.
+#' @param Save         Logical value to save results as rasters. TRUE as default.
 #' @return  Routed streamflows for each subbasin.
 #' @export
 #' @import  rgdal
@@ -14,14 +14,14 @@
 #' @import  rgeos
 #' @import  foreach
 #' @import  tictoc
-Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunEnd, Save=TRUE){
+Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd, Save=TRUE){
 
 # Location  <- Location
 # Qmodel    <- Mod$Qsub
 # Shapefile <- File.Shape
 # Dem       <- File.Raster
-# RunIni    <- RunModel.Ini
-# RunEnd    <- RunModel.End
+# AcumIni   <- RunModel.Ini
+# AcumEnd   <- RunModel.End
 # Save      <- TRUE
 
   # Load packages
@@ -43,12 +43,12 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
   rcrop[rcrop==0] <- NA
 
   # Create dates
-  dates <- seq(as.Date(paste0('01/',RunIni), format='%d/%m/%Y'),
-               as.Date(paste0('01/',RunEnd), format='%d/%m/%Y'),
+  dates <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
+               as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
                by='months')
 
   if(Save==TRUE){
-    baseName <- readline(prompt="Enter WFAC raster basename: " )
+    baseName <- readline(prompt="Enter a raster basename: " )
   }
 
   # Auxiliary function (from https://stackoverflow.com/questions/44327994/calculate-centroid-within-inside-a-spatialpolygon)
@@ -104,6 +104,9 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
   file.remove('X.tif')
 
   # For each time step
+  Ind    <- seq(which(format(Mod$Dates, '%d/%m/%Y')==as.Date(paste0('01/',AcumIni), format='%d/%m/%Y')),
+                which(format(Mod$Dates, '%d/%m/%Y')==as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y')))
+  Qmodel <- Model$Qsub[Ind,]
   qSub <- matrix(NA, nrow=nrow(Qmodel), ncol=ncol(Qmodel))  # Streamflow time series
     for (i in 1:nrow(Qmodel)){
 
@@ -148,12 +151,11 @@ Routing_GR2MSemiDistr <- function(Location, Qmodel, Shapefile, Dem, RunIni, RunE
       # Extract routing Qsim for each subbasin
       clusterExport(cl,varlist=c("area","qAcum","xycoord"),envir=environment())
       qAcumOut <- parLapply(cl, 1:ncol(Qmodel), function(z) {
-          # ans <- maxValue(mask(qAcum, area[z,]))
           ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),3)
           return(ans)
         })
       qSub[i,] <- unlist(qAcumOut)
-      file.remove(name)
+
     }
     # Remove auxiliary raster
     file.remove('Weights.tif')
