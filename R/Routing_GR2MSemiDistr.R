@@ -17,12 +17,12 @@
 Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd, Save=TRUE){
 
 # Location  <- Location
-# Qmodel    <- Mod$Qsub
+# Model     <- Mod
 # Shapefile <- File.Shape
 # Dem       <- File.Raster
-# AcumIni   <- RunModel.Ini
-# AcumEnd   <- RunModel.End
-# Save      <- TRUE
+# AcumIni   <- '09/2019'
+# AcumEnd   <- '10/2019'
+# Save      <- FALSE
 
   # Load packages
   require(foreach)
@@ -104,8 +104,8 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
   file.remove('X.tif')
 
   # For each time step
-  Ind    <- seq(which(format(Mod$Dates, '%d/%m/%Y')==as.Date(paste0('01/',AcumIni), format='%d/%m/%Y')),
-                which(format(Mod$Dates, '%d/%m/%Y')==as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y')))
+  Ind    <- seq(which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumIni)),
+                which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumEnd)))
   Qmodel <- Model$Qsub[Ind,]
   qSub <- matrix(NA, nrow=nrow(Qmodel), ncol=ncol(Qmodel))  # Streamflow time series
     for (i in 1:nrow(Qmodel)){
@@ -151,7 +151,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       # Extract routing Qsim for each subbasin
       clusterExport(cl,varlist=c("area","qAcum","xycoord"),envir=environment())
       qAcumOut <- parLapply(cl, 1:ncol(Qmodel), function(z) {
-          ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),3)
+          ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),5)
           return(ans)
         })
       qSub[i,] <- unlist(qAcumOut)
@@ -164,15 +164,14 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     # Close the cluster
     stopCluster(cl)
 
-    toc()
-
   # Results
   Ans <- data.frame(dates, qSub)
   colnames(Ans) <- c('Dates', paste0('ID_',1:ncol(Qmodel)))
-  write.table(Ans, file=file.path(Location,'Outputs','Routing_GR2MSemiDistr.csv'), sep='\t', row.names=FALSE)
+  write.table(Ans, file=file.path(Location,'Outputs','Routing_GR2MSemiDistr.csv'), sep=',', row.names=FALSE)
 
   # Show message
   message('Done!')
+  toc()
   return(Ans)
 
 } #End (not run)
