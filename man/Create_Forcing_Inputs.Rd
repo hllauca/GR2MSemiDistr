@@ -5,7 +5,8 @@
 \title{Create a text file with data inputs for the model}
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
-  Resolution = 0.01, DateIni = "1981/01/01", DateEnd = "2016/12/01")
+  Resolution = 0.01, DateIni = "1981/01/01", DateEnd = "2016/12/01",
+  factor = 1.1)
 }
 \arguments{
 \item{Shapefile}{Subbasins shapefile.}
@@ -23,6 +24,8 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
 \item{DateIni}{Initial date (in 'yyyy/mm/dd' format) to subset data. '1981/01/01' as default}
 
 \item{DateEnd}{Final date (in 'yyyy/mm/dd' format) to subset data. '2016/12/01' as default}
+
+\item{factor}{Factor from 1 to 1.5 to crop data inputs for an area of interest}
 }
 \value{
 Export a text file with forcing data inputs (Dates, Precip, Evap, Qobs).

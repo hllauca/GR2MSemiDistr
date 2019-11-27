@@ -124,6 +124,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
 
       # Weighted Flow Accumulation
       system("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 Flow_Accumulation.tif")
+      # system("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -ad8 Flow_Accumulation.tif")
       qAcum <- raster("Flow_Accumulation.tif")*rcrop
 
       if(Save==TRUE){
