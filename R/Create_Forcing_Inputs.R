@@ -8,6 +8,7 @@
 #' @param Resolution Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.
 #' @param DateIni Initial date (in 'yyyy/mm/dd' format) to subset data. '1981/01/01' as default
 #' @param DateEnd Final date (in 'yyyy/mm/dd' format) to subset data. '2016/12/01' as default
+#' @param factor Factor from 1 to 1.5 to crop data inputs for an area of interest
 #' @return Export a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
 #' @export
 #' @import  rgdal
@@ -16,16 +17,17 @@
 #' @import  tictoc
 #' @import  ncdf4
 #' @import  parallel
-Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, Resolution=0.01, DateIni='1981/01/01', DateEnd='2016/12/01'){
+Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, Resolution=0.01, DateIni='1981/01/01', DateEnd='2016/12/01', factor=1.1){
 
 # Shapefile=File.Shape
 # Database=Database
 # Precip=File.Precip
 # PotEvap=File.PotEvap
-# Qobs=File.Qobs
+# Qobs=NULL
 # Resolution=0.01
-# DateIni='1981/01/01'
-# DateEnd='2016/12/01'
+# DateIni="1979/01/01"
+# DateEnd="2019/10/01"
+#factor=1.1
 
     # Load packages
       require(rgdal)
@@ -73,7 +75,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       pp      <- brick(file.path(Database, Precip))
 
     # Crop for basin domain
-      pp.crop <- crop(pp, extent(Basins)*1.1)
+      pp.crop <- crop(pp, extent(Basins)*factor)
 
     # Mask for resampling using 'ngb' method
       pp.res      <- raster(extent(pp.crop[[1]]))
@@ -108,7 +110,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       pet      <- brick(file.path(Database, PotEvap))
 
     # Crop for basin domain
-      pet.crop <- crop(pet, extent(Basins)*1.5)
+      pet.crop <- crop(pet, extent(Basins)*factor)
 
     # Mask for resampling using 'ngb' method
       pet.res      <- raster(extent(pet.crop[[1]]))
