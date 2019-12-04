@@ -142,8 +142,6 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
         positionPET  <- positions$PET
       }
 
-      positionPET  <- generate_mask_geom(pet.res[[1]], Basins)
-
     # Mean areal evapotranspiration for each subbasin
       clusterEvalQ(cl,c(library(raster)))
       clusterExport(cl,varlist=c("pet.res","pet.crop","positionPET","mask_Fast_Extract"),envir=environment())
