@@ -14,7 +14,7 @@
 #' @import  rgeos
 #' @import  foreach
 #' @import  tictoc
-Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd, Save=TRUE){
+Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd, Save=TRUE, Update=FALSE){
 
 # Location  <- Location
 # Model     <- Mod
@@ -23,6 +23,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
 # AcumIni   <- '09/2019'
 # AcumEnd   <- '10/2019'
 # Save      <- FALSE
+# Update    <- TRUE
 
   # Load packages
   require(foreach)
@@ -46,10 +47,6 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
   dates <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
                as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
                by='months')
-
-  if(Save==TRUE){
-    baseName <- readline(prompt="Enter a raster basename: " )
-  }
 
   # Auxiliary function (from https://stackoverflow.com/questions/44327994/calculate-centroid-within-inside-a-spatialpolygon)
   gCentroidWithin <- function(pol) {
@@ -130,7 +127,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       if(Save==TRUE){
         # Create 'Ouput' folder
         dir.create(file.path(Location,'Outputs','Raster_simulation'))
-        name   <- paste0(baseName,'_',format(dates[i],'%Y-%m'),'.tif')
+        name   <- paste0('PISCO-HyM_GR2M_',format(dates[i],'%Y-%m'),'.tif')
         qAcum2 <- qAcum
         qAcum2[qAcum2==0] <- NA
         writeRaster(qAcum2, file=file.path(Location,'Outputs','Raster_simulation',name))
@@ -168,6 +165,10 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
   # Results
   Ans <- data.frame(dates, qSub)
   colnames(Ans) <- c('Dates', paste0('ID_',1:ncol(Qmodel)))
+  if (Update==TRUE){
+    Old <- read.table('Routing_GR2MSemiDistr.csv', header=T, sep=',')
+    Ans <- rbind(Ans, Old)
+  }
   write.table(Ans, file=file.path(Location,'Outputs','Routing_GR2MSemiDistr.csv'), sep=',', row.names=FALSE)
 
   # Show message

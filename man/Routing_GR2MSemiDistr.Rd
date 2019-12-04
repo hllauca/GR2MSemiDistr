@@ -5,7 +5,7 @@
 \title{Routing simulated monthly streamflows.}
 \usage{
 Routing_GR2MSemiDistr(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
-  Save = TRUE)
+  Save = TRUE, Update = FALSE)
 }
 \arguments{
 \item{Location}{Work directory where 'Inputs' folder is located.}
