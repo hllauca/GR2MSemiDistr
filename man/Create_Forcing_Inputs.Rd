@@ -2,11 +2,11 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Create a text file with data inputs for the model}
+\title{Create a text file with data inputs for the GR2M model}
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
-  Resolution = 0.01, DateIni = "1981/01/01", DateEnd = "2016/12/01",
-  factor = 1.1)
+  Resolution = 0.01, factor = 1, positions = NULL,
+  DateIni = "01/1981", DateEnd = "12/2016")
 }
 \arguments{
 \item{Shapefile}{Subbasins shapefile.}
@@ -21,15 +21,17 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
 
 \item{Resolution}{Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.}
 
-\item{DateIni}{Initial date (in 'yyyy/mm/dd' format) to subset data. '1981/01/01' as default}
+\item{factor}{Factor from 1 to 1.5 to crop data inputs for an area of interest. 1 as default}
 
-\item{DateEnd}{Final date (in 'yyyy/mm/dd' format) to subset data. '2016/12/01' as default}
+\item{positions}{Position numbers to mask data by subbasins. NULL as default}
 
-\item{factor}{Factor from 1 to 1.5 to crop data inputs for an area of interest}
+\item{DateIni}{Initial date 'mm/yyyy' for export data. '01/1981' as default}
+
+\item{DateEnd}{Final date 'mm/yyyy' for export data. '12/2016' as default}
 }
 \value{
 Export a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
 }
 \description{
-Create a text file with data inputs for the model
+Create a text file with data inputs for the GR2M model
 }
