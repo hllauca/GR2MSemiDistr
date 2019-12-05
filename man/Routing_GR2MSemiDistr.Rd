@@ -5,12 +5,12 @@
 \title{Routing simulated monthly streamflows.}
 \usage{
 Routing_GR2MSemiDistr(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
-  Save = TRUE, Update = FALSE)
+  Save = FALSE, Update = FALSE)
 }
 \arguments{
 \item{Location}{Work directory where 'Inputs' folder is located.}
 
-\item{Model}{Model results from Run_GR2MSemiDistr}
+\item{Model}{Model results from Run_GR2MSemiDistr.}
 
 \item{Shapefile}{Subbasins shapefile.}
 
@@ -20,10 +20,12 @@ Routing_GR2MSemiDistr(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
 
 \item{AcumEnd}{Final date 'mm/yyyy' for flow accumulation.}
 
-\item{Save}{Logical value to save results as rasters. TRUE as default.}
+\item{Save}{Logical value to save results as rasters. FALSE as default.}
+
+\item{Update`}{Logical value to update a previous csv file (operative mode). FALSE as default.}
 }
 \value{
-Routed streamflows for each subbasin.
+Accumulated streamflows for each subbasin as a csv file
 }
 \description{
 Routing simulated monthly streamflows.
