@@ -2,31 +2,33 @@
 % Please edit documentation in R/Routing_GR2MSemiDistr.R
 \name{Routing_GR2MSemiDistr}
 \alias{Routing_GR2MSemiDistr}
-\title{Routing simulated monthly streamflows.}
+\title{Routing simulated monthly streamflows for each subbasin.}
 \usage{
 Routing_GR2MSemiDistr(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
-  Save = FALSE, Update = FALSE)
+  Save = FALSE, Update = FALSE, Positions = NULL)
 }
 \arguments{
-\item{Location}{Work directory where 'Inputs' folder is located.}
+\item{Location}{Directory where 'Inputs' folder is located.}
 
 \item{Model}{Model results from Run_GR2MSemiDistr.}
 
-\item{Shapefile}{Subbasins shapefile.}
+\item{Shapefile}{Subbasin shapefile.}
 
 \item{Dem}{Raster DEM.}
 
-\item{AcumIni}{Initial date 'mm/yyyy' for flow accumulation.}
+\item{AcumIni}{Initial date 'mm/yyyy' for accumulation.}
 
-\item{AcumEnd}{Final date 'mm/yyyy' for flow accumulation.}
+\item{AcumEnd}{Final date 'mm/yyyy' for accumulation.}
 
-\item{Save}{Logical value to save results as rasters. FALSE as default.}
+\item{Save}{Logical value to save raster results for each time-step. FALSE as default.}
 
-\item{Update`}{Logical value to update a previous csv file (operative mode). FALSE as default.}
+\item{Update}{Logical value to update a previous accumulation csv file. FALSE as default.}
+
+\item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default.}
 }
 \value{
-Accumulated streamflows for each subbasin as a csv file
+Export and save an accumulation csv file.
 }
 \description{
-Routing simulated monthly streamflows.
+Routing simulated monthly streamflows for each subbasin.
 }

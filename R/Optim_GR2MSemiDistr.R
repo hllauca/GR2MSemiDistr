@@ -5,9 +5,9 @@
 #' @param Parameters.Max  Maximum GR2M (X1, X2, fprecip and fpet) model parameters values.
 #' @param Max.Functions 	Maximum number of functions used in the optimization loop. 10000 as default.
 #' @param Optimization    Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).
-#' @param Location    Work directory where 'Inputs' folder is located.
-#' @param Shapefile   Subbasins shapefile.
-#' @param Input       Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
+#' @param Location    Directory where 'Inputs' folder is located.
+#' @param Shapefile   Subbasin shapefile.
+#' @param Input       Forcing data texfile (Dates, Precip, PotEvap, Qobs). 'Inputs_Basins.txt' as default.
 #' @param WarmIni     Initial date (in 'mm/yyyy' format) of the warm-up period.
 #' @param RunIni      Initial date (in 'mm/yyyy' format) of the model simulation period.
 #' @param RunEnd      Final date (in 'mm/yyyy' format) of the model simulation period.

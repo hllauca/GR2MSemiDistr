@@ -2,7 +2,7 @@
 % Please edit documentation in R/Run_GR2MSemiDistr.R
 \name{Run_GR2MSemiDistr}
 \alias{Run_GR2MSemiDistr}
-\title{Run GR2M model for each subbasins.}
+\title{Run the GR2M model for each subbasins.}
 \usage{
 Run_GR2MSemiDistr(Parameters, Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd,
@@ -10,13 +10,13 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
   Regional = FALSE)
 }
 \arguments{
-\item{Parameters}{GR2M model parameters (X1 and X2) and a multiplying factors for P and PET.}
+\item{Parameters}{GR2M model parameters (X1 and X2) and multiplying factors for P and PET.}
 
-\item{Location}{Work directory where 'Inputs' folder is located.}
+\item{Location}{Directory where 'Inputs' folder is located.}
 
-\item{Shapefile}{Subbasins shapefile.}
+\item{Shapefile}{Subbasin shapefile.}
 
-\item{Input}{Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.}
+\item{Input}{Forcing data texfile (Dates, Precip, PotEvap, Qobs). 'Inputs_Basins.txt' as default.}
 
 \item{WarmIni}{Initial date (in 'mm/yyyy' format) of the warm-up period.}
 
@@ -32,11 +32,11 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
 
-\item{Regional}{Logical value to simulate in a regional mode (more than one outlet).}
+\item{Regional}{Logical value to simulate in a regional mode (more than one outlet). FALSE as default.}
 }
 \value{
 GR2M model outputs for each subbasin.
 }
 \description{
-Run GR2M model for each subbasins.
+Run the GR2M model for each subbasins.
 }
