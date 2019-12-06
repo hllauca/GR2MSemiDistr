@@ -2,36 +2,35 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Create a text file with data inputs for the GR2M model}
+\title{Extract and create a text file with forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.}
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
-  Resolution = 0.01, factor = 1, positions = NULL,
-  DateIni = "01/1981", DateEnd = "12/2016")
+  DateIni, DateEnd, Resolution = 0.01, Factor = 1, Positions = NULL)
 }
 \arguments{
-\item{Shapefile}{Subbasins shapefile.}
+\item{Shapefile}{Subbasin shapefile.}
 
-\item{Database}{Directory where precipitation and evapotranspiration data (as netCDF) are located.}
+\item{Database}{Directory where netCDF files of precipitation and evapotranspiration are located.}
 
-\item{Precip}{Precipitation filename.}
+\item{Precip}{Precipitation filename (.nc).}
 
-\item{PotEvap}{Evapotranspiration filename.}
+\item{PotEvap}{Evapotranspiration filename (.nc).}
 
 \item{Qobs}{Observed streamflow filename (data in m3/s). NULL as default.}
 
-\item{Resolution}{Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.}
+\item{DateIni}{Initial date 'mm/yyyy' for export data.}
 
-\item{factor}{Factor from 1 to 1.5 to crop data inputs for an area of interest. 1 as default}
+\item{DateEnd}{Final date 'mm/yyyy' for export data.}
 
-\item{positions}{Position numbers to mask data by subbasins. NULL as default}
+\item{Resolution}{Resolution to resample rasters and extract areal mean values for each subbasin. 0.01 as default.}
 
-\item{DateIni}{Initial date 'mm/yyyy' for export data. '01/1981' as default}
+\item{Factor}{Factor between 1 and 1.2 to buffer subbasins and extract data. 1 as default}
 
-\item{DateEnd}{Final date 'mm/yyyy' for export data. '12/2016' as default}
+\item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default}
 }
 \value{
-Export a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
+Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
 }
 \description{
-Create a text file with data inputs for the GR2M model
+Extract and create a text file with forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.
 }

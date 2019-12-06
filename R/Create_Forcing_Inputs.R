@@ -1,16 +1,16 @@
-#' Create a text file with data inputs for the GR2M model
+#' Extract and create a text file with forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.
 #'
-#' @param Shapefile Subbasins shapefile.
-#' @param Database Directory where precipitation and evapotranspiration data (as netCDF) are located.
-#' @param Precip Precipitation filename.
-#' @param PotEvap Evapotranspiration filename.
+#' @param Shapefile Subbasin shapefile.
+#' @param Database Directory where netCDF files of precipitation and evapotranspiration are located.
+#' @param Precip Precipitation filename (.nc).
+#' @param PotEvap Evapotranspiration filename (.nc).
 #' @param Qobs Observed streamflow filename (data in m3/s). NULL as default.
-#' @param Resolution Raster resolution to resample forcing data and extract areal mean values. 0.01 as default.
-#' @param factor Factor from 1 to 1.5 to crop data inputs for an area of interest. 1 as default
-#' @param positions Position numbers to mask data by subbasins. NULL as default
-#' @param DateIni Initial date 'mm/yyyy' for export data. '01/1981' as default
-#' @param DateEnd Final date 'mm/yyyy' for export data. '12/2016' as default
-#' @return Export a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
+#' @param Resolution Resolution to resample rasters and extract areal mean values for each subbasin. 0.01 as default.
+#' @param DateIni Initial date 'mm/yyyy' for export data.
+#' @param DateEnd Final date 'mm/yyyy' for export data.
+#' @param Factor Factor between 1 and 1.2 to buffer subbasins and extract data. 1 as default
+#' @param Positions Cell numbers to extract data faster for each subbasin. NULL as default
+#' @return Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
 #' @export
 #' @import  rgdal
 #' @import  raster
@@ -18,8 +18,8 @@
 #' @import  tictoc
 #' @import  ncdf4
 #' @import  parallel
-Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL,
-                                  Resolution=0.01, factor=1, positions=NULL, DateIni='01/1981', DateEnd='12/2016'){
+Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, DateIni, DateEnd,
+                                  Resolution=0.01, Factor=1, Positions=NULL){
 
 # Shapefile=File.Shape
 # Database=Database
@@ -27,8 +27,8 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
 # PotEvap=File.PotEvap
 # Qobs=NULL
 # Resolution=0.01
-# factor=1
-# positions=NULL
+# Factor=1
+# Positions=NULL
 # DateIni="01/1979"
 # DateEnd="11/2019"
 
@@ -87,7 +87,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       pp <- brick(file.path(Database, Precip))
 
     # Crop for basin domain
-      pp.crop <- crop(pp, extent(Basins)*factor)
+      pp.crop <- crop(pp, extent(Basins)*Factor)
 
     # Mask for resampling using 'ngb' method
       pp.res      <- raster(extent(pp.crop[[1]]))
@@ -95,10 +95,10 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       res(pp.res) <- Resolution
 
     # Cells within each subbasin
-      if(is.null(positions)==TRUE){
+      if(is.null(Positions)==TRUE){
           positionPP  <- generate_mask_geom(pp.res[[1]], Basins)
       } else{
-          positionPP  <- positions$PP
+          positionPP  <- Positions$PP
       }
 
     # Mean areal rainfall for each subbasin
@@ -127,7 +127,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       pet      <- brick(file.path(Database, PotEvap))
 
     # Crop for basin domain
-      pet.crop <- crop(pet, extent(Basins)*factor)
+      pet.crop <- crop(pet, extent(Basins)*Factor)
 
     # Mask for resampling using 'ngb' method
       pet.res      <- raster(extent(pet.crop[[1]]))
@@ -136,10 +136,10 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
 
     # Cells within each subbasin
       # Cells within each subbasin
-      if(is.null(positions)==TRUE){
+      if(is.null(Positions)==TRUE){
         positionPET  <- generate_mask_geom(pet.res[[1]], Basins)
       } else{
-        positionPET  <- positions$PET
+        positionPET  <- Positions$PET
       }
 
     # Mean areal evapotranspiration for each subbasin
@@ -176,10 +176,10 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
 
 
-    # Saveing positions
-    if(is.null(positions)==TRUE){
-      positions <- list(PP=positionPP, PET=positionPET)
-      save(positions, file=file.path(getwd(),'Mask4extract.Rda'))
+    # Saving positions
+    if(is.null(Positions)==TRUE){
+      Positions <- list(PP=positionPP, PET=positionPET)
+      save(Positions, file=file.path(getwd(),'Mask4extract.Rda'))
     }
 
     # End

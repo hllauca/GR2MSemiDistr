@@ -20,11 +20,11 @@ Optim_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 
 \item{Optimization}{Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).}
 
-\item{Location}{Work directory where 'Inputs' folder is located.}
+\item{Location}{Directory where 'Inputs' folder is located.}
 
-\item{Shapefile}{Subbasins shapefile.}
+\item{Shapefile}{Subbasin shapefile.}
 
-\item{Input}{Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.}
+\item{Input}{Forcing data texfile (Dates, Precip, PotEvap, Qobs). 'Inputs_Basins.txt' as default.}
 
 \item{WarmIni}{Initial date (in 'mm/yyyy' format) of the warm-up period.}
 

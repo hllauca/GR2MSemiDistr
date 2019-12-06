@@ -1,9 +1,9 @@
-#' Run GR2M model for each subbasins.
+#' Run the GR2M model for each subbasins.
 #'
-#' @param Parameters  GR2M model parameters (X1 and X2) and a multiplying factors for P and PET.
-#' @param Location    Work directory where 'Inputs' folder is located.
-#' @param Shapefile   Subbasins shapefile.
-#' @param Input       Model forcing data in airGR format (DatesR,P,T,Qmm). 'Inputs_Basins.txt' as default.
+#' @param Parameters  GR2M model parameters (X1 and X2) and multiplying factors for P and PET.
+#' @param Location    Directory where 'Inputs' folder is located.
+#' @param Shapefile   Subbasin shapefile.
+#' @param Input       Forcing data texfile (Dates, Precip, PotEvap, Qobs). 'Inputs_Basins.txt' as default.
 #' @param WarmIni     Initial date (in 'mm/yyyy' format) of the warm-up period.
 #' @param RunIni      Initial date (in 'mm/yyyy' format) of the model simulation period.
 #' @param RunEnd      Final date (in 'mm/yyyy' format) of the model simulation period.
@@ -11,7 +11,7 @@
 #' @param Remove      Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.
 #' @param Plot        Logical value to plot observed and simulated streamflow timeseries. TRUE as default.
 #' @param IniState    Initial GR2M states variables. NULL as default.
-#' @param Regional    Logical value to simulate in a regional mode (more than one outlet).
+#' @param Regional    Logical value to simulate in a regional mode (more than one outlet). FALSE as default.
 #' @return GR2M model outputs for each subbasin.
 #' @export
 #' @import  rgdal
@@ -31,13 +31,14 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 # Location=Location
 # Shapefile=File.Shape
 # Input='Inputs_Basins.txt'
-# WarmIni=WarmUp.Ini
+# WarmIni=NULL
 # RunIni=RunModel.Ini
 # RunEnd=RunModel.End
-# IdBasin=Optim.Basin
-# Remove=Optim.Remove
+# IdBasin=NULL
+# Remove=FALSE
 # Plot=FALSE
 # IniState=NULL
+# Regional=TRUE
 
   # Load packages
     require(ProgGUIinR)
@@ -153,9 +154,11 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     # Close the cluster
       stopCluster(cl)
 
+
     # Main model results (Qsim in m3/s and EndState variables)
       if (nsub==1){
       # Streamflow at the basin outlet
+        prod <- ResModel[[1]]$Prod
         qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
         qOut <- qSub
 
@@ -164,8 +167,13 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
       } else{
       # Streamflow at the basin outlet
+        Plist <- list()
         Qlist <- list()
-        for(w in 1:nsub){Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)}
+        for(w in 1:nsub){
+          Plist[[w]] <- ResModel[[w]]$Prod
+          Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)
+        }
+        prod <- do.call(cbind, Plist)
         qSub <- do.call(cbind, Qlist)
         qOut <- round(apply(qSub, 1, FUN=sum),2)
 
@@ -216,8 +224,10 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
       # Subset Qsim for each subbasin (Qsub)
       if(is.null(ncol(qSub))==TRUE){
         Qsub <- qSub[Subset2]
+        Prod <- prod[Subset2]
       } else {
         Qsub <- qSub[Subset2,]
+        Prod <- prod[Subset2,]
       }
 
       # Model results
@@ -227,6 +237,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                   Qall=Qall,
                   Precip=pp,
                   Evaptr=pet,
+                  Prod=Prod,
                   Dates=Database2$DatesR,
                   EndState=EndState,
                   Eval=evaluation)
@@ -236,6 +247,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
       Ans <- list(Qsub=qSub,
                   Precip=pp,
                   Evaptr=pet,
+                  Prod=Prod,
                   Dates=Database2$DatesR,
                   EndState=EndState)
     }
@@ -243,6 +255,13 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
   # Create output folder ans save simulation
     dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
     save(Ans, file=file.path(Location,'Outputs','Simulation_GR2MSemiDistr.Rda'))
+
+  # Save data for production reservoir
+    DataProd <- data.frame(Database2$DatesR, Prod)
+    colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
+    MnYr     <- format(as.Date(paste0('01/',RunEnd),"%d/%m/%Y"),"%b%y")
+    ProdName <- paste0('Production_GR2MSemiDistr_',MnYr,'.csv')
+    write.table(DataProd, file=file.path(Location,'Outputs',ProdName), sep=',', row.names=FALSE)
 
   # Show message
     message('Done!')

@@ -1,21 +1,22 @@
-#' Routing simulated monthly streamflows.
+#' Routing simulated monthly streamflows for each subbasin.
 #'
-#' @param Location		 Work directory where 'Inputs' folder is located.
+#' @param Location		 Directory where 'Inputs' folder is located.
 #' @param Model        Model results from Run_GR2MSemiDistr.
-#' @param Shapefile		 Subbasins shapefile.
+#' @param Shapefile		 Subbasin shapefile.
 #' @param Dem          Raster DEM.
-#' @param AcumIni      Initial date 'mm/yyyy' for flow accumulation.
-#' @param AcumEnd      Final date 'mm/yyyy' for flow accumulation.
-#' @param Save         Logical value to save results as rasters. FALSE as default.
-#' @param Update`      Logical value to update a previous csv file (operative mode). FALSE as default.
-#' @return  Accumulated streamflows for each subbasin as a csv file
+#' @param AcumIni      Initial date 'mm/yyyy' for accumulation.
+#' @param AcumEnd      Final date 'mm/yyyy' for accumulation.
+#' @param Save         Logical value to save raster results for each time-step. FALSE as default.
+#' @param Update       Logical value to update a previous accumulation csv file. FALSE as default.
+#' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
+#' @return  Export and save an accumulation csv file.
 #' @export
 #' @import  rgdal
 #' @import  raster
 #' @import  rgeos
 #' @import  foreach
 #' @import  tictoc
-Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd, Save=FALSE, Update=FALSE){
+Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd, Save=FALSE, Update=FALSE, Positions=NULL){
 
 # Location  <- Location
 # Model     <- Mod
@@ -25,6 +26,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
 # AcumEnd   <- '11/2019'
 # Save      <- FALSE
 # Update    <- FALSE
+# Positions <- NULL
 
   # Load packages
     require(foreach)
@@ -35,18 +37,9 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     require(parallel)
     tic()
 
-  # Load shape subbasins
-    area  <- readOGR(file.path(Location,'Inputs', Shapefile), verbose=F)
-    dem   <- raster(file.path(Location,'Inputs', Dem))
-
-  # Create dates
-    dates <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
-                 as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
-                 by='months')
-
   # Auxiliary function (from https://stackoverflow.com/questions/44327994/calculate-centroid-within-inside-a-spatialpolygon)
     gCentroidWithin <- function(pol) {
-      require(rgeos)
+    require(rgeos)
 
       pol$.tmpID <- 1:length(pol)
       # initially create centroid points with gCentroid
@@ -81,8 +74,16 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
 
         return(centsDF)
       }}
+  # Load shapefiles and raster
+    area  <- readOGR(file.path(Location,'Inputs', Shapefile), verbose=F)
+    dem   <- raster(file.path(Location,'Inputs', Dem))
 
-  # Create mask points
+  # Create a vector of dates
+    dates <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
+                 as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
+                 by='months')
+
+  # Vector of positions to extract data
     qMask <- dem
     values(qMask) <- 0
     xycen <- gCentroidWithin(area)
@@ -97,11 +98,11 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     file.remove('Ras.tif')
     file.remove('X.tif')
 
-  # Accumulate for each time step
-    Ind <- seq(which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumIni)),
-               which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumEnd)))
-
-    # Subsetting data
+  # Accumulate streamflows for each time step
+  #==========================================
+      # Auxiliary variables
+      Ind    <- seq(which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumIni)),
+                    which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumEnd)))
       Qmodel <- Model$Qsub[Ind,]
       nSub   <- ncol(Model$Qsub)
       if(is.null(ncol(Qmodel))==FALSE){
@@ -134,36 +135,41 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           qAcum <- raster("Flow_Accumulation.tif")
 
         # Save rasters
-        if(Save==TRUE){
-          dir.create(file.path(Location,'Outputs','Raster_simulations'))
-          NameOut <- paste0('GR2MSemiDistr_',format(dates[i],'%Y-%m'),'.tif')
-          writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',NameOut))
-        }
+          if(Save==TRUE){
+            dir.create(file.path(Location,'Outputs','Raster_simulations'))
+            NameOut <- paste0('GR2MSemiDistr_',format(dates[i],'%Y-%m'),'.tif')
+            writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',NameOut))
+          }
 
-      # Extract routing Qsim for each subbasin
-      if(i==1){
-        cl=makeCluster(detectCores()-1)
-        clusterEvalQ(cl,c(library(raster)))
-        clusterExport(cl,varlist=c("area","qAcum"),envir=environment())
-        xycoord <- parLapply(cl, 1:nSub, function(z) {
-                   ans <- extract(qAcum, area[z,], cellnumbers=TRUE, df=TRUE)$cell
-                   return(ans)
-        })
-      }
+        # Extract routing Qsim for each subbasin
+          if (is.null(Positions)==TRUE){
+            if(i==1){
+              cl=makeCluster(detectCores()-1)
+              clusterEvalQ(cl,c(library(raster)))
+              clusterExport(cl,varlist=c("area","qAcum"),envir=environment())
+              xycoord <- parLapply(cl, 1:nSub, function(z) {
+                ans <- extract(qAcum, area[z,], cellnumbers=TRUE, df=TRUE)$cell
+                return(ans)
+              })
+            }
+          } else{
+              xycoord <- Positions
+          }
 
-      # Extract routing Qsim for each subbasin
-        clusterExport(cl,varlist=c("area","qAcum","xycoord"),envir=environment())
-        qAcumOut <- parLapply(cl, 1:nSub, function(z) {
-                    ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),5)
-                    return(ans)
-          })
 
-      # Save routed data
-        if(is.null(ncol(Qmodel))==TRUE){
-          qSub     <- unlist(qAcumOut)
-        } else{
-          qSub[i,] <- unlist(qAcumOut)
-        }
+        # Extract routing Qsim for each subbasin
+          clusterExport(cl,varlist=c("area","qAcum","xycoord"),envir=environment())
+          qAcumOut <- parLapply(cl, 1:nSub, function(z) {
+                      ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),5)
+                      return(ans)
+                      })
+
+        # Save routed data
+          if(is.null(ncol(Qmodel))==TRUE){
+            qSub     <- unlist(qAcumOut)
+          } else{
+            qSub[i,] <- unlist(qAcumOut)
+          }
 
     } # End loop
 
@@ -175,11 +181,12 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     stopCluster(cl)
 
   # Export results
+  #===============
     if (Update==TRUE){
       month     <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%m"))
       year      <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%Y"))
-      MnYr1     <- format(as.Date(paste('01',month-1, year, sep="/"),"%d/%m/%Y"),"%b%y")
-      MnYr2     <- format(as.Date(paste('01',month-2, year, sep="/"),"%d/%m/%Y"),"%b%y")
+      MnYr1     <- format(as.Date(paste('01',month-2, year, sep="/"),"%d/%m/%Y"),"%b%y")
+      MnYr2     <- format(as.Date(paste('01',month-1, year, sep="/"),"%d/%m/%Y"),"%b%y")
       OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.csv')
       NewName   <- paste0('Routing_GR2MSemiDistr_',MnYr2,'.csv')
       Data      <- read.table(file.path(Location,'Outputs',OldName), header=T, sep=',')
@@ -196,8 +203,9 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     write.table(Database, file=file.path(Location,'Outputs',NewName), sep=',', row.names=FALSE)
 
   # Show message
-  message('Done!')
-  toc()
-  return(Ans)
+    message('Done!')
+    Ans <- list(Data=Database, Positions=xycoord)
+    toc()
+    return(Ans)
 
 } #End (not run)
