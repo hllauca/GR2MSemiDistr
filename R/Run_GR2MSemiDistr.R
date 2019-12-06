@@ -108,7 +108,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
   # Run GR2M for each subbasin
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(GR2MSemiDistr))) # Load package to each node
+    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time","IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
     ResModel <- parLapply(cl, 1:nsub, function(i) {
@@ -196,33 +196,8 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
       }
 
-
-    # Not regional mode
-    if(Regional==FALSE){
-
-      # Evaluation criteria at the outlet
-      Qall <- qOut
-      Qobs <- Database2$Qm3s
-      Qsim <- qOut[Subset2]
-      if (Remove==TRUE){
-        Qsim <- Qsim - qSub[Subset2, IdBasin]
-        Qall <- Qall - qSub[,IdBasin]
-      }
-      evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
-                               NSE=round(NSE(Qsim, Qobs), 3),
-                               lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
-                               R=round(rPearson(Qsim, Qobs), 3),
-                               RMSE=round(rmse(Qsim, Qobs), 3),
-                               PBIAS=round(pbias(Qsim, Qobs), 3))
-
-      # Show comparative figure
-      if (Plot==TRUE){
-        x11()
-        ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
-      }
-
-      # Subset Qsim for each subbasin (Qsub)
-      if(is.null(ncol(qSub))==TRUE){
+    # Subsetting simulations for each subbasin (Qsub)
+      if(nsub==1){
         Qsub <- qSub[Subset2]
         Prod <- prod[Subset2]
       } else {
@@ -230,21 +205,46 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         Prod <- prod[Subset2,]
       }
 
-      # Model results
-      Ans <- list(Qsim=Qsim,
-                  Qobs=Qobs,
-                  Qsub=Qsub,
-                  Qall=Qall,
-                  Precip=pp,
-                  Evaptr=pet,
-                  Prod=Prod,
-                  Dates=Database2$DatesR,
-                  EndState=EndState,
-                  Eval=evaluation)
+    # Not regional mode
+    if(Regional==FALSE){
+
+        # Evaluation criteria at the outlet
+        Qall <- qOut
+        Qobs <- Database2$Qm3s
+        Qsim <- qOut[Subset2]
+        if (Remove==TRUE){
+          Qsim <- Qsim - qSub[Subset2, IdBasin]
+          Qall <- Qall - qSub[,IdBasin]
+        }
+        evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
+                                 NSE=round(NSE(Qsim, Qobs), 3),
+                                 lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
+                                 R=round(rPearson(Qsim, Qobs), 3),
+                                 RMSE=round(rmse(Qsim, Qobs), 3),
+                                 PBIAS=round(pbias(Qsim, Qobs), 3))
+
+        # Show comparative figure
+        if (Plot==TRUE){
+          x11()
+          ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
+        }
+
+        # Model results
+        Ans <- list(Qsim=Qsim,
+                    Qobs=Qobs,
+                    Qsub=Qsub,
+                    Qall=Qall,
+                    Precip=pp,
+                    Evaptr=pet,
+                    Prod=Prod,
+                    Dates=Database2$DatesR,
+                    EndState=EndState,
+                    Eval=evaluation)
 
     } else{
+
       # Model results
-      Ans <- list(Qsub=qSub,
+      Ans <- list(Qsub=Qsub,
                   Precip=pp,
                   Evaptr=pet,
                   Prod=Prod,
