@@ -154,6 +154,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
             }
           } else{
               xycoord <- Positions
+              cl=makeCluster(detectCores()-1)
           }
 
 
