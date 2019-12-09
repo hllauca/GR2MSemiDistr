@@ -6,8 +6,8 @@
 \usage{
 Run_GR2MSemiDistr(Parameters, Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd,
-  IdBasin = NULL, Remove = FALSE, Plot = TRUE, IniState = NULL,
-  Regional = FALSE)
+  IdBasin = NULL, Remove = FALSE, Plot = FALSE, IniState = NULL,
+  Regional = FALSE, Update = FALSE)
 }
 \arguments{
 \item{Parameters}{GR2M model parameters (X1 and X2) and multiplying factors for P and PET.}
@@ -28,11 +28,13 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
 
 \item{Remove}{Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.}
 
-\item{Plot}{Logical value to plot observed and simulated streamflow timeseries. TRUE as default.}
+\item{Plot}{Logical value to plot observed and simulated streamflow timeseries. FALSE as default.}
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
 
 \item{Regional}{Logical value to simulate in a regional mode (more than one outlet). FALSE as default.}
+
+\item{Update}{Logical value to update a previous production csv file. FALSE as default.}
 }
 \value{
 GR2M model outputs for each subbasin.
