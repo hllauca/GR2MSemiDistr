@@ -83,7 +83,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
                  as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
                  by='months')
 
-  # Vector of positions to extract data
+  # Position for each subbasin centroid
     qMask <- dem
     values(qMask) <- 0
     xycen <- gCentroidWithin(area)
@@ -93,7 +93,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     setwd(file.path(Location,'Inputs'))
     system(paste0("mpiexec -n 8 pitremove -z ",Dem," -fel Ras.tif"))
 
-  # Create Flow Direction raster
+  # Create raster of flow direction
     system("mpiexec -n 8 D8Flowdir -p Flow_Direction.tif -sd8 X.tif -fel Ras.tif",show.output.on.console=F,invisible=F)
     file.remove('Ras.tif')
     file.remove('X.tif')
@@ -113,35 +113,35 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       }
 
       for (i in 1:ntime){
-
         # Show message
           cat('\f')
-          message('Routing outputs from Semidistribute GR2M model')
+          message('Routing streamflows from Semidistribute GR2M model')
           message(paste0('Timestep: ', format(dates[i],'%b-%Y')))
           message('Please wait..')
 
-        # Replace values for each subbasin (from Run_GR2MSemiDistr)
+        # Create a raster of weights (streamflow for each subbasin)
           if(is.null(ncol(Qmodel))==FALSE){
             qMask[index$cells] <- Qmodel[i,]
           } else{
             qMask[index$cells] <- Qmodel
           }
-
-        # Save raster
           writeRaster(qMask, filename='Weights.tif', overwrite=T)
+
 
         # Weighted Flow Accumulation
           system("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 Flow_Accumulation.tif")
           qAcum <- raster("Flow_Accumulation.tif")
 
-        # Save rasters
+
+        # Save flow accumulation rasters
           if(Save==TRUE){
             dir.create(file.path(Location,'Outputs','Raster_simulations'))
             NameOut <- paste0('GR2MSemiDistr_',format(dates[i],'%Y-%m'),'.tif')
             writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',NameOut))
           }
 
-        # Extract routing Qsim for each subbasin
+
+        # Positions for extracting accumulated streamflows for each subbasin
           if (is.null(Positions)==TRUE){
             if(i==1){
               cl=makeCluster(detectCores()-1)
@@ -157,23 +157,21 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           }
 
 
-        # Extract routing Qsim for each subbasin
+        # Extracting accumulated streamflows for each subbasin
           clusterExport(cl,varlist=c("area","qAcum","xycoord"),envir=environment())
           qAcumOut <- parLapply(cl, 1:nSub, function(z) {
                       ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),5)
                       return(ans)
                       })
-
-        # Save routed data
-          if(is.null(ncol(Qmodel))==TRUE){
+          if(ntime==1){
             qSub     <- unlist(qAcumOut)
           } else{
             qSub[i,] <- unlist(qAcumOut)
           }
 
-    } # End loop
+    }# End loop
 
-  # Remove auxiliary raster
+  # Remove auxiliary rasters
     file.remove('Weights.tif')
     file.remove("Flow_Accumulation.tif")
 
@@ -204,8 +202,17 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
 
   # Show message
     message('Done!')
-    Ans <- list(Data=Database, Positions=xycoord)
+
+    # Saving positions
+    if(is.null(Positions)==TRUE){
+      Positions <- xycoord
+      save(Positions, file=file.path(getwd(),'Positions_Routing.Rda'))
+    }
+    if (Update==TRUE){
+      file.remove(file.path(Location,'Outputs',OldName))
+    }
+
     toc()
-    return(Ans)
+    return(Database)
 
 } #End (not run)
