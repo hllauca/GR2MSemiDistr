@@ -10,6 +10,7 @@
 #' @param DateEnd Final date 'mm/yyyy' for export data.
 #' @param Factor Factor between 1 and 1.2 to buffer subbasins and extract data. 1 as default
 #' @param Positions Cell numbers to extract data faster for each subbasin. NULL as default
+#' @param all Conditional to consider all the period of the netCDF file. FALSE as default
 #' @return Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
 #' @export
 #' @import  rgdal
@@ -19,7 +20,7 @@
 #' @import  ncdf4
 #' @import  parallel
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, DateIni, DateEnd,
-                                  Resolution=0.01, Factor=1, Positions=NULL){
+                                  Resolution=0.01, Factor=1, Positions=NULL, all=FALSE){
 
 # Shapefile=File.Shape
 # Database=Database
@@ -30,7 +31,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
 # Factor=1
 # Positions=NULL
 # DateIni="01/1979"
-# DateEnd="11/2019"
+# DateEnd="02/2020"
 
     # Load packages
       require(rgdal)
@@ -69,7 +70,14 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
     # Create a vector of dates
       Ini <- paste0('01/',DateIni)
       End <- paste0('01/',DateEnd)
-      DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"), as.Date(End, "%d/%m/%Y"), by='month')
+      if(all==FALSE){
+        DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"), as.Date(End, "%d/%m/%Y"), by='month')
+      } else{
+        DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"), as.Date(End, "%d/%m/%Y"), by='month')
+        NDates      <- length(DatesMonths)
+        DatesMonths <- c(DatesMonths,rep(DatesMonths[c(NDates-2, NDates-1, NDates)], length=3*40))
+      }
+
 
     # Load subbasins shapefiles
       Basins  <- readOGR(file.path(getwd(),'Inputs', Shapefile))
@@ -113,7 +121,12 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
                  })
       # stopCluster(cl) #Close the cluster
       mean.pp <- do.call(rbind, mean.pp)
-      mean.pp <- round(mean.pp[1:length(DatesMonths),],1)
+      if(all==FALSE){
+        mean.pp <- round(mean.pp[1:length(DatesMonths),],1)
+      } else{
+        mean.pp <- round(mean.pp,1)
+      }
+
 
 
     # Extract monthly potential evapotranspiration for each subbasin
@@ -153,8 +166,11 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       })
       stopCluster(cl) #Close the cluster
       mean.pet <- do.call(rbind, mean.pet)
-      mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
-
+      if(all==FALSE){
+        mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
+      } else{
+        mean.pet <- round(mean.pet,1)
+      }
 
     # Export results in airGR format
     #===============================
