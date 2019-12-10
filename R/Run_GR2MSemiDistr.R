@@ -32,7 +32,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 # Parameters=Model.Param
 # Location=Location
 # Shapefile=File.Shape
-# Input='Inputs_Basins.txt'
+# Input=df
 # WarmIni=NULL
 # RunIni=RunModel.Ini
 # RunEnd=RunModel.End
@@ -41,6 +41,8 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 # Plot=FALSE
 # IniState=NULL
 # Regional=TRUE
+# Update=FALSE
+# Save=FALSE
 
   # Load packages
     require(ProgGUIinR)
@@ -65,7 +67,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     } else{
       Data <- Input
     }
-    Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"))
+    Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'), "GMT", tryFormats=c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"))
     if(is.null(WarmIni)==TRUE){
       Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
                        which(format(Data$DatesR, format="%m/%Y") == RunEnd))
