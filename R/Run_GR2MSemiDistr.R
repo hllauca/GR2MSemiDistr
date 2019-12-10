@@ -13,6 +13,7 @@
 #' @param IniState    Initial GR2M states variables. NULL as default.
 #' @param Regional    Logical value to simulate in a regional mode (more than one outlet). FALSE as default.
 #' @param Update      Logical value to update a previous production csv file. FALSE as default.
+#' @param Save        Export results or not. TRUE as default.
 #' @return GR2M model outputs for each subbasin.
 #' @export
 #' @import  rgdal
@@ -26,7 +27,7 @@
 #' @import  parallel
 Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Basins.txt',
                               WarmIni=NULL, RunIni, RunEnd, IdBasin=NULL, Remove=FALSE,
-                              Plot=FALSE, IniState=NULL, Regional=FALSE, Update=FALSE){
+                              Plot=FALSE, IniState=NULL, Regional=FALSE, Update=FALSE, Save=TRUE){
 
 # Parameters=Model.Param
 # Location=Location
@@ -59,7 +60,11 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     nsub       <- nrow(basin@data)
 
   # Read and subset input data
-    Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
+    if(is.character(Input)==TRUE){
+      Data <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
+    } else{
+      Data <- Input
+    }
     Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
     if(is.null(WarmIni)==TRUE){
       Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
@@ -253,28 +258,31 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                   EndState=EndState)
     }
 
-  # Create output folder ans save simulation
-    dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
-    save(Ans, file=file.path(Location,'Outputs','Simulation_GR2MSemiDistr.Rda'))
+    # Save data or not
+    if(Save==TRUE){
 
-  # Save data for production reservoir
+      # Create output folder ans save simulation
+      dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
+      save(Ans, file=file.path(Location,'Outputs','Simulation_GR2MSemiDistr.Rda'))
 
-    DataProd <- data.frame(Database2$DatesR, Prod)
-    colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
+      # Save data for production reservoir
+        DataProd <- data.frame(Database2$DatesR, Prod)
+      colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
 
-    if(Update==TRUE){
-      month     <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%m"))
-      year      <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%Y"))
-      MnYr1     <- format(as.Date(paste('01',month-2, year, sep="/"),"%d/%m/%Y"),"%b%y")
-      MnYr2     <- format(as.Date(paste('01',month-1, year, sep="/"),"%d/%m/%Y"),"%b%y")
-      ProdName1 <- paste0('Production_GR2MSemiDistr_',MnYr1,'.csv')
-      ProdName2 <- paste0('Production_GR2MSemiDistr_',MnYr2,'.csv')
-      file.remove(file.path(Location,'Outputs',ProdName1))
-      write.table(DataProd, file=file.path(Location,'Outputs',ProdName2), sep=',', row.names=FALSE)
-    } else{
-      MnYr     <- format(as.Date(paste0('01/',RunEnd),"%d/%m/%Y"),"%b%y")
-      ProdName <- paste0('Production_GR2MSemiDistr_',MnYr,'.csv')
-      write.table(DataProd, file=file.path(Location,'Outputs',ProdName), sep=',', row.names=FALSE)
+      if(Update==TRUE){
+        month     <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%m"))
+        year      <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%Y"))
+        MnYr1     <- format(as.Date(paste('01',month-2, year, sep="/"),"%d/%m/%Y"),"%b%y")
+        MnYr2     <- format(as.Date(paste('01',month-1, year, sep="/"),"%d/%m/%Y"),"%b%y")
+        ProdName1 <- paste0('Production_GR2MSemiDistr_',MnYr1,'.csv')
+        ProdName2 <- paste0('Production_GR2MSemiDistr_',MnYr2,'.csv')
+        file.remove(file.path(Location,'Outputs',ProdName1))
+        write.table(DataProd, file=file.path(Location,'Outputs',ProdName2), sep=',', row.names=FALSE)
+      } else{
+        MnYr     <- format(as.Date(paste0('01/',RunEnd),"%d/%m/%Y"),"%b%y")
+        ProdName <- paste0('Production_GR2MSemiDistr_',MnYr,'.csv')
+        write.table(DataProd, file=file.path(Location,'Outputs',ProdName), sep=',', row.names=FALSE)
+      }
     }
 
   # Show message
