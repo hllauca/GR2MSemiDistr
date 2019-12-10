@@ -7,7 +7,7 @@
 Run_GR2MSemiDistr(Parameters, Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd,
   IdBasin = NULL, Remove = FALSE, Plot = FALSE, IniState = NULL,
-  Regional = FALSE, Update = FALSE)
+  Regional = FALSE, Update = FALSE, Save = TRUE)
 }
 \arguments{
 \item{Parameters}{GR2M model parameters (X1 and X2) and multiplying factors for P and PET.}
@@ -35,6 +35,8 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
 \item{Regional}{Logical value to simulate in a regional mode (more than one outlet). FALSE as default.}
 
 \item{Update}{Logical value to update a previous production csv file. FALSE as default.}
+
+\item{Save}{Export results or not. TRUE as default.}
 }
 \value{
 GR2M model outputs for each subbasin.
