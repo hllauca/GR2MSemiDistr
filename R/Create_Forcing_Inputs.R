@@ -75,7 +75,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       } else{
         DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"), as.Date(End, "%d/%m/%Y"), by='month')
         NDates      <- length(DatesMonths)
-        DatesMonths <- c(DatesMonths,rep(DatesMonths[c(NDates-2, NDates-1, NDates)], length=3*40))
+        DatesMonths <- c(DatesMonths,rep(DatesMonths[c(NDates-2, NDates-1, NDates)], length=3*39))
       }
 
 
