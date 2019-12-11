@@ -111,6 +111,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       } else{
         Qmodel <- Model$Qsub
         dates  <- Model$Dates
+        nSub   <- ncol(Model$Qsub)
       }
 
       if(is.null(ncol(Qmodel))==FALSE){
