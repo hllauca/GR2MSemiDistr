@@ -5,7 +5,7 @@
 \title{Routing simulated monthly streamflows for each subbasin.}
 \usage{
 Routing_GR2MSemiDistr(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
-  Save = FALSE, Update = FALSE, Positions = NULL)
+  Save = FALSE, Update = FALSE, Positions = NULL, all = FALSE)
 }
 \arguments{
 \item{Location}{Directory where 'Inputs' folder is located.}
@@ -25,6 +25,8 @@ Routing_GR2MSemiDistr(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
 \item{Update}{Logical value to update a previous accumulation csv file. FALSE as default.}
 
 \item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default.}
+
+\item{all}{Conditional to consider all the period of model from GR2MSemiDistr. FALSE as default}
 }
 \value{
 Export and save an accumulation csv file.
