@@ -9,6 +9,7 @@
 #' @param Save         Logical value to save raster results for each time-step. FALSE as default.
 #' @param Update       Logical value to update a previous accumulation csv file. FALSE as default.
 #' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
+#' @param all Conditional to consider all the period of model from GR2MSemiDistr. FALSE as default
 #' @return  Export and save an accumulation csv file.
 #' @export
 #' @import  rgdal
@@ -16,7 +17,8 @@
 #' @import  rgeos
 #' @import  foreach
 #' @import  tictoc
-Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd, Save=FALSE, Update=FALSE, Positions=NULL){
+Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
+                                  Save=FALSE, Update=FALSE, Positions=NULL, all=FALSE){
 
 # Location  <- Location
 # Model     <- Mod
@@ -101,10 +103,16 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
   # Accumulate streamflows for each time step
   #==========================================
       # Auxiliary variables
-      Ind    <- seq(which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumIni)),
-                    which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumEnd)))
-      Qmodel <- Model$Qsub[Ind,]
-      nSub   <- ncol(Model$Qsub)
+      if (all==FALSE){
+        Ind    <- seq(which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumIni)),
+                      which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumEnd)))
+        Qmodel <- Model$Qsub[Ind,]
+        nSub   <- ncol(Model$Qsub)
+      } else{
+        Qmodel <- Model$Qsub
+        dates  <- Model$Dates
+      }
+
       if(is.null(ncol(Qmodel))==FALSE){
         qSub  <- matrix(NA, nrow=nrow(Qmodel), ncol=ncol(Qmodel))  # Streamflow time series
         ntime <- nrow(Qmodel)
