@@ -195,7 +195,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
 
   # Remove auxiliary rasters
     file.remove('Weights.tif')
-    # file.remove("Flow_Accumulation.tif")
+    file.remove("Flow_Accumulation.tif")
     file.remove("Flow_Direction.tif")
 
   # Close the cluster
