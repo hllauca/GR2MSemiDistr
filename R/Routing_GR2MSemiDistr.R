@@ -9,7 +9,7 @@
 #' @param Save         Logical value to save raster results for each time-step. FALSE as default.
 #' @param Update       Logical value to update a previous accumulation csv file. FALSE as default.
 #' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
-#' @param all Conditional to consider all the period of model from GR2MSemiDistr. FALSE as default
+#' @param all          Conditional to consider all the period of model from GR2MSemiDistr. FALSE as default
 #' @return  Export and save an accumulation csv file.
 #' @export
 #' @import  rgdal
@@ -17,6 +17,7 @@
 #' @import  rgeos
 #' @import  foreach
 #' @import  tictoc
+#' @import  parallel
 Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
                                   Save=FALSE, Update=FALSE, Positions=NULL, all=FALSE){
 
@@ -81,11 +82,6 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     area  <- readOGR(file.path(Location,'Inputs', Shapefile), verbose=F)
     dem   <- raster(file.path(Location,'Inputs', Dem))
 
-  # Create a vector of dates
-    dates <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
-                 as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
-                 by='months')
-
   # Position for each subbasin centroid
     qMask <- dem
     values(qMask) <- 0
@@ -104,36 +100,49 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
   # Accumulate streamflows for each time step
   #==========================================
       # Auxiliary variables
-      if (all==FALSE){
+      if (all==TRUE){
+        Qmodel <- Model$Qsub
+        dates  <- Model$Dates
+        if(is.null(ncol(Qmodel))==TRUE){
+          nSub  <- length(Qmodel)
+          ntime <- 1
+        }else{
+          nSub   <- ncol(Qmodel)
+          ntime  <- nrow(Qmodel)
+        }
+      } else{
+        # Create a vector of dates
+        dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
+                      as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
+                      by='months')
         Ind    <- seq(which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumIni)),
                       which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumEnd)))
         Qmodel <- Model$Qsub[Ind,]
-        nSub   <- ncol(Model$Qsub)
-      } else{
-        Qmodel <- Model$Qsub
-        dates  <- Model$Dates
-        nSub   <- ncol(Model$Qsub)
+        if(is.null(ncol(Qmodel))==TRUE){
+          nSub  <- length(Qmodel)
+          ntime <- 1
+        }else{
+          nSub  <- ncol(Qmodel)
+          ntime <- nrow(Qmodel)
+        }
       }
 
-      if(is.null(ncol(Qmodel))==FALSE){
-        qSub  <- matrix(NA, nrow=nrow(Qmodel), ncol=ncol(Qmodel))  # Streamflow time series
-        ntime <- nrow(Qmodel)
-      } else{
-        ntime <- 1
+      if(ntime != 1){
+        qSub  <- matrix(NA, nrow=ntime, ncol=nSub)  # Streamflow time series
       }
 
       for (i in 1:ntime){
         # Show message
           cat('\f')
-          message('Routing streamflows from Semidistribute GR2M model')
-          message(paste0('Timestep: ', format(dates[i],'%b-%Y')))
+          message(paste0('Routing streamflows for ',nSub,' sub-basins'))
+          message(paste0('Month-year: ', format(dates[i],'%b-%Y')))
           message('Please wait..')
 
         # Create a raster of weights (streamflow for each subbasin)
-          if(ntime != 1){
-            qMask[index$cells] <- Qmodel[i,]
-          } else{
+          if(ntime == 1){
             qMask[index$cells] <- Qmodel
+          } else{
+            qMask[index$cells] <- Qmodel[i,]
           }
           writeRaster(qMask, filename='Weights.tif', overwrite=T)
 
@@ -142,7 +151,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           qAcum <- raster("Flow_Accumulation.tif")
 
         # Save flow accumulation rasters
-          if(Save==TRUE){
+          if(Save == TRUE){
             dir.create(file.path(Location,'Outputs','Raster_simulations'))
             NameOut <- paste0('GR2MSemiDistr_',format(dates[i],'%Y-%m'),'.tif')
             writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',NameOut))
@@ -151,8 +160,8 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
         # Positions for extracting accumulated streamflows for each subbasin
           # Show message
           cat('\f')
-          message('Routing streamflows from Semidistribute GR2M model')
-          message(paste0('Timestep: ', format(dates[i],'%b-%Y')))
+          message(paste0('Extracting accumulations for ',nSub,' sub-basins'))
+          message(paste0('Month-year: ', format(dates[i],'%b-%Y')))
           message('Please wait..')
           if (is.null(Positions)==TRUE){
             if(i==1){
@@ -165,11 +174,12 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
               })
             }
           } else{
-              xycoord <- Positions
-              cl=makeCluster(detectCores()-1)
+            cl=makeCluster(detectCores()-1)
+            xycoord <- Positions
           }
 
         # Extracting accumulated streamflows for each subbasin
+          clusterEvalQ(cl,c(library(raster)))
           clusterExport(cl,varlist=c("area","qAcum","xycoord"),envir=environment())
           qAcumOut <- parLapply(cl, 1:nSub, function(z) {
                         ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),5)
@@ -185,7 +195,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
 
   # Remove auxiliary rasters
     file.remove('Weights.tif')
-    file.remove("Flow_Accumulation.tif")
+    # file.remove("Flow_Accumulation.tif")
     file.remove("Flow_Direction.tif")
 
   # Close the cluster
@@ -207,6 +217,9 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       Dates_New <- c(Dates,as.character(dates))
       Database  <- data.frame(Dates_New, qSub_New)
     } else{
+      if(ntime==1){
+        qSub <- matrix(qSub, nrow=1, ncol=nSub)
+      }
       Database  <- data.frame(dates, qSub)
       NewName   <- 'Routing_GR2MSemiDistr.csv'
     }
@@ -216,7 +229,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
   # Show message
     message('Done!')
 
-    # Saving positions
+  # Saving positions
     if(is.null(Positions)==TRUE){
       Positions <- xycoord
       save(Positions, file=file.path(getwd(),'Positions_Routing.Rda'))
