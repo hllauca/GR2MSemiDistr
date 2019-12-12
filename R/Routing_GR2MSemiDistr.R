@@ -21,14 +21,15 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
                                   Save=FALSE, Update=FALSE, Positions=NULL, all=FALSE){
 
 # Location  <- Location
-# Model     <- Mod
+# Model     <- Qsub_forcast
 # Shapefile <- File.Shape
 # Dem       <- File.Raster
-# AcumIni   <- '11/2019'
-# AcumEnd   <- '11/2019'
+# AcumIni   <- RunModel.Ini
+# AcumEnd   <- RunModel.End
 # Save      <- FALSE
 # Update    <- FALSE
-# Positions <- NULL
+# Positions <- Positions
+# all       <- TRUE
 
   # Load packages
     require(foreach)
@@ -129,18 +130,16 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           message('Please wait..')
 
         # Create a raster of weights (streamflow for each subbasin)
-          if(is.null(ncol(Qmodel))==FALSE){
+          if(ntime != 1){
             qMask[index$cells] <- Qmodel[i,]
           } else{
             qMask[index$cells] <- Qmodel
           }
           writeRaster(qMask, filename='Weights.tif', overwrite=T)
 
-
         # Weighted Flow Accumulation
           system("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 Flow_Accumulation.tif")
           qAcum <- raster("Flow_Accumulation.tif")
-
 
         # Save flow accumulation rasters
           if(Save==TRUE){
@@ -149,8 +148,12 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
             writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',NameOut))
           }
 
-
         # Positions for extracting accumulated streamflows for each subbasin
+          # Show message
+          cat('\f')
+          message('Routing streamflows from Semidistribute GR2M model')
+          message(paste0('Timestep: ', format(dates[i],'%b-%Y')))
+          message('Please wait..')
           if (is.null(Positions)==TRUE){
             if(i==1){
               cl=makeCluster(detectCores()-1)
@@ -166,12 +169,11 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
               cl=makeCluster(detectCores()-1)
           }
 
-
         # Extracting accumulated streamflows for each subbasin
           clusterExport(cl,varlist=c("area","qAcum","xycoord"),envir=environment())
           qAcumOut <- parLapply(cl, 1:nSub, function(z) {
-                      ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),5)
-                      return(ans)
+                        ans <- round(max(qAcum[xycoord[[z]]], na.rm=T),5)
+                        return(ans)
                       })
           if(ntime==1){
             qSub     <- unlist(qAcumOut)
@@ -184,6 +186,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
   # Remove auxiliary rasters
     file.remove('Weights.tif')
     file.remove("Flow_Accumulation.tif")
+    file.remove("Flow_Direction.tif")
 
   # Close the cluster
     stopCluster(cl)
