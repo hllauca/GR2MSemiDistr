@@ -6,7 +6,7 @@
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
   DateIni, DateEnd, Resolution = 0.01, Factor = 1, Positions = NULL,
-  all = FALSE)
+  All = FALSE, Members = NULL, Horiz = NULL)
 }
 \arguments{
 \item{Shapefile}{Subbasin shapefile.}
@@ -29,7 +29,11 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
 
 \item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default}
 
-\item{all}{Conditional to consider all the period of the netCDF file. FALSE as default}
+\item{All}{Conditional to consider all the period of the netCDF file. FALSE as default}
+
+\item{Members}{Number of ensemble members. NULL as default.}
+
+\item{Horiz}{Number of months for forcastting. NULL as default.}
 }
 \value{
 Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
