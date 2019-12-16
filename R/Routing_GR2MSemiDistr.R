@@ -199,7 +199,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           })
     stopCluster(cl)
     if(ntime==1){
-      qSub <- unlist(fstr)
+      qSub <- matrix(unlist(fstr), nrow=1, ncol=nsub)
     }else{
       qSub <- do.call(cbind, fstr)
     }
