@@ -187,9 +187,13 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
             x  <- rowFromCell(qAcum, xycoord[[z]])
             y  <- colFromCell(qAcum, xycoord[[z]])
             xy <- QACUM[x,y,]
-            ans <- c()
-            for (k in 1:ntime){
-              ans[k] <- max(diag(xy[,,k]))
+            if(ntime==1){
+              ans <- max(diag(xy))
+            }else{
+              ans <- c()
+              for (k in 1:ntime){
+                ans[k] <- max(diag(xy[,,k]))
+              }
             }
             return(ans)
           })
