@@ -171,24 +171,35 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
        Positions <- xycoord
        save(Positions, file=file.path(getwd(),'Positions_Routing.Rda'))
     }else{
+       cl=makeCluster(detectCores()-1)
+       clusterEvalQ(cl,c(library(raster)))
        xycoord <- Positions
     }
 
   # Extracting accumulated streamflows for each subbasin
-    qSub <- matrix(NA, nrow=ntime, ncol=nsub)
-    for(w in 1:nsub) {
-      # Show message
-      cat('\f')
-      message(paste0('Extracting accumulated streamflows for ',nsub,' subbasins'))
-      message(paste0('Processing...',round(100*w/nsub,2),'%'))
-      message('Please wait..')
-      x  <- rowFromCell(qAcum,xycoord[[w]])
-      y  <- colFromCell(qAcum,xycoord[[w]])
-      xy <- QACUM[x,y,]
-      for (k in 1:ntime){
-        qSub[k,w] <- max(diag(xy[,,k]))
-      }
+    # Show message
+    cat('\f')
+    message(paste0('Extracting accumulated streamflows for ',nsub,' subbasins'))
+    message('Please wait..')
+    clusterExport(cl,varlist=c("qAcum","xycoord","QACUM","ntime","nsub"),envir=environment())
+    fstr <- parLapply(cl, 1:nsub, function(z) {
+            message(paste0('Processing...',round(100*z/nsub,3),'%'))
+            x  <- rowFromCell(qAcum, xycoord[[z]])
+            y  <- colFromCell(qAcum, xycoord[[z]])
+            xy <- QACUM[x,y,]
+            ans <- c()
+            for (k in 1:ntime){
+              ans[k] <- max(diag(xy[,,k]))
+            }
+            return(ans)
+          })
+    stopCluster(cl)
+    if(ntime==1){
+      qSub <- unlist(fstr)
+    }else{
+      qSub <- do.call(cbind, fstr)
     }
+
 
   # Remove auxiliary rasters
     file.remove('Weights.tif')
