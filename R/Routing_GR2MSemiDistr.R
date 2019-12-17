@@ -129,12 +129,12 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       }
 
       # Start loop
-      QACUM <- array(NA, dim=c(nrow(fdr), ncol(fdr), ntime))
+      qMon <- list()
       for (i in 1:ntime){
         # Show message
           cat('\f')
           message(paste0('Routing streamflows for ',nsub,' sub-basins'))
-          message(paste0('Time-step: ', format(dates[i],'%b-%Y')))
+          message(paste0('Processing...',round(100*i/ntime,3),'%'))
           message('Please wait..')
 
         # Create a raster of weights (streamflow for each subbasin)
@@ -148,7 +148,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
         # Weighted Flow Accumulation
           system("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 Flow_Accumulation.tif")
           qAcum <- raster("Flow_Accumulation.tif")
-          QACUM[,,i] <- as.matrix(qAcum)
+          qmat  <- as.matrix(qAcum)
 
         # Save flow accumulation rasters
           if(Save == TRUE){
@@ -156,54 +156,51 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
             NameOut <- paste0('GR2MSemiDistr_',format(dates[i],'%Y-%m'),'.tif')
             writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',NameOut))
           }
-      }# End loop
 
-  # Positions for extracting accumulated streamflows for each subbasin
-    if(is.null(Positions)==TRUE){
-       cl=makeCluster(detectCores()-1)
-       clusterEvalQ(cl,c(library(raster)))
-       clusterExport(cl,varlist=c("area","qAcum"),envir=environment())
-       xycoord <- parLapply(cl, 1:nsub, function(z) {
-          ans <- extract(qAcum, area[z,], cellnumbers=TRUE, df=TRUE)$cell
-       return(ans)
-       })
-       stopCluster(cl)
-       Positions <- xycoord
-       save(Positions, file=file.path(getwd(),'Positions_Routing.Rda'))
-    }else{
-       cl=makeCluster(detectCores()-1)
-       clusterEvalQ(cl,c(library(raster)))
-       xycoord <- Positions
-    }
+        # Show message
+          message(paste0('Extracting accumulated streamflows for ', format(dates[i],'%b-%Y')))
+          message('Please wait..')
 
-  # Extracting accumulated streamflows for each subbasin
-    # Show message
-    cat('\f')
-    message(paste0('Extracting accumulated streamflows for ',nsub,' subbasins'))
-    message('Please wait..')
-    clusterExport(cl,varlist=c("qAcum","xycoord","QACUM","ntime","nsub"),envir=environment())
-    fstr <- parLapply(cl, 1:nsub, function(z) {
-            message(paste0('Processing...',round(100*z/nsub,3),'%'))
-            x  <- rowFromCell(qAcum, xycoord[[z]])
-            y  <- colFromCell(qAcum, xycoord[[z]])
-            xy <- QACUM[x,y,]
-            if(ntime==1){
-              ans <- max(diag(xy))
-            }else{
-              ans <- c()
-              for (k in 1:ntime){
-                ans[k] <- max(diag(xy[,,k]))
-              }
+        # Positions for extracting accumulated streamflows for each subbasin
+          if(is.null(Positions)==TRUE){
+            if(i==1){
+              cl=makeCluster(detectCores()-1)
+              clusterEvalQ(cl,c(library(raster)))
+              clusterExport(cl,varlist=c("area","qAcum"),envir=environment())
+              xycoord <- parLapply(cl, 1:nsub, function(z) {
+                          ans   <- extract(qAcum, area[z,], cellnumbers=TRUE, df=TRUE)$cell
+                          return(ans)
+                         })
+              stopCluster(cl)
+              Positions <- xycoord
+              save(Positions, file=file.path(getwd(),'Positions_Routing.Rda'))
             }
-            return(ans)
-          })
+          }else{
+            if(i==1){
+              cl=makeCluster(detectCores()-1)
+              clusterEvalQ(cl,c(library(raster)))
+            }
+            xycoord <- Positions
+          }
+
+        # Extracting accumulated streamflows for each subbasin
+          clusterExport(cl,varlist=c("qAcum","xycoord","qmat","nsub"),envir=environment())
+          fstr <- parLapply(cl, 1:nsub, function(z){
+                    x   <- rowFromCell(qAcum, xycoord[[z]])
+                    y   <- colFromCell(qAcum, xycoord[[z]])
+                    ans <- max(diag(qmat[x,y]))
+                    return(ans)
+                  })
+          qMon[[i]] <- unlist(fstr)
+
+
+      }# End loop
     stopCluster(cl)
     if(ntime==1){
       qSub <- matrix(unlist(fstr), nrow=1, ncol=nsub)
     }else{
       qSub <- do.call(cbind, fstr)
     }
-
 
   # Remove auxiliary rasters
     file.remove('Weights.tif')
