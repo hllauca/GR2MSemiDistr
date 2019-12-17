@@ -22,15 +22,15 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
                                   Save=FALSE, Update=FALSE, Positions=NULL, all=FALSE){
 
 # Location  <- Location
-# Model     <- Qsub_forcast
+# Model     <- Mod
 # Shapefile <- File.Shape
 # Dem       <- File.Raster
-# AcumIni   <- RunModel.Ini
+# AcumIni   <- RunModel.End
 # AcumEnd   <- RunModel.End
-# Save      <- FALSE
-# Update    <- FALSE
+# Save      <- TRUE
+# Update    <- TRUE
 # Positions <- Positions
-# all       <- TRUE
+# all       <- FALSE
 
   # Load packages
     require(foreach)
@@ -153,7 +153,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           if(Save == TRUE){
             dir.create(file.path(Location,'Outputs','Raster_simulations'))
             NameOut <- paste0('GR2MSemiDistr_',format(dates[i],'%Y-%m'),'.tif')
-            writeRaster(qAcum, file=file.path(Location,'Outputs','Raster_simulation',NameOut))
+            writeRaster(qAcum, filename=file.path(Location,'Outputs','Raster_simulations',NameOut))
           }
 
         # Show message
