@@ -135,7 +135,6 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           cat('\f')
           message(paste0('Routing streamflows for ',nsub,' sub-basins'))
           message(paste0('Processing...',round(100*i/ntime,3),'%'))
-          message('Please wait..')
 
         # Create a raster of weights (streamflow for each subbasin)
           if(ntime == 1){
@@ -188,18 +187,17 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           fstr <- parLapply(cl, 1:nsub, function(z){
                     x   <- rowFromCell(qAcum, xycoord[[z]])
                     y   <- colFromCell(qAcum, xycoord[[z]])
-                    ans <- max(diag(qmat[x,y]))
+                    ans <- max(diag(qmat[x,y]), na.rm=T)
                     return(ans)
                   })
           qMon[[i]] <- unlist(fstr)
 
-
       }# End loop
     stopCluster(cl)
     if(ntime==1){
-      qSub <- matrix(unlist(fstr), nrow=1, ncol=nsub)
+      qSub <- matrix(unlist(qMon), nrow=1, ncol=nsub)
     }else{
-      qSub <- do.call(cbind, fstr)
+      qSub <- do.call(rbind,qMon)
     }
 
   # Remove auxiliary rasters
@@ -230,9 +228,9 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     colnames(Database) <- c('Dates', paste0('ID_',1:nsub))
     write.table(Database, file=file.path(Location,'Outputs',NewName), sep=',', row.names=FALSE)
 
-    # Show message
-      message('Done!')
-      toc()
-      return(Database)
+  # Show message
+    message('Done!')
+    toc()
+    return(Database)
 
 } #End (not run)
