@@ -18,6 +18,7 @@
 #' @import  foreach
 #' @import  tictoc
 #' @import  parallel
+#' @import  lubridate
 Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
                                   Save=FALSE, Update=FALSE, Positions=NULL, all=FALSE){
 
@@ -116,8 +117,8 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
         dates  <- format(seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
                       as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
                       by='months'),'%Y-%m-%d')
-        Ind    <- seq(which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumIni)),
-                      which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumEnd)))
+        Ind    <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
+                      which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumEnd)))
         Qmodel <- Model$Qsub[Ind,]
         if(is.null(ncol(Qmodel))==TRUE){
           nsub  <- length(Qmodel)
@@ -152,12 +153,12 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
         # Save flow accumulation rasters
           if(Save == TRUE){
             dir.create(file.path(Location,'Outputs','Raster_simulations'))
-            NameOut <- paste0('GR2MSemiDistr_',format(dates[i],'%m%Y'),'.tif')
+            NameOut <- paste0('GR2MSemiDistr_',format(as.Date(dates[i]),'%m%Y'),'.tif')
             writeRaster(qAcum, filename=file.path(Location,'Outputs','Raster_simulations',NameOut))
           }
 
         # Show message
-          message(paste0('Extracting accumulated streamflows for ', format(dates[i],'%b-%Y')))
+          message(paste0('Extracting accumulated streamflows for ', format(as.Date(dates[i]),'%b-%Y')))
           message('Please wait..')
 
         # Positions for extracting accumulated streamflows for each subbasin
@@ -208,10 +209,8 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
   # Export results
   #===============
     if (Update==TRUE){
-      month     <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%m"))
-      year      <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%Y"))
-      MnYr1     <- format(as.Date(paste(year,month-2,'01',sep="-")),"%b%y")
-      MnYr2     <- format(as.Date(paste(year,month-1,'01',sep="-")),"%b%y")
+      MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),"%b%y")
+      MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),"%b%y")
       OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.csv')
       NewName   <- paste0('Routing_GR2MSemiDistr_',MnYr2,'.csv')
       Data      <- read.table(file.path(Location,'Outputs',OldName), header=T, sep=',')
