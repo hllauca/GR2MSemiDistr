@@ -217,7 +217,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       Dates     <- as.Date(Data$Dates)
       qSub_Old  <- Data[,-1]
       qSub_New  <- rbind(as.matrix(qSub_Old), qSub)
-      Dates_New <- c(Dates,dates)
+      Dates_New <- c(Dates,as.Date(dates))
       Database  <- data.frame(Dates_New, qSub_New)
       file.remove(file.path(Location,'Outputs',OldName))
     } else{
