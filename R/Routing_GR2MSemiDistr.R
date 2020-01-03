@@ -113,9 +113,9 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
         }
       } else{
         # Create a vector of dates
-        dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
+        dates  <- format(seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
                       as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
-                      by='months')
+                      by='months'),'%Y-%m-%d')
         Ind    <- seq(which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumIni)),
                       which(format(Model$Dates, '%d/%m/%Y')==paste0('01/',AcumEnd)))
         Qmodel <- Model$Qsub[Ind,]
@@ -152,7 +152,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
         # Save flow accumulation rasters
           if(Save == TRUE){
             dir.create(file.path(Location,'Outputs','Raster_simulations'))
-            NameOut <- paste0('GR2MSemiDistr_',format(dates[i],'%Y-%m'),'.tif')
+            NameOut <- paste0('GR2MSemiDistr_',format(dates[i],'%m%Y'),'.tif')
             writeRaster(qAcum, filename=file.path(Location,'Outputs','Raster_simulations',NameOut))
           }
 
@@ -210,15 +210,15 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     if (Update==TRUE){
       month     <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%m"))
       year      <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%Y"))
-      MnYr1     <- format(as.Date(paste('01',month-2, year, sep="/"),"%d/%m/%Y"),"%b%y")
-      MnYr2     <- format(as.Date(paste('01',month-1, year, sep="/"),"%d/%m/%Y"),"%b%y")
+      MnYr1     <- format(as.Date(paste(year,month-2,'01',sep="-")),"%b%y")
+      MnYr2     <- format(as.Date(paste(year,month-1,'01',sep="-")),"%b%y")
       OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.csv')
       NewName   <- paste0('Routing_GR2MSemiDistr_',MnYr2,'.csv')
       Data      <- read.table(file.path(Location,'Outputs',OldName), header=T, sep=',')
-      Dates     <- as.vector(Data$Dates)
+      Dates     <- as.Date(Data$Dates)
       qSub_Old  <- Data[,-1]
       qSub_New  <- rbind(as.matrix(qSub_Old), qSub)
-      Dates_New <- c(Dates,as.character(dates))
+      Dates_New <- c(Dates,dates)
       Database  <- data.frame(Dates_New, qSub_New)
       file.remove(file.path(Location,'Outputs',OldName))
     } else{
