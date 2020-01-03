@@ -245,7 +245,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                     Precip=pp,
                     Evaptr=pet,
                     Prod=Prod,
-                    Dates=Database2$DatesR,
+                    Dates=format(Database2$DatesR,'%Y-%m-%d'),
                     EndState=EndState,
                     Eval=evaluation)
 
@@ -256,7 +256,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                   Precip=pp,
                   Evaptr=pet,
                   Prod=Prod,
-                  Dates=Database2$DatesR,
+                  Dates=format(Database2$DatesR,'%Y-%m-%d'),
                   EndState=EndState)
     }
 
@@ -268,14 +268,14 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
       save(Ans, file=file.path(Location,'Outputs','Simulation_GR2MSemiDistr.Rda'))
 
       # Save data for production reservoir
-        DataProd <- data.frame(Database2$DatesR, Prod)
+      DataProd <- data.frame(format(Database2$DatesR,'%Y-%m-%d'), Prod)
       colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
 
       if(Update==TRUE){
         month     <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%m"))
         year      <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%Y"))
-        MnYr1     <- format(as.Date(paste('01',month-2, year, sep="/"),"%d/%m/%Y"),"%b%y")
-        MnYr2     <- format(as.Date(paste('01',month-1, year, sep="/"),"%d/%m/%Y"),"%b%y")
+        MnYr1     <- format(as.Date(paste(year,month-2,'01',sep="-")),"%b%y")
+        MnYr2     <- format(as.Date(paste(year,month-1,'01',sep="-")),"%b%y")
         ProdName1 <- paste0('Production_GR2MSemiDistr_',MnYr1,'.csv')
         ProdName2 <- paste0('Production_GR2MSemiDistr_',MnYr2,'.csv')
         file.remove(file.path(Location,'Outputs',ProdName1))

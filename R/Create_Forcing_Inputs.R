@@ -29,11 +29,18 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
 # Precip=File.Precip
 # PotEvap=File.PotEvap
 # Qobs=NULL
+# DateIni=RunModel.Ini
+# DateEnd=RunModel.End
 # Resolution=0.01
 # Factor=1
 # Positions=NULL
-# DateIni="01/1979"
-# DateEnd="02/2020"
+# # All=FALSE
+# # Members=NULL
+# # Horiz=NULL
+# All=TRUE
+# Members=Members
+# Horiz=Horiz
+
 
     # Load packages
       require(rgdal)
