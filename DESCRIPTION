@@ -19,6 +19,7 @@ Imports:
   rgeos,
   rtop,
   tictoc,
-  ProgGUIinR
+  ProgGUIinR,
+  lubridate
 LazyData: true
 RoxygenNote: 6.1.1
