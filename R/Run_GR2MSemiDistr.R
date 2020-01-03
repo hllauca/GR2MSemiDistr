@@ -25,6 +25,7 @@
 #' @import  tictoc
 #' @import  ProgGUIinR
 #' @import  parallel
+#' @import  lubridate
 Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Basins.txt',
                               WarmIni=NULL, RunIni, RunEnd, IdBasin=NULL, Remove=FALSE,
                               Plot=FALSE, IniState=NULL, Regional=FALSE, Update=FALSE, Save=TRUE){
@@ -53,6 +54,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     require(hydroGOF)
     require(tictoc)
     require(parallel)
+    require(lubridate)
     tic()
 
   # Read subbasin data
@@ -272,10 +274,8 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
       colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
 
       if(Update==TRUE){
-        month     <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%m"))
-        year      <- as.numeric(format(as.Date(cut(Sys.Date(), "month"), "%Y-%m-%d"), "%Y"))
-        MnYr1     <- format(as.Date(paste(year,month-2,'01',sep="-")),"%b%y")
-        MnYr2     <- format(as.Date(paste(year,month-1,'01',sep="-")),"%b%y")
+        MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),'%b%y')
+        MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),'%b%y')
         ProdName1 <- paste0('Production_GR2MSemiDistr_',MnYr1,'.csv')
         ProdName2 <- paste0('Production_GR2MSemiDistr_',MnYr2,'.csv')
         file.remove(file.path(Location,'Outputs',ProdName1))
