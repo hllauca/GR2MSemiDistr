@@ -152,9 +152,9 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
 
         # Save flow accumulation rasters
           if(Save == TRUE){
-            dir.create(file.path(Location,'Outputs','Raster_simulations'))
-            NameOut <- paste0('GR2MSemiDistr_',format(as.Date(dates[i]),'%m%Y'),'.tif')
-            writeRaster(qAcum, filename=file.path(Location,'Outputs','Raster_simulations',NameOut))
+            dir.create(file.path(Location,'Outputs','Simulations'))
+            NameOut <- paste0('Streamflow_GR2MSemiDistr_',format(as.Date(dates[i]),'%m%Y'),'.tif')
+            writeRaster(qAcum, filename=file.path(Location,'Outputs','Simulations',NameOut), overwrite=TRUE)
           }
 
         # Show message
