@@ -12,8 +12,8 @@
 #' @param Plot        Logical value to plot observed and simulated streamflow timeseries. FALSE as default.
 #' @param IniState    Initial GR2M states variables. NULL as default.
 #' @param Regional    Logical value to simulate in a regional mode (more than one outlet). FALSE as default.
-#' @param Update      Logical value to update a previous production csv file. FALSE as default.
-#' @param Save        Export results or not. TRUE as default.
+#' @param Update      Logical value to update a previous production and qsubbasin '.csv' files. FALSE as default.
+#' @param Save        Logical valute to export simulation results as '.Rda'. TRUE as default.
 #' @return GR2M model outputs for each subbasin.
 #' @export
 #' @import  rgdal
@@ -33,7 +33,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 # Parameters=Model.Param
 # Location=Location
 # Shapefile=File.Shape
-# Input=df
+# Input='Inputs_Basins.txt'
 # WarmIni=NULL
 # RunIni=RunModel.Ini
 # RunEnd=RunModel.End
@@ -219,12 +219,10 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     if(Regional==FALSE){
 
         # Evaluation criteria at the outlet
-        Qall <- qOut
         Qobs <- Database2$Qm3s
         Qsim <- qOut[Subset2]
         if (Remove==TRUE){
           Qsim <- Qsim - qSub[Subset2, IdBasin]
-          Qall <- Qall - qSub[,IdBasin]
         }
         evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
                                  NSE=round(NSE(Qsim, Qobs), 3),
@@ -243,7 +241,6 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         Ans <- list(Qsim=Qsim,
                     Qobs=Qobs,
                     Qsub=Qsub,
-                    Qall=Qall,
                     Precip=pp,
                     Evaptr=pet,
                     Prod=Prod,
@@ -265,25 +262,33 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     # Save data or not
     if(Save==TRUE){
 
-      # Create output folder ans save simulation
+      # Create output folder and save simulation
       dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
       save(Ans, file=file.path(Location,'Outputs','Simulation_GR2MSemiDistr.Rda'))
 
       # Save data for production reservoir
       DataProd <- data.frame(format(Database2$DatesR,'%Y-%m-%d'), Prod)
+      DataQsub <- data.frame(format(Database2$DatesR,'%Y-%m-%d'), Qsub)
       colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
+      colnames(DataQsub) <- c('Dates', paste0('ID_',1:nsub))
 
       if(Update==TRUE){
         MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),'%b%y')
         MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),'%b%y')
         ProdName1 <- paste0('Production_GR2MSemiDistr_',MnYr1,'.csv')
         ProdName2 <- paste0('Production_GR2MSemiDistr_',MnYr2,'.csv')
+        QsubName1 <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr1,'.csv')
+        QsubName2 <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr2,'.csv')
         file.remove(file.path(Location,'Outputs',ProdName1))
+        file.remove(file.path(Location,'Outputs',QsubName1))
         write.table(DataProd, file=file.path(Location,'Outputs',ProdName2), sep=',', row.names=FALSE)
+        write.table(DataQsub, file=file.path(Location,'Outputs',QsubName2), sep=',', row.names=FALSE)
       } else{
         MnYr     <- format(as.Date(paste0('01/',RunEnd),"%d/%m/%Y"),"%b%y")
         ProdName <- paste0('Production_GR2MSemiDistr_',MnYr,'.csv')
+        QsubName <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr,'.csv')
         write.table(DataProd, file=file.path(Location,'Outputs',ProdName), sep=',', row.names=FALSE)
+        write.table(DataProd, file=file.path(Location,'Outputs',QsubName), sep=',', row.names=FALSE)
       }
     }
 
