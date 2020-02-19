@@ -34,9 +34,9 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
 
 \item{Regional}{Logical value to simulate in a regional mode (more than one outlet). FALSE as default.}
 
-\item{Update}{Logical value to update a previous production csv file. FALSE as default.}
+\item{Update}{Logical value to update a previous production and qsubbasin '.csv' files. FALSE as default.}
 
-\item{Save}{Export results or not. TRUE as default.}
+\item{Save}{Logical valute to export simulation results as '.Rda'. TRUE as default.}
 }
 \value{
 GR2M model outputs for each subbasin.
