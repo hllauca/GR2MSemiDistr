@@ -126,11 +126,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
                  })
       # stopCluster(cl) #Close the cluster
       mean.pp <- do.call(rbind, mean.pp)
-      if(All==FALSE){
-        mean.pp <- round(mean.pp[1:length(DatesMonths),],1)
-      } else{
-        mean.pp <- round(mean.pp,1)
-      }
+      mean.pp <- round(mean.pp[1:length(DatesMonths),],1)
 
 
 
@@ -171,11 +167,8 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       })
       stopCluster(cl) #Close the cluster
       mean.pet <- do.call(rbind, mean.pet)
-      if(All==FALSE){
-        mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
-      } else{
-        mean.pet <- round(mean.pet,1)
-      }
+      mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
+
 
     # Export results in airGR format
     #===============================
