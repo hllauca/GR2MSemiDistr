@@ -33,7 +33,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 # Parameters=Model.Param
 # Location=Location
 # Shapefile=File.Shape
-# Input='Inputs_Basins.txt'
+# Input=df
 # WarmIni=NULL
 # RunIni=RunModel.Ini
 # RunEnd=RunModel.End
@@ -118,7 +118,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
   # Run GR2M for each subbasin
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR))) # Load package to each node
+    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR),library(lubridate))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time","IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
     ResModel <- parLapply(cl, 1:nsub, function(i) {
@@ -126,6 +126,11 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                 # Parameters and factors to run the model
                   ParamSub  <- Subset_Param(Param, region[i])
                   FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
+                  if(time==1){
+                  NewDate   <- as.POSIXct(floor_date(FixInputs$DatesR+months(1),"month"))
+                  NewStep   <- data.frame(DatesR=NewDate, P=NA, E=NA)
+                  FixInputs <- rbind(FixInputs,NewStep)
+                  }
 
                 # Prepare model inputs
                   InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
@@ -168,17 +173,16 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     # Main model results (Qsim in m3/s and EndState variables)
       if (nsub==1){
       # Streamflow at the basin outlet
-        prod <- ResModel[[1]]$Prod
-        qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
-        qOut <- qSub
-
-      # End state variables
-      EndState <- list(ResModel[[1]]$StateEnd)
+          prod <- ResModel[[1]]$Prod
+          qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
+          qOut <- qSub
+          EndState <- list(ResModel[[1]]$StateEnd)
 
       } else{
       # Streamflow at the basin outlet
         Plist <- list()
         Qlist <- list()
+
         for(w in 1:nsub){
           Plist[[w]] <- ResModel[[w]]$Prod
           Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)
@@ -186,8 +190,6 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         prod <- do.call(cbind, Plist)
         qSub <- do.call(cbind, Qlist)
         qOut <- round(apply(qSub, 1, FUN=sum),2)
-
-      # End state variables
         EndState <- list()
         for(w in 1:nsub){EndState[[w]] <- ResModel[[w]]$StateEnd}
       }
