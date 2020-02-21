@@ -128,7 +128,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                   FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
                   if(time==1){
                   NewDate   <- as.POSIXct(floor_date(FixInputs$DatesR+months(1),"month"))
-                  NewStep   <- data.frame(DatesR=NewDate, P=NA, E=NA)
+                  NewStep   <- data.frame(DatesR=NewDate, P=100, E=100)
                   FixInputs <- rbind(FixInputs,NewStep)
                   }
 
