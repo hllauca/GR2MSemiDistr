@@ -10,7 +10,6 @@
 #' @param DateEnd Final date 'mm/yyyy' for export data.
 #' @param Factor Factor between 1 and 1.2 to buffer subbasins and extract data. 1 as default
 #' @param Positions Cell numbers to extract data faster for each subbasin. NULL as default
-#' @param All Conditional to consider all the period of the netCDF file. FALSE as default
 #' @param Members Number of ensemble members. NULL as default.
 #' @param Horiz Number of months for forcastting. NULL as default.
 #' @return Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
@@ -22,7 +21,7 @@
 #' @import  ncdf4
 #' @import  parallel
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, DateIni, DateEnd,
-                                  Resolution=0.01, Factor=1, Positions=NULL, All=FALSE, Members=NULL, Horiz=NULL){
+                                  Resolution=0.01, Factor=1, Positions=NULL, Members=NULL, Horiz=NULL){
 
 # Shapefile=File.Shape
 # Database=Database
@@ -33,11 +32,9 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
 # DateEnd=RunModel.End
 # Resolution=0.01
 # Factor=1
-# Positions=NULL
-# # All=FALSE
+# Positions=Positions
 # # Members=NULL
 # # Horiz=NULL
-# All=TRUE
 # Members=Members
 # Horiz=Horiz
 
@@ -79,12 +76,11 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
     # Create a vector of dates
       Ini <- paste0('01/',DateIni)
       End <- paste0('01/',DateEnd)
-      if(All==FALSE){
-        DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"), as.Date(End, "%d/%m/%Y"), by='month')
-      } else{
-        DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"), as.Date(End, "%d/%m/%Y"), by='month')
-        NDates      <- length(DatesMonths)
-        DatesMonths <- c(DatesMonths,rep(DatesMonths[c(NDates-2, NDates-1, NDates)], length=Horiz*(Members-1)))
+      DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"),
+                         as.Date(End, "%d/%m/%Y"),
+                         by='month')
+      if(is.null(Members)==FALSE){
+        DatesMonths <- rep(DatesMonths, length=Horiz*Members)
       }
 
 
