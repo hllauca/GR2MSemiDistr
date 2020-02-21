@@ -6,7 +6,7 @@
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
   DateIni, DateEnd, Resolution = 0.01, Factor = 1, Positions = NULL,
-  All = FALSE, Members = NULL, Horiz = NULL)
+  Members = NULL, Horiz = NULL)
 }
 \arguments{
 \item{Shapefile}{Subbasin shapefile.}
@@ -28,8 +28,6 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
 \item{Factor}{Factor between 1 and 1.2 to buffer subbasins and extract data. 1 as default}
 
 \item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default}
-
-\item{All}{Conditional to consider all the period of the netCDF file. FALSE as default}
 
 \item{Members}{Number of ensemble members. NULL as default.}
 
