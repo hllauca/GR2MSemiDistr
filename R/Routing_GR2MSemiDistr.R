@@ -22,16 +22,16 @@
 Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
                                   Save=FALSE, Update=FALSE, Positions=NULL, all=FALSE){
 
-# Location  <- Location
-# Model     <- Mod
-# Shapefile <- File.Shape
-# Dem       <- File.Raster
-# AcumIni   <- RunModel.End
-# AcumEnd   <- RunModel.End
-# Save      <- TRUE
-# Update    <- TRUE
-# Positions <- Positions
-# all       <- FALSE
+# Location=Location
+# Model=Mod
+# Shapefile=File.Shape
+# Dem=File.Raster
+# AcumIni=RunModel.End
+# AcumEnd=RunModel.End
+# Positions=Positions
+# Update=TRUE
+# Save=TRUE
+# all=FALSE
 
   # Load packages
     require(foreach)
@@ -214,7 +214,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.csv')
       NewName   <- paste0('Routing_GR2MSemiDistr_',MnYr2,'.csv')
       Data      <- read.table(file.path(Location,'Outputs',OldName), header=T, sep=',')
-      Dates     <- as.Date(Data$Dates)
+      Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%d/%m/%Y'))
       qSub_Old  <- Data[,-1]
       qSub_New  <- rbind(as.matrix(qSub_Old), qSub)
       Dates_New <- c(Dates,as.Date(dates))
