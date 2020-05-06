@@ -4,8 +4,18 @@
 \alias{Routing_GR2MSemiDistr}
 \title{Routing simulated monthly streamflows for each subbasin.}
 \usage{
-Routing_GR2MSemiDistr(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
-  Save = FALSE, Update = FALSE, Positions = NULL, all = FALSE)
+Routing_GR2MSemiDistr(
+  Location,
+  Model,
+  Shapefile,
+  Dem,
+  AcumIni,
+  AcumEnd,
+  Save = FALSE,
+  Update = FALSE,
+  Positions = NULL,
+  all = FALSE
+)
 }
 \arguments{
 \item{Location}{Directory where 'Inputs' folder is located.}

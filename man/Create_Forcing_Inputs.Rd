@@ -4,9 +4,20 @@
 \alias{Create_Forcing_Inputs}
 \title{Extract and create a text file with forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.}
 \usage{
-Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
-  DateIni, DateEnd, Resolution = 0.01, Factor = 1, Positions = NULL,
-  Members = NULL, Horiz = NULL)
+Create_Forcing_Inputs(
+  Shapefile,
+  Database,
+  Precip,
+  PotEvap,
+  Qobs = NULL,
+  DateIni,
+  DateEnd,
+  Resolution = 0.01,
+  Factor = 1,
+  Positions = NULL,
+  Members = NULL,
+  Horiz = NULL
+)
 }
 \arguments{
 \item{Shapefile}{Subbasin shapefile.}
