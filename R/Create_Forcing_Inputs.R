@@ -179,8 +179,8 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       } else{
         # Subsetting streamflow data
         Obs     <- read.table(file.path("Inputs",Qobs), sep='\t', header=F)
-        Ind_Obs <- seq(which(format(as.Date(Obs[,1]), "%d/%m/%Y") == Ini),
-                       which(format(as.Date(Obs[,1]), "%d/%m/%Y") == End))
+        Ind_Obs <- seq(which(format(as.Date(Obs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == Ini),
+                       which(format(as.Date(Obs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == End))
         qobs    <- Obs[Ind_Obs,2]
         df      <- data.frame(DatesMonths, mean.pp, mean.pet, qobs)
         colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qm3s')

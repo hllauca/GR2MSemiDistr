@@ -4,10 +4,23 @@
 \alias{Optim_GR2MSemiDistr}
 \title{Optimization of GR2M model parameters with SCE-UA algorithm.}
 \usage{
-Optim_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Max.Functions = 10000, Optimization = "NSE", Location, Shapefile,
-  Input = "Inputs_Basins.txt", WarmIni, RunIni, RunEnd, IdBasin,
-  Remove = FALSE, No.Optim = NULL, IniState = NULL)
+Optim_GR2MSemiDistr(
+  Parameters,
+  Parameters.Min,
+  Parameters.Max,
+  Max.Functions = 10000,
+  Optimization = "NSE",
+  Location,
+  Shapefile,
+  Input = "Inputs_Basins.txt",
+  WarmIni,
+  RunIni,
+  RunEnd,
+  IdBasin,
+  Remove = FALSE,
+  No.Optim = NULL,
+  IniState = NULL
+)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.}
