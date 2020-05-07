@@ -3,7 +3,7 @@
 #' @param Parameters      GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
 #' @param Parameters.Min  Minimum GR2M (X1, X2, fprecip and fpet) model parameters values.
 #' @param Parameters.Max  Maximum GR2M (X1, X2, fprecip and fpet) model parameters values.
-#' @param Niiter 	        MNumber of itterations. 1000 as default.
+#' @param Niter 	        Number of iterations. 1000 as default.
 #' @param Optimization    Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).
 #' @param Location    Directory where 'Inputs' folder is located.
 #' @param Shapefile   Subbasin shapefile.
@@ -26,7 +26,7 @@
 #' @import  parallel
 #' @import  tictoc
 #' @import  airGR
-Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nitter=1000,
+Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Niter=1000,
                                  Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
                                  WarmIni, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL, IniState=NULL){
 
@@ -230,7 +230,7 @@ Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nit
   cat('\f')
   message('Uncertainty analysis MCMC')
   message('Please wait...')
-  Ans <- modMCMC(f=OFUN, p=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max, nitter=Nitter)
+  Ans <- modMCMC(f=OFUN, p=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max, niter=Niter)
 
   # Create output folder ans save simulation
   dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)

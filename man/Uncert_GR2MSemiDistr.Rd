@@ -5,7 +5,7 @@
 \title{Uncertainty analysis  of GR2M model parameters with MCMC algorithm.}
 \usage{
 Uncert_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Nitter = 1000, Optimization = "NSE", Location, Shapefile,
+  Niter = 1000, Optimization = "NSE", Location, Shapefile,
   Input = "Inputs_Basins.txt", WarmIni, RunIni, RunEnd, IdBasin,
   Remove = FALSE, No.Optim = NULL, IniState = NULL)
 }
@@ -15,6 +15,8 @@ Uncert_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \item{Parameters.Min}{Minimum GR2M (X1, X2, fprecip and fpet) model parameters values.}
 
 \item{Parameters.Max}{Maximum GR2M (X1, X2, fprecip and fpet) model parameters values.}
+
+\item{Niter}{Number of iterations. 1000 as default.}
 
 \item{Optimization}{Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).}
 
@@ -37,8 +39,6 @@ Uncert_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \item{No.Optim}{Calibration regions not to be optimized.}
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
-
-\item{Niiter}{MNumber of itterations. 1000 as default.}
 }
 \value{
 Best GR2M model parameters.
