@@ -2,7 +2,7 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Extract and create a text file with forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.}
+\title{Prepare forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.}
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
   DateIni, DateEnd, Resolution = 0.01, Factor = 1, Positions = NULL,
@@ -37,5 +37,5 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
 Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
 }
 \description{
-Extract and create a text file with forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.
+Prepare forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.
 }

@@ -2,7 +2,7 @@
 % Please edit documentation in R/Uncert_GR2MSemiDistr.R
 \name{Uncert_GR2MSemiDistr}
 \alias{Uncert_GR2MSemiDistr}
-\title{Uncertainty analysis  of GR2M model parameters with MCMC algorithm.}
+\title{Uncertainty analysis of GR2M model parameters with the MCMC algorithm.}
 \usage{
 Uncert_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
   Niter = 1000, Optimization = "NSE", Location, Shapefile,
@@ -44,5 +44,5 @@ Uncert_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 Best GR2M model parameters.
 }
 \description{
-Uncertainty analysis  of GR2M model parameters with MCMC algorithm.
+Uncertainty analysis of GR2M model parameters with the MCMC algorithm.
 }

@@ -96,7 +96,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                         Fpp=Parameters[(2*nreg+1):(3*nreg)],
                         Fpet=Parameters[(3*nreg+1):length(Parameters)])
 
-  # Auxiliary functions
+  # Useful functions
     Subset_Param <- function(Param, Region){
         ParamSub  <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
         return(ParamSub)
@@ -116,7 +116,8 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     message(paste('Running GR2M model for', nsub, 'subbasins'))
     message('Please wait...')
 
-  # Run GR2M for each subbasin
+  # Run model
+  #===========
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
     clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR),library(lubridate))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time","IniState","Subset_Param","Forcing_Subbasin"),envir=environment())

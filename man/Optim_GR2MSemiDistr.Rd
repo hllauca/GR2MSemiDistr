@@ -2,7 +2,7 @@
 % Please edit documentation in R/Optim_GR2MSemiDistr.R
 \name{Optim_GR2MSemiDistr}
 \alias{Optim_GR2MSemiDistr}
-\title{Optimization of GR2M model parameters with SCE-UA algorithm.}
+\title{Model parameter optimization with SCE-UA algorithm.}
 \usage{
 Optim_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
   Max.Functions = 10000, Optimization = "NSE", Location, Shapefile,
@@ -44,5 +44,5 @@ Optim_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 Best GR2M model parameters.
 }
 \description{
-Optimization of GR2M model parameters with SCE-UA algorithm.
+Model parameter optimization with SCE-UA algorithm.
 }

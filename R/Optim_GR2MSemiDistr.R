@@ -1,4 +1,4 @@
-#' Optimization of GR2M model parameters with SCE-UA algorithm.
+#' Model parameter optimization with SCE-UA algorithm.
 #'
 #' @param Parameters      GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
 #' @param Parameters.Min  Minimum GR2M (X1, X2, fprecip and fpet) model parameters values.
@@ -58,6 +58,9 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
       require(airGR)
       tic()
 
+      # Configure model and data
+      #===========================
+
       # Read sub-basins
       path.shp   <- file.path(Location,'Inputs', Shapefile)
       basin      <- readOGR(path.shp, verbose=F)
@@ -103,7 +106,8 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
       Opt.Parameters.Max <- rep(Parameters.Max, each=length(Opt.Region))
       Opt.Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Opt.Region))
 
-      # Auxiliary functions
+      # Useful functions
+      #=================
       Subset_Param <- function(Param, Region){
         ParamSub  <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
         return(ParamSub)
@@ -119,6 +123,7 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
       }
 
       # Objective function
+      #=====================
       OFUN <- function(Variable){
 
             # Select model parameters to optimize
@@ -225,7 +230,8 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
 
     } # End objective function
 
-    # Optimization with SCE-UA
+    # Run optimization
+    #=================
     # Show message
     cat('\f')
     message(paste('Optimizing', Optimization, 'with SCE-UA'))
