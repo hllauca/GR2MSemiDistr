@@ -1,4 +1,4 @@
-#' Uncertainty analysis  of GR2M model parameters with MCMC algorithm.
+#' Uncertainty analysis of GR2M model parameters with the MCMC algorithm.
 #'
 #' @param Parameters      GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
 #' @param Parameters.Min  Minimum GR2M (X1, X2, fprecip and fpet) model parameters values.
@@ -119,6 +119,7 @@ Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nit
   }
 
   # Objective function
+  #===================
   OFUN <- function(Variable){
 
     # Select model parameters to optimize
@@ -225,23 +226,127 @@ Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nit
 
   } # End objective function
 
-  # Uncertainty analysis with MCMC
+  # Parameter uncertainty with MCMC
   # Show message
   cat('\f')
-  message('Uncertainty analysis MCMC')
+  message('Parameter uncertainty with MCMC')
   message('Please wait...')
-  Ans <- modMCMC(f=OFUN, p=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max, niter=Niter)
+  MCMC <- modMCMC(f=OFUN, p=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max, niter=Niter)
+
+  # Model function
+  #===============
+  MFUN <- function(Variable){
+
+    # Select model parameters to optimize
+    if (is.null(No.Optim)==TRUE){
+      All.Parameters <- Variable
+    } else{
+      New.Parameters <- rbind(cbind(Num.Parameters[!IDStable.Parameters], Variable),
+                              cbind(Num.Parameters[IDStable.Parameters], Stable.Parameters))
+      All.Parameters <- New.Parameters[match(Num.Parameters, New.Parameters[,1]), 2]
+    }
+
+    # Model parameters to run GR2M model
+    nreg  <- length(sort(unique(region)))
+    Param <- data.frame(Region=sort(unique(region)),
+                        X1=All.Parameters[1:nreg],
+                        X2=All.Parameters[(nreg+1):(2*nreg)],
+                        Fpp=All.Parameters[(2*nreg+1):(3*nreg)],
+                        Fpet=All.Parameters[(3*nreg+1):length(All.Parameters)])
+
+    cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
+    clusterEvalQ(cl,c(library(GR2MSemiDistr))) # Load package to each node
+    clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
+                               "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
+
+    ResModel <- parLapply(cl, 1:nsub, function(i) {
+
+      # Parameters and factors to run the model
+      ParamSub  <- Subset_Param(Param, region[i])
+      FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
+
+      # Prepare model inputs
+      InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
+                                       DatesR=FixInputs$DatesR,
+                                       Precip=FixInputs$P,
+                                       PotEvap=FixInputs$E)
+
+      # Run GR2M model by an specific initial conditions
+      if(is.null(IniState)==TRUE){
+
+        # Set-up running options
+        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
+                                       InputsModel=InputsModel,
+                                       IndPeriod_Run=1:time,
+                                       verbose=FALSE,
+                                       warnings=FALSE)
+      } else{
+        # Set-up running options
+        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
+                                       InputsModel=InputsModel,
+                                       IniStates=IniState[[i]],
+                                       IndPeriod_Run=1:time,
+                                       verbose=FALSE,
+                                       warnings=FALSE)
+      }
+
+      # Run GR2M
+      OutputsModel <- RunModel(InputsModel=InputsModel,
+                               RunOptions=RunOptions,
+                               Param=ParamSub,
+                               FUN=RunModel_GR2M)
+
+      return(OutputsModel)
+    })
+
+    # Close the cluster
+    stopCluster(cl)
+
+    # Main model results (Qsim in m3/s and EndState variables)
+    if (nsub==1){
+      # Streamflow at the basin outlet
+      qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
+      qOut <- qSub
+    } else{
+      # Streamflow at the basin outlet
+      Qlist <- list()
+      for(w in 1:nsub){Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)}
+      qSub <- do.call(cbind, Qlist)
+      qOut <- round(apply(qSub, 1, FUN=sum),2)
+    }
+
+    # Subset data (without warm-up period)
+    Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+                       which(format(Database$DatesR, format="%m/%Y") == RunEnd))
+    Database2   <- Database[Subset2,]
+
+    # Evaluation criteria at the outlet
+    Qsim <- qOut[Subset2]
+    if (Remove==TRUE){
+      Qsim <- Qsim - qSub[Subset2, IdBasin]
+    }
+    return(Qsim)
+
+  } # End model function
+
+  # Model output sensitivity
+  # Show message
+  cat('\f')
+  message('Generating streamflow uncertainty')
+  message('Please wait...')
+  sR <- sensRange(f=MFUN, parms=Parameters, parInput=MCMC$par)
+  # plot(summary(sR), xlab='Time')
+
 
   # Create output folder ans save simulation
+  #=========================================
   dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
+  Ans <- list(mcmc=MCMC, sens=sR)
   save(Ans, file=file.path(Location,'Outputs','Uncertainty_GR2MSemiDistr.Rda'))
-
 
   # Show message
   message("Done!")
   toc()
-
-  # Output
   return(Ans)
 
 } # End (not run)

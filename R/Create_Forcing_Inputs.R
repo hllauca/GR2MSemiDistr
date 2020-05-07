@@ -1,4 +1,4 @@
-#' Extract and create a text file with forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.
+#' Prepare forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.
 #'
 #' @param Shapefile Subbasin shapefile.
 #' @param Database Directory where netCDF files of precipitation and evapotranspiration are located.
