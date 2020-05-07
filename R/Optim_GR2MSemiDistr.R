@@ -27,8 +27,8 @@
 #' @import  tictoc
 #' @import  airGR
 Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.Functions=10000,
-                                 Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
-									               WarmIni, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL, IniState=NULL){
+                                Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
+									              WarmIni, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL, IniState=NULL){
 
 # Parameters=Model.Param
 # Parameters.Min=Model.ParMin
@@ -67,7 +67,7 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
 
       # Read and subset input data
       Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
-      Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
+      Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y","%Y/%m/%d", "%d-%m-%Y"))
       if(is.null(WarmIni)==TRUE){
         Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
                          which(format(Data$DatesR, format="%m/%Y") == RunEnd))
