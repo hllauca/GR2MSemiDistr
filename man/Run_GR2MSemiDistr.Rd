@@ -4,22 +4,10 @@
 \alias{Run_GR2MSemiDistr}
 \title{Run the GR2M model for each subbasins.}
 \usage{
-Run_GR2MSemiDistr(
-  Parameters,
-  Location,
-  Shapefile,
-  Input = "Inputs_Basins.txt",
-  WarmIni = NULL,
-  RunIni,
-  RunEnd,
-  IdBasin = NULL,
-  Remove = FALSE,
-  Plot = FALSE,
-  IniState = NULL,
-  Regional = FALSE,
-  Update = FALSE,
-  Save = TRUE
-)
+Run_GR2MSemiDistr(Parameters, Location, Shapefile,
+  Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd,
+  IdBasin = NULL, Remove = FALSE, Plot = FALSE, IniState = NULL,
+  Regional = FALSE, Update = FALSE, Save = TRUE)
 }
 \arguments{
 \item{Parameters}{GR2M model parameters (X1 and X2) and multiplying factors for P and PET.}
