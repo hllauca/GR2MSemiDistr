@@ -3,7 +3,7 @@
 #' @param Parameters      GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
 #' @param Parameters.Min  Minimum GR2M (X1, X2, fprecip and fpet) model parameters values.
 #' @param Parameters.Max  Maximum GR2M (X1, X2, fprecip and fpet) model parameters values.
-#' @param Niter 	        Number of iterations. 1000 as default.
+#' @param Niter 	        Number of iterations. 2000 as default.
 #' @param Optimization    Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).
 #' @param Location    Directory where 'Inputs' folder is located.
 #' @param Shapefile   Subbasin shapefile.
@@ -15,7 +15,7 @@
 #' @param Remove      Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.
 #' @param No.Optim    Calibration regions not to be optimized.
 #' @param IniState    Initial GR2M states variables. NULL as default.
-#' @return  Best GR2M model parameters.
+#' @return  Parameter and streamflow uncertanty bounds.
 #' @export
 #' @import  ProgGUIinR
 #' @import  rgdal
@@ -26,13 +26,14 @@
 #' @import  parallel
 #' @import  tictoc
 #' @import  airGR
-Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Niter=1000,
+Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Niter=2000,
                                  Optimization='NSE', Location, Shapefile, Input='Inputs_Basins.txt',
                                  WarmIni, RunIni, RunEnd, IdBasin, Remove=FALSE, No.Optim=NULL, IniState=NULL){
 
   # Parameters=Model.Param
   # Parameters.Min=Model.ParMin
   # Parameters.Max=Model.ParMax
+  # Niter=5000
   # Optimization=Optim.Eval
   # Location=Location
   # Shapefile=File.Shape
@@ -44,7 +45,7 @@ Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nit
   # Remove=Optim.Remove
   # No.Optim=No.Region
   # IniState=NULL
-  # Nitter=1000
+
 
   # Load packages
   require(rgdal)
@@ -118,8 +119,8 @@ Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nit
     return(FixInputs)
   }
 
-  # Objective function
-  #===================
+  # Error function
+  #================
   OFUN <- function(Variable){
 
     # Select model parameters to optimize
@@ -140,7 +141,7 @@ Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nit
                         Fpet=All.Parameters[(3*nreg+1):length(All.Parameters)])
 
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(GR2MSemiDistr))) # Load package to each node
+    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
                                "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
@@ -212,26 +213,23 @@ Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nit
       Qsim <- Qsim - qSub[Subset2, IdBasin]
     }
 
-    # Evaluation criteria dataframe (only minimizing)
-    optim.df <- data.frame(KGE=1-round(KGE(Qsim, Qobs), 3),
-                           NSE=1-round(NSE(Qsim, Qobs), 3),
-                           lnNSE=1-round(NSE(log(Qsim), log(Qobs)), 3),
-                           R=1-round(rPearson(Qsim, Qobs), 3),
-                           RMSE=round(rmse(Qsim, Qobs), 3),
-                           PBIAS=round(pbias(Qsim, Qobs), 3))
+    # Calculate modelcost
+    # Obs <- as.matrix(cbind(1:length(Qsim),Qobs))
+    # colnames(Obs) <- c('time','Obs')
+    # Sim <- data.frame(time=1:length(Qsim), Obs=Qsim)
+    # mCs <- modCost(model=Sim, obs=Obs)
+    mRes <- as.vector(na.omit(Qsim-Qobs))
+    return(mRes)
 
-    # Return
-    OF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])
-    return(OF)
+  } # End function
 
-  } # End objective function
-
-  # Parameter uncertainty with MCMC
   # Show message
   cat('\f')
   message('Parameter uncertainty with MCMC')
   message('Please wait...')
-  MCMC <- modMCMC(f=OFUN, p=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max, niter=Niter)
+  sd   <- sd(OFUN(Opt.Parameters))
+  MCMC <- modMCMC(f=OFUN, p=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max, niter=Niter, var0=sd)
+
 
   # Model function
   #===============
@@ -255,7 +253,7 @@ Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nit
                         Fpet=All.Parameters[(3*nreg+1):length(All.Parameters)])
 
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(GR2MSemiDistr))) # Load package to each node
+    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
                                "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
@@ -329,19 +327,31 @@ Uncert_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Nit
 
   } # End model function
 
-  # Model output sensitivity
   # Show message
   cat('\f')
   message('Generating streamflow uncertainty')
   message('Please wait...')
-  sR <- sensRange(f=MFUN, parms=Parameters, parInput=MCMC$par)
-  # plot(summary(sR), xlab='Time')
+  pars <- unique(MCMC$pars)
+  sens <- list()
+  for (w in 1:nrow(pars)){
+    sens[[w]] <- MFUN(pars[w,])
+  }
+  sR   <- do.call(cbind,sens)
+  min  <- apply(sR, 1, min)
+  max  <- apply(sR, 1, max)
+  mean <- apply(sR, 1, mean)
+  std  <- apply(sR, 1, sd)
+  q5   <- apply(sR,1, function(x) quantile(x,0.05))
+  q90  <- apply(sR,1, function(x) quantile(x,0.9))
+  sensStats  <- data.frame(min=min, max=max, mean=mean, sd1=mean-sd, sd2=mean+sd, q5,q90)
+  sensOutput <- sR
+  sen  <- list(stats=sensStats, out=sensOutput)
 
 
   # Create output folder ans save simulation
   #=========================================
   dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
-  Ans <- list(mcmc=MCMC, sens=sR)
+  Ans <- list(mcmc=MCMC, sens=sen)
   save(Ans, file=file.path(Location,'Outputs','Uncertainty_GR2MSemiDistr.Rda'))
 
   # Show message
