@@ -223,7 +223,7 @@ Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max
   cat('\f')
   message('Parameter uncertainty with MCMC')
   message('Please wait...')
-  sd   <- sd(OFUN(Opt.Parameters))
+  sd   <- sd(EFUN(Opt.Parameters))
   MCMC <- modMCMC(f=EFUN, p=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max, niter=Niter, var0=sd)
 
 
