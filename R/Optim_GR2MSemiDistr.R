@@ -46,6 +46,7 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
 # IniState=NULL
 # Max.Functions=1000
 
+
       # Load packages
       require(rgdal)
       require(raster)
@@ -58,8 +59,6 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
       require(airGR)
       tic()
 
-      # Configure model and data
-      #===========================
 
       # Read sub-basins
       path.shp   <- file.path(Location,'Inputs', Shapefile)
@@ -107,7 +106,6 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
       Opt.Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Opt.Region))
 
       # Useful functions
-      #=================
       Subset_Param <- function(Param, Region){
         ParamSub  <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
         return(ParamSub)
@@ -122,8 +120,8 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
         return(FixInputs)
       }
 
+
       # Objective function
-      #=====================
       OFUN <- function(Variable){
 
             # Select model parameters to optimize
@@ -135,7 +133,7 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
               All.Parameters <- New.Parameters[match(Num.Parameters, New.Parameters[,1]), 2]
             }
 
-            # Model parameters to run GR2M model
+            # Model parameters
             nreg  <- length(sort(unique(region)))
             Param <- data.frame(Region=sort(unique(region)),
                                 X1=All.Parameters[1:nreg],
@@ -143,34 +141,30 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
                                 Fpp=All.Parameters[(2*nreg+1):(3*nreg)],
                                 Fpet=All.Parameters[(3*nreg+1):length(All.Parameters)])
 
+            # Open cluster
             cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
             clusterEvalQ(cl,c(library(GR2MSemiDistr))) # Load package to each node
             clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
                                        "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
+            # Run GR2M
             ResModel <- parLapply(cl, 1:nsub, function(i) {
 
-                        # Parameters and factors to run the model
                         ParamSub  <- Subset_Param(Param, region[i])
                         FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
 
-                        # Prepare model inputs
                         InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
                                                          DatesR=FixInputs$DatesR,
                                                          Precip=FixInputs$P,
                                                          PotEvap=FixInputs$E)
 
-                        # Run GR2M model by an specific initial conditions
                         if(is.null(IniState)==TRUE){
-
-                          # Set-up running options
                           RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
                                                          InputsModel=InputsModel,
                                                          IndPeriod_Run=1:time,
                                                          verbose=FALSE,
                                                          warnings=FALSE)
                         } else{
-                          # Set-up running options
                           RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
                                                          InputsModel=InputsModel,
                                                          IniStates=IniState[[i]],
@@ -179,44 +173,39 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
                                                          warnings=FALSE)
                         }
 
-                        # Run GR2M
                         OutputsModel <- RunModel(InputsModel=InputsModel,
                                                  RunOptions=RunOptions,
                                                  Param=ParamSub,
                                                  FUN=RunModel_GR2M)
 
                         return(OutputsModel)
-                      })
 
-            # Close the cluster
+                      })
             stopCluster(cl)
 
-            # Main model results (Qsim in m3/s and EndState variables)
+
+            # Model results
             if (nsub==1){
-              # Streamflow at the basin outlet
               qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
               qOut <- qSub
             } else{
-              # Streamflow at the basin outlet
               Qlist <- list()
               for(w in 1:nsub){Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)}
               qSub <- do.call(cbind, Qlist)
               qOut <- round(apply(qSub, 1, FUN=sum),2)
             }
 
-            # Subset data (without warm-up period)
-              Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
-                                 which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-              Database2   <- Database[Subset2,]
-
-            # Evaluation criteria at the outlet
+            # Subset model results
+            Subset2   <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+                             which(format(Database$DatesR, format="%m/%Y") == RunEnd))
+            Database2 <- Database[Subset2,]
             Qobs <- Database2$Qm3s
             Qsim <- qOut[Subset2]
             if (Remove==TRUE){
               Qsim <- Qsim - qSub[Subset2, IdBasin]
             }
 
-            # Evaluation criteria dataframe (only minimizing)
+            # Evaluation criteria
             optim.df <- data.frame(KGE=1-round(KGE(Qsim, Qobs), 3),
                                    NSE=1-round(NSE(Qsim, Qobs), 3),
                                    lnNSE=1-round(NSE(log(Qsim), log(Qobs)), 3),
@@ -228,10 +217,10 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
           OF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])
           return(OF)
 
-    } # End objective function
+    } # End
+
 
     # Run optimization
-    #=================
     # Show message
     cat('\f')
     message(paste('Optimizing', Optimization, 'with SCE-UA'))
