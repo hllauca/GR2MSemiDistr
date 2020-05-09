@@ -33,7 +33,7 @@ Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max
   # Parameters=Model.Param
   # Parameters.Min=Model.ParMin
   # Parameters.Max=Model.ParMax
-  # Niter=5000
+  # Niter=1000
   # Optimization=Optim.Eval
   # Location=Location
   # Shapefile=File.Shape
@@ -216,7 +216,6 @@ Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max
     # Calculate residuals
     mRes <- as.vector(na.omit(Qsim-Qobs))
     return(mRes)
-
   } # End function
 
   # Show message
@@ -340,7 +339,7 @@ Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max
   std  <- apply(sR, 1, sd)
   q5   <- apply(sR,1, function(x) quantile(x,0.05))
   q90  <- apply(sR,1, function(x) quantile(x,0.9))
-  sensStats  <- data.frame(best=best, min=min, max=max, mean=mean, sd=sd, q5, q90)
+  sensStats  <- data.frame(best=best, min=min, max=max, mean=mean, std=std, q5=q5, q90=q90)
   sensOutput <- sR
   sen  <- list(stats=sensStats, out=sensOutput)
 
