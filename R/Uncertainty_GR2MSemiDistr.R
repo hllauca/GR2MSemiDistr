@@ -121,7 +121,7 @@ Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max
 
   # Error function
   #================
-  OFUN <- function(Variable){
+  EFUN <- function(Variable){
 
     # Select model parameters to optimize
     if (is.null(No.Optim)==TRUE){
@@ -213,11 +213,7 @@ Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max
       Qsim <- Qsim - qSub[Subset2, IdBasin]
     }
 
-    # Calculate modelcost
-    # Obs <- as.matrix(cbind(1:length(Qsim),Qobs))
-    # colnames(Obs) <- c('time','Obs')
-    # Sim <- data.frame(time=1:length(Qsim), Obs=Qsim)
-    # mCs <- modCost(model=Sim, obs=Obs)
+    # Calculate residuals
     mRes <- as.vector(na.omit(Qsim-Qobs))
     return(mRes)
 
@@ -228,7 +224,7 @@ Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max
   message('Parameter uncertainty with MCMC')
   message('Please wait...')
   sd   <- sd(OFUN(Opt.Parameters))
-  MCMC <- modMCMC(f=OFUN, p=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max, niter=Niter, var0=sd)
+  MCMC <- modMCMC(f=EFUN, p=Opt.Parameters, lower=Opt.Parameters.Min, upper=Opt.Parameters.Max, niter=Niter, var0=sd)
 
 
   # Model function
@@ -337,13 +333,14 @@ Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max
     sens[[w]] <- MFUN(pars[w,])
   }
   sR   <- do.call(cbind,sens)
+  best <- MFUN(Opt.Parameters)
   min  <- apply(sR, 1, min)
   max  <- apply(sR, 1, max)
   mean <- apply(sR, 1, mean)
   std  <- apply(sR, 1, sd)
   q5   <- apply(sR,1, function(x) quantile(x,0.05))
   q90  <- apply(sR,1, function(x) quantile(x,0.9))
-  sensStats  <- data.frame(min=min, max=max, mean=mean, sd1=mean-sd, sd2=mean+sd, q5,q90)
+  sensStats  <- data.frame(best=best, min=min, max=max, mean=mean, sd=sd, q5, q90)
   sensOutput <- sR
   sen  <- list(stats=sensStats, out=sensOutput)
 
