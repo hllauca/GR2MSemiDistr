@@ -5,9 +5,8 @@
 \title{Uncertainty analysis of GR2M model parameters with the MCMC algorithm.}
 \usage{
 Uncertainty_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Niter = 2000, Optimization = "NSE", Location, Shapefile,
-  Input = "Inputs_Basins.txt", WarmIni, RunIni, RunEnd, IdBasin,
-  Remove = FALSE, No.Optim = NULL, IniState = NULL)
+  Niter = 1000, Location, Shapefile, Input = "Inputs_Basins.txt",
+  WarmIni, RunIni, RunEnd, IdBasin, Remove = FALSE, IniState = NULL)
 }
 \arguments{
 \item{Parameters}{GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.}
@@ -16,9 +15,7 @@ Uncertainty_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 
 \item{Parameters.Max}{Maximum GR2M (X1, X2, fprecip and fpet) model parameters values.}
 
-\item{Niter}{Number of iterations. 2000 as default.}
-
-\item{Optimization}{Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).}
+\item{Niter}{Number of iterations. 1000 as default.}
 
 \item{Location}{Directory where 'Inputs' folder is located.}
 
@@ -35,8 +32,6 @@ Uncertainty_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
 \item{IdBasin}{ID for the outlet subbasin (from shapefile attribute table).}
 
 \item{Remove}{Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.}
-
-\item{No.Optim}{Calibration regions not to be optimized.}
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
 }

@@ -116,12 +116,12 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     message(paste('Running GR2M model for', nsub, 'subbasins'))
     message('Please wait...')
 
-  # Run model
-  #===========
+  # Open cluster
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
     clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR),library(lubridate))) # Load package to each node
     clusterExport(cl,varlist=c("Param","region","nsub","Database","time","IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
 
+  # Run GR2M
     ResModel <- parLapply(cl, 1:nsub, function(i) {
 
                 # Parameters and factors to run the model
@@ -167,23 +167,19 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                 return(OutputsModel)
                 })
 
-    # Close the cluster
+    # Close cluster
       stopCluster(cl)
 
 
-    # Main model results (Qsim in m3/s and EndState variables)
+    # Model results
       if (nsub==1){
-      # Streamflow at the basin outlet
           prod <- ResModel[[1]]$Prod
           qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
           qOut <- qSub
           EndState <- list(ResModel[[1]]$StateEnd)
-
       } else{
-      # Streamflow at the basin outlet
         Plist <- list()
         Qlist <- list()
-
         for(w in 1:nsub){
           Plist[[w]] <- ResModel[[w]]$Prod
           Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)
@@ -195,21 +191,10 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         for(w in 1:nsub){EndState[[w]] <- ResModel[[w]]$StateEnd}
       }
 
-    # Subset data (without warm-up period)
+    # Subset model results (exclude warm-up)
       Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
                          which(format(Database$DatesR, format="%m/%Y") == RunEnd))
       Database2   <- Database[Subset2,]
-
-
-    # Forcing data multiplying by a factor Fpp and Fpet
-      pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-      pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-      for (w in 1:nsub){
-        pp[,w] <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
-        pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
-      }
-
-    # Subsetting simulations for each subbasin (Qsub)
       if(nsub==1){
         Qsub <- qSub[Subset2]
         Prod <- prod[Subset2]
@@ -218,42 +203,41 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         Prod <- prod[Subset2,]
       }
 
-    # Not regional mode
-    if(Regional==FALSE){
+    # Factors Fpp and Fpet
+      pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+      pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+      for (w in 1:nsub){
+        pp[,w] <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
+        pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
+      }
 
-        # Evaluation criteria at the outlet
-        Qobs <- Database2$Qm3s
-        Qsim <- qOut[Subset2]
-        if (Remove==TRUE){
-          Qsim <- Qsim - qSub[Subset2, IdBasin]
-        }
-        evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
+    # Local mode
+    if(Regional==FALSE){
+      Qobs <- Database2$Qm3s
+      Qsim <- qOut[Subset2]
+      if (Remove==TRUE){
+        Qsim <- Qsim - qSub[Subset2, IdBasin]
+      }
+      evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
                                  NSE=round(NSE(Qsim, Qobs), 3),
                                  lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
                                  R=round(rPearson(Qsim, Qobs), 3),
                                  RMSE=round(rmse(Qsim, Qobs), 3),
                                  PBIAS=round(pbias(Qsim, Qobs), 3))
-
-        # Show comparative figure
-        if (Plot==TRUE){
-          x11()
-          ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
-        }
-
-        # Model results
-        Ans <- list(Qsim=Qsim,
-                    Qobs=Qobs,
-                    Qsub=Qsub,
-                    Precip=pp,
-                    Evaptr=pet,
-                    Prod=Prod,
-                    Dates=format(Database2$DatesR,'%Y-%m-%d'),
-                    EndState=EndState,
-                    Eval=evaluation)
-
+      if (Plot==TRUE){
+        x11()
+        ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
+      }
+      Ans <- list(Qsim=Qsim,
+                  Qobs=Qobs,
+                  Qsub=Qsub,
+                  Precip=pp,
+                  Evaptr=pet,
+                  Prod=Prod,
+                  Dates=format(Database2$DatesR,'%Y-%m-%d'),
+                  EndState=EndState,
+                  Eval=evaluation)
     } else{
-
-      # Model results
       Ans <- list(Qsub=Qsub,
                   Precip=pp,
                   Evaptr=pet,
@@ -262,7 +246,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                   EndState=EndState)
     }
 
-    # Save data or not
+    # Save results
     if(Save==TRUE){
 
       # Create output folder and save simulation
@@ -298,8 +282,6 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
   # Show message
     message('Done!')
     toc()
-
-  # Output
-  return(Ans)
+    return(Ans)
 
 } # End (not run)
