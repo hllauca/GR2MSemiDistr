@@ -17,7 +17,6 @@
 #' @param IniState    Initial GR2M states variables. NULL as default.
 #' @return  Best GR2M model parameters.
 #' @export
-#' @import  ProgGUIinR
 #' @import  rgdal
 #' @import  raster
 #' @import  rgeos
