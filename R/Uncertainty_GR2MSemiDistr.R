@@ -15,7 +15,6 @@
 #' @param IniState    Initial GR2M states variables. NULL as default.
 #' @return  Parameter and streamflow uncertanty bounds.
 #' @export
-#' @import  ProgGUIinR
 #' @import  rgdal
 #' @import  raster
 #' @import  rgeos

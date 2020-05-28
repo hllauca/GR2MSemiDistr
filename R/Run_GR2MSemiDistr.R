@@ -23,7 +23,6 @@
 #' @import  hydroGOF
 #' @import  airGR
 #' @import  tictoc
-#' @import  ProgGUIinR
 #' @import  parallel
 #' @import  lubridate
 Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Basins.txt',
