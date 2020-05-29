@@ -221,7 +221,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       file.remove(file.path(Location,'Outputs',OldName))
     } else{
       Database  <- data.frame(dates, qSub)
-      NewName   <- 'Routing_GR2MSemiDistr.csv'
+      NewName   <- paste0('Routing_GR2MSemiDistr_',format(tail(dates,1),'%b%y'),'.csv')
     }
     colnames(Database) <- c('Dates', paste0('ID_',1:nsub))
     write.table(Database, file=file.path(Location,'Outputs',NewName), sep=',', row.names=FALSE)
