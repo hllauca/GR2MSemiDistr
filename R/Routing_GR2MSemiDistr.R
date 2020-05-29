@@ -166,14 +166,14 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
             if(i==1){
               cl=makeCluster(detectCores()-1)
               clusterEvalQ(cl,c(library(raster)))
-              clusterExport(cl,varlist=c("area","qAcum"),envir=environment())
+              clusterExport(cl,varlist=c("area","qAcum","nsub"),envir=environment())
               xycoord <- parLapply(cl, 1:nsub, function(z) {
                           ans   <- extract(qAcum, area[z,], cellnumbers=TRUE, df=TRUE)$cell
                           return(ans)
                          })
               stopCluster(cl)
               Positions <- xycoord
-              save(Positions, file=file.path(getwd(),'Positions_Routing.Rda'))
+              save(Positions, file=file.path(getwd(),'Inputs','Positions_Routing.Rda'))
             }
           }else{
             if(i==1){
