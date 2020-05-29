@@ -171,9 +171,8 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
                           ans   <- extract(qAcum, area[z,], cellnumbers=TRUE, df=TRUE)$cell
                           return(ans)
                          })
-              stopCluster(cl)
               Positions <- xycoord
-              save(Positions, file=file.path(getwd(),'Inputs','Positions_Routing.Rda'))
+              save(Positions, file=file.path(getwd(),'Positions_Routing.Rda'))
             }
           }else{
             if(i==1){
