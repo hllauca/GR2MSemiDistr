@@ -274,7 +274,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         ProdName <- paste0('Production_GR2MSemiDistr_',MnYr,'.csv')
         QsubName <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr,'.csv')
         write.table(DataProd, file=file.path(Location,'Outputs',ProdName), sep=',', row.names=FALSE)
-        write.table(DataProd, file=file.path(Location,'Outputs',QsubName), sep=',', row.names=FALSE)
+        write.table(DataQsub, file=file.path(Location,'Outputs',QsubName), sep=',', row.names=FALSE)
       }
     }
 

@@ -1,9 +1,9 @@
 #' Prepare forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.
 #'
-#' @param Shapefile Subbasin shapefile.
-#' @param Database Directory where netCDF files of precipitation and evapotranspiration are located.
-#' @param Precip Precipitation filename (.nc).
-#' @param PotEvap Evapotranspiration filename (.nc).
+#' @param Shapefile Subbasin shapefile with attributes of Region, Area and ID.
+#' @param Database Directory where forcing data (precip, pet) in netcdf format are located.
+#' @param Precip Precipitation filename (in netcdf format).
+#' @param PotEvap Evapotranspiration filename (in netcdf format).
 #' @param Qobs Observed streamflow filename (data in m3/s). NULL as default.
 #' @param Resolution Resolution to resample rasters and extract areal mean values for each subbasin. 0.01 as default.
 #' @param DateIni Initial date 'mm/yyyy' for export data.
