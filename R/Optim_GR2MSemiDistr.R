@@ -51,6 +51,7 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
       require(raster)
       require(rgeos)
 	    require(ProgGUIinR)
+  # devtools::install_version('ProgGUIinR', version = "0.0-3", repos = "http://cran.us.r-project.org")
       require(rtop)
       require(hydroGOF)
       require(parallel)
