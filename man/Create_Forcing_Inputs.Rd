@@ -9,13 +9,13 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
   Members = NULL, Horiz = NULL)
 }
 \arguments{
-\item{Shapefile}{Subbasin shapefile.}
+\item{Shapefile}{Subbasin shapefile with attributes of Region, Area and ID.}
 
-\item{Database}{Directory where netCDF files of precipitation and evapotranspiration are located.}
+\item{Database}{Directory where forcing data (precip, pet) in netcdf format are located.}
 
-\item{Precip}{Precipitation filename (.nc).}
+\item{Precip}{Precipitation filename (in netcdf format).}
 
-\item{PotEvap}{Evapotranspiration filename (.nc).}
+\item{PotEvap}{Evapotranspiration filename (in netcdf format).}
 
 \item{Qobs}{Observed streamflow filename (data in m3/s). NULL as default.}
 
