@@ -193,7 +193,7 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
     # Saving positions
     if(is.null(Positions)==TRUE){
       Positions <- list(PP=positionPP, PET=positionPET)
-      save(Positions, file=file.path(getwd(),'Positions_Forcing.Rda'))
+      save(Positions, file=file.path(getwd(),'Inputs','Positions_Forcing.Rda'))
     }
 
     # End
