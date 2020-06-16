@@ -22,18 +22,8 @@
 Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
                                   Save=FALSE, Update=FALSE, Positions=NULL, all=FALSE){
 
-# Location=Location
-# Model=Mod
-# Shapefile=File.Shape
-# Dem=File.Raster
-# AcumIni=RunModel.End
-# AcumEnd=RunModel.End
-# Positions=Positions
-# Update=TRUE
-# Save=TRUE
-# all=FALSE
 
-  # Load packages
+  # Require packages
     require(foreach)
     require(rgdal)
     require(rgeos)
@@ -80,11 +70,11 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
         return(centsDF)
       }}
 
-  # Load shapefiles and raster
+  # Load subbasins shapefile and raster dem from 'Inputs' directory
     area  <- readOGR(file.path(Location,'Inputs', Shapefile), verbose=F)
     dem   <- raster(file.path(Location,'Inputs', Dem))
 
-  # Position for each subbasin centroid
+  # extract cell position for each subbasin (centroid)
     qMask <- dem
     values(qMask) <- 0
     xycen <- gCentroidWithin(area)
@@ -94,15 +84,14 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     setwd(file.path(Location,'Inputs'))
     system(paste0("mpiexec -n 8 pitremove -z ",Dem," -fel Ras.tif"))
 
-  # Create raster of flow direction
+  # Create flow direction raster
     system("mpiexec -n 8 D8Flowdir -p Flow_Direction.tif -sd8 X.tif -fel Ras.tif",show.output.on.console=F,invisible=F)
     fdr <- as.matrix(raster("Flow_Direction.tif"))
     file.remove('Ras.tif')
     file.remove('X.tif')
 
-  # Accumulate streamflows for each time step
-      # Conditionals
-      if (all==TRUE){
+  # Streamflow accumulation with WFAC
+      if(all==TRUE){
         Qmodel <- Model$Qsub
         dates  <- Model$Dates
         if(is.null(ncol(Qmodel))==TRUE){
@@ -112,8 +101,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           nsub   <- ncol(Qmodel)
           ntime  <- nrow(Qmodel)
         }
-      } else{
-        # Create a vector of dates
+      }else{
         dates  <- format(seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
                       as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
                       by='months'),'%Y-%m-%d')
@@ -151,7 +139,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           qmat  <- as.matrix(qAcum)
 
         # Save flow accumulation rasters
-          if(Save == TRUE){
+          if(Save==TRUE){
             dir.create(file.path(Location,'Outputs','Simulations'))
             NameOut <- paste0('Streamflow_GR2MSemiDistr_',format(as.Date(dates[i]),'%Y%m'),'.tif')
             writeRaster(qAcum, filename=file.path(Location,'Outputs','Simulations',NameOut), overwrite=TRUE)
@@ -206,8 +194,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     file.remove("Flow_Direction.tif")
 
   # Export results
-  #===============
-    if (Update==TRUE){
+    if(Update==TRUE){
       MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),"%b%y")
       MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),"%b%y")
       OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.csv')
@@ -219,16 +206,15 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       Dates_New <- c(Dates,as.Date(dates))
       Database  <- data.frame(Dates_New, qSub_New)
       file.remove(file.path(Location,'Outputs',OldName))
-    } else{
+    }
+    if(Update==FALSE){
       Database  <- data.frame(dates, qSub)
       NewName   <- paste0('Routing_GR2MSemiDistr_',format(tail(dates,1),'%b%y'),'.csv')
     }
     colnames(Database) <- c('Dates', paste0('ID_',1:nsub))
     write.table(Database, file=file.path(Location,'Outputs',NewName), sep=',', row.names=FALSE)
 
-  # Show message
     message('Done!')
     toc()
     return(Database)
-
-} #End (not run)
+}
