@@ -171,12 +171,12 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
 
     # Model results
-      if (nsub==1){
+      if(nsub==1){
           prod <- ResModel[[1]]$Prod
           qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
           qOut <- qSub
           EndState <- list(ResModel[[1]]$StateEnd)
-      } else{
+      }else{
         Plist <- list()
         Qlist <- list()
         for(w in 1:nsub){
@@ -194,6 +194,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
       Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
                          which(format(Database$DatesR, format="%m/%Y") == RunEnd))
       Database2   <- Database[Subset2,]
+      Dates2      <- Database2$DatesR
       if(nsub==1){
         Qsub <- qSub[Subset2]
         Prod <- prod[Subset2]
@@ -206,8 +207,8 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
       pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
       pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
       for (w in 1:nsub){
-        pp[,w] <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
-        pet[,w]<- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
+        pp[,w]  <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
+        pet[,w] <- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
       }
 
     # Local mode
@@ -218,12 +219,12 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         Qsim <- Qsim - qSub[Subset2, IdBasin]
       }
       evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
-                                 NSE=round(NSE(Qsim, Qobs), 3),
-                                 lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
-                                 R=round(rPearson(Qsim, Qobs), 3),
-                                 RMSE=round(rmse(Qsim, Qobs), 3),
-                                 PBIAS=round(pbias(Qsim, Qobs), 3))
-      if (Plot==TRUE){
+                               NSE=round(NSE(Qsim, Qobs), 3),
+                               lnNSE=round(NSE(log(Qsim), log(Qobs)), 3),
+                               R=round(rPearson(Qsim, Qobs), 3),
+                               RMSE=round(rmse(Qsim, Qobs), 3),
+                               PBIAS=round(pbias(Qsim, Qobs), 3))
+      if(Plot==TRUE){
         x11()
         ggof(Qsim, Qobs, main=sub('.shp', '',Shapefile), digits=3, gofs=c("NSE", "KGE", "r", "RMSE", "PBIAS"))
       }
@@ -248,41 +249,53 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     # Save results
     if(Save==TRUE){
 
-      # Create output folder and save simulation
+      # Create output folder
       dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
+
+      # Save simulation
       save(Ans, file=file.path(Location,'Outputs','Simulation_GR2MSemiDistr.Rda'))
 
       # Save dataframes
-      if(is.null(dim(Prod))==TRUE & is.null(dim(Qsub))==TRUE){
-        Prod <- matrix(Prod, ncol=length(Prod))
-        Qsub <- matrix(Prod, ncol=length(Qsub))
-      }
-      DataProd <- data.frame(format(Database2$DatesR,'%Y-%m-%d'), Prod)
-      DataQsub <- data.frame(format(Database2$DatesR,'%Y-%m-%d'), Qsub)
-      colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
-      colnames(DataQsub) <- c('Dates', paste0('ID_',1:nsub))
-
       if(Update==TRUE){
         MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),'%b%y')
         MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),'%b%y')
+
         ProdName1 <- paste0('Production_GR2MSemiDistr_',MnYr1,'.csv')
         ProdName2 <- paste0('Production_GR2MSemiDistr_',MnYr2,'.csv')
+        Data      <- read.table(file.path(Location,'Outputs',ProdName1), header=T, sep=',')
+        Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%Y/%m/%d','%d/%m/%Y','%d-%m-%Y'))
+        Prod_Old  <- Data[,-1]
+        Prod_New  <- rbind(as.matrix(Prod_Old),Prod)
+        Dates_New <- c(Dates,as.Date(Dates2))
+        DataProd  <- data.frame(Dates_New, Prod_New)
+        colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
+        write.table(DataProd, file=file.path(Location,'Outputs',ProdName2), sep=',', row.names=FALSE)
+        file.remove(file.path(Location,'Outputs',ProdName1))
+
         QsubName1 <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr1,'.csv')
         QsubName2 <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr2,'.csv')
-        file.remove(file.path(Location,'Outputs',ProdName1))
-        file.remove(file.path(Location,'Outputs',QsubName1))
-        write.table(DataProd, file=file.path(Location,'Outputs',ProdName2), sep=',', row.names=FALSE)
+        Data      <- read.table(file.path(Location,'Outputs',QsubName1), header=T, sep=',')
+        Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%Y/%m/%d','%d/%m/%Y','%d-%m-%Y'))
+        Qsub_Old  <- Data[,-1]
+        Prod_New  <- rbind(as.matrix(Qsub_Old), Qsub)
+        Dates_New <- c(Dates,as.Date(Dates2))
+        DataQsub  <- data.frame(Dates_New, Qsub_New)
+        colnames(DataQsub) <- c('Dates', paste0('ID_',1:nsub))
         write.table(DataQsub, file=file.path(Location,'Outputs',QsubName2), sep=',', row.names=FALSE)
+        file.remove(file.path(Location,'Outputs',QsubName1))
+
       } else{
         MnYr     <- format(as.Date(paste0('01/',RunEnd),"%d/%m/%Y"),"%b%y")
+        DataProd <- data.frame(format(Database2$DatesR,'%Y-%m-%d'), Prod)
+        DataQsub <- data.frame(format(Database2$DatesR,'%Y-%m-%d'), Qsub)
         ProdName <- paste0('Production_GR2MSemiDistr_',MnYr,'.csv')
         QsubName <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr,'.csv')
+        colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
+        colnames(DataQsub) <- c('Dates', paste0('ID_',1:nsub))
         write.table(DataProd, file=file.path(Location,'Outputs',ProdName), sep=',', row.names=FALSE)
         write.table(DataQsub, file=file.path(Location,'Outputs',QsubName), sep=',', row.names=FALSE)
       }
     }
-
-  # Show message
     message('Done!')
     toc()
     return(Ans)
