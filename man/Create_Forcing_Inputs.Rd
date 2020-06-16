@@ -6,7 +6,7 @@
 \usage{
 Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
   DateIni, DateEnd, Resolution = 0.01, Factor = 1, Positions = NULL,
-  Members = NULL, Horiz = NULL)
+  Members = NULL, Horiz = NULL, Update = FALSE)
 }
 \arguments{
 \item{Shapefile}{Subbasin shapefile with attributes of Region, Area and ID.}
@@ -32,6 +32,8 @@ Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
 \item{Members}{Number of ensemble members. NULL as default.}
 
 \item{Horiz}{Number of months for forcastting. NULL as default.}
+
+\item{Update}{Contiditional to take into account just the last forcing value for updating model. FALSE as default.}
 }
 \value{
 Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
