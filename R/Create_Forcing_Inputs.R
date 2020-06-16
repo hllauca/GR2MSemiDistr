@@ -12,6 +12,7 @@
 #' @param Positions Cell numbers to extract data faster for each subbasin. NULL as default
 #' @param Members Number of ensemble members. NULL as default.
 #' @param Horiz Number of months for forcastting. NULL as default.
+#' @param Update Contiditional to take into account just the last forcing value for updating model. FALSE as default.
 #' @return Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
 #' @export
 #' @import  rgdal
@@ -21,7 +22,7 @@
 #' @import  ncdf4
 #' @import  parallel
 Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, DateIni, DateEnd,
-                                  Resolution=0.01, Factor=1, Positions=NULL, Members=NULL, Horiz=NULL){
+                                  Resolution=0.01, Factor=1, Positions=NULL, Members=NULL, Horiz=NULL, Update=FALSE){
 
 # Shapefile=File.Shape
 # Database=Database
@@ -74,14 +75,20 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
     # Auxiliary variables
     #====================
     # Create a vector of dates
-      Ini <- paste0('01/',DateIni)
-      End <- paste0('01/',DateEnd)
-      DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"),
-                         as.Date(End, "%d/%m/%Y"),
-                         by='month')
-      if(is.null(Members)==FALSE){
-        DatesMonths <- rep(DatesMonths, length=Horiz*Members)
+      if(Update==TRUE){
+        DatesMonths <- as.Date(paste0('01/',DateEnd), "%d/%m/%Y")
       }
+      if(Update==FALSE){
+        Ini <- paste0('01/',DateIni)
+        End <- paste0('01/',DateEnd)
+        DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"),
+                           as.Date(End, "%d/%m/%Y"),
+                           by='month')
+        if(is.null(Members)==FALSE){
+          DatesMonths <- rep(DatesMonths, length=Horiz*Members)
+        }
+      }
+
 
 
     # Load subbasins shapefiles
@@ -98,6 +105,9 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
 
     # Read precipitation data
       pp <- brick(file.path(Database, Precip))
+      if(Update==TRUE){
+        pp <- pp[[nlayers(pp)]]
+      }
 
     # Crop for basin domain
       pp.crop <- crop(pp, extent(Basins)*Factor)
@@ -125,9 +135,13 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
                      return(ans)
                  })
       # stopCluster(cl) #Close the cluster
-      mean.pp <- do.call(rbind, mean.pp)
-      mean.pp <- round(mean.pp[1:length(DatesMonths),],1)
-
+      if(Update==TRUE){
+        mean.pp <- round(unlist(mean.pp),1)
+        mean.pp <- matrix(mean.pp,ncol=length(mean.pp))
+      }else{
+        mean.pp <- do.call(rbind, mean.pp)
+        mean.pp <- round(mean.pp[1:length(DatesMonths),],1)
+      }
 
 
     # Extract monthly potential evapotranspiration for each subbasin
@@ -139,6 +153,9 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
 
     # Read potential evapotranspiration data
       pet      <- brick(file.path(Database, PotEvap))
+      if(Update==TRUE){
+        pet <- pet[[nlayers(pet)]]
+      }
 
     # Crop for basin domain
       pet.crop <- crop(pet, extent(Basins)*Factor)
@@ -166,9 +183,13 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
         return(ans)
       })
       stopCluster(cl) #Close the cluster
-      mean.pet <- do.call(rbind, mean.pet)
-      mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
-
+      if(Update==TRUE){
+        mean.pet <- round(unlist(mean.pet),1)
+        mean.pet <- matrix(mean.pet,ncol=length(mean.pet))
+      }else{
+        mean.pet <- do.call(rbind, mean.pet)
+        mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
+      }
 
     # Export results in airGR format
     #===============================
@@ -188,7 +209,6 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
 
     # Saving data as text file
       write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
-
 
     # Saving positions
     if(is.null(Positions)==TRUE){
