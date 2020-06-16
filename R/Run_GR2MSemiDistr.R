@@ -277,7 +277,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         Data      <- read.table(file.path(Location,'Outputs',QsubName1), header=T, sep=',')
         Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%Y/%m/%d','%d/%m/%Y','%d-%m-%Y'))
         Qsub_Old  <- Data[,-1]
-        Prod_New  <- rbind(as.matrix(Qsub_Old), Qsub)
+        Qsub_New  <- rbind(as.matrix(Qsub_Old), Qsub)
         Dates_New <- c(Dates,as.Date(Dates2))
         DataQsub  <- data.frame(Dates_New, Qsub_New)
         colnames(DataQsub) <- c('Dates', paste0('ID_',1:nsub))
