@@ -97,7 +97,7 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 
   # Useful functions
     Subset_Param <- function(Param, Region){
-        ParamSub  <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
+        ParamSub <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
         return(ParamSub)
     }
 
@@ -252,7 +252,11 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
       dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
       save(Ans, file=file.path(Location,'Outputs','Simulation_GR2MSemiDistr.Rda'))
 
-      # Save data for production reservoir
+      # Save dataframes
+      if(is.null(dim(Prod))==TRUE & is.null(dim(Qsub))==TRUE){
+        Prod <- matrix(Prod, ncol=length(Prod))
+        Qsub <- matrix(Prod, ncol=length(Qsub))
+      }
       DataProd <- data.frame(format(Database2$DatesR,'%Y-%m-%d'), Prod)
       DataQsub <- data.frame(format(Database2$DatesR,'%Y-%m-%d'), Qsub)
       colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
