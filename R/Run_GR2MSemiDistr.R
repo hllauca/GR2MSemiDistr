@@ -32,37 +32,38 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
 # Parameters=Model.Param
 # Location=Location
 # Shapefile=File.Shape
-# Input=df
+# Input='Inputs_Basins.txt'
 # WarmIni=NULL
-# RunIni=RunModel.Ini
-# RunEnd=RunModel.End
-# IdBasin=NULL
-# Remove=FALSE
-# Plot=FALSE
+# RunIni='01/1979'
+# RunEnd='12/2016'
+# IdBasin=Optim.Basin
+# Remove=Optim.Remove
+# Plot=TRUE
 # IniState=NULL
-# Regional=TRUE
+# Regional=FALSE
 # Update=FALSE
 # Save=FALSE
 
   # Load packages
-    require(ProgGUIinR)
-    require(rgdal)
-    require(raster)
-    require(rgeos)
-    require(rtop)
-    require(hydroGOF)
-    require(tictoc)
-    require(parallel)
-    require(lubridate)
+  	require(ProgGUIinR)
+  	require(rgdal)
+  	require(raster)
+  	require(rgeos)
+  	require(rtop)
+  	require(hydroGOF)
+  	require(tictoc)
+  	require(parallel)
+  	require(lubridate)
+    require(airGR)
     tic()
 
-  # Read subbasin data
+  # Load subbasins
     basin      <- readOGR(file.path(Location,'Inputs', Shapefile), verbose=F)
     area       <- basin@data$Area
     region     <- basin@data$Region
     nsub       <- nrow(basin@data)
 
-  # Read and subset input data
+  # Input data
     if(is.character(Input)==TRUE){
       Data <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
     } else{
@@ -127,9 +128,9 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
                   ParamSub  <- Subset_Param(Param, region[i])
                   FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
                   if(time==1){
-                  NewDate   <- as.POSIXct(floor_date(FixInputs$DatesR+months(1),"month"))
-                  NewStep   <- data.frame(DatesR=NewDate, P=100, E=100)
-                  FixInputs <- rbind(FixInputs,NewStep)
+                    NewDate   <- as.POSIXct(floor_date(FixInputs$DatesR+months(1),"month"))
+                    NewStep   <- data.frame(DatesR=NewDate, P=100, E=100)
+                    FixInputs <- rbind(FixInputs,NewStep)
                   }
 
                 # Prepare model inputs
@@ -169,7 +170,6 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     # Close cluster
       stopCluster(cl)
 
-
     # Model results
       if(nsub==1){
           prod <- ResModel[[1]]$Prod
@@ -187,7 +187,9 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
         qSub <- do.call(cbind, Qlist)
         qOut <- round(apply(qSub, 1, FUN=sum),2)
         EndState <- list()
-        for(w in 1:nsub){EndState[[w]] <- ResModel[[w]]$StateEnd}
+        for(w in 1:nsub){
+      		EndState[[w]] <- ResModel[[w]]$StateEnd
+      	}
       }
 
     # Subset model results (exclude warm-up)

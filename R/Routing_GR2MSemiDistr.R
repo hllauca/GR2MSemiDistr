@@ -107,6 +107,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
                       by='months'),'%Y-%m-%d')
         Ind    <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
                       which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumEnd)))
+
         Qmodel <- Model$Qsub[Ind,]
         if(is.null(ncol(Qmodel))==TRUE){
           nsub  <- length(Qmodel)
@@ -126,7 +127,7 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
           message(paste0('Processing...',round(100*i/ntime,3),'%'))
 
         # Create a raster of weights (streamflow for each subbasin)
-          if(ntime == 1){
+          if(ntime==1){
             qMask[index$cells] <- Qmodel
           } else{
             qMask[index$cells] <- Qmodel[i,]
