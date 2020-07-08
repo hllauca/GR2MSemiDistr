@@ -105,7 +105,6 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
      }
      opt.param.min <- rep(Parameters.Min, each=length(opt.region))
      opt.param.max <- rep(Parameters.Max, each=length(opt.region))
-     opt.param.log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(opt.region))
 
   # Useful functions
     Subset_Param <- function(Param, Region){
@@ -232,8 +231,7 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
   # Return
     OF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])
     return(OF)
-
-    } # End
+  }# End
 
 
   # Run optimization
@@ -245,7 +243,6 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
                          pars=opt.param,
                          lower=opt.param.min,
                          upper=opt.param.max,
-                         plog=opt.param.log,
                          maxn=Max.Functions,
                          kstop=3,
                          pcento=0.1)
