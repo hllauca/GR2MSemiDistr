@@ -73,14 +73,14 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
     }
     Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'), "GMT", tryFormats=c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"))
     if(is.null(WarmIni)==TRUE){
-      Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
-                       which(format(Data$DatesR, format="%m/%Y") == RunEnd))
-    } else{
-      Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
-                       which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+      Ind_run <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
+                     which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+    }else{
+      Ind_run <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
+                     which(format(Data$DatesR, format="%m/%Y") == RunEnd))
     }
-    Database    <- Data[Subset,]
-    time        <- length(Subset)
+    Database  <- Data[Ind_run,]
+    time      <- length(Ind_run)
 
   # Number of days in a month (to convert mm to m3/s)
     nDays <- c()
@@ -89,22 +89,20 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
                                 as.numeric(format(Database$DatesR[j],'%m')))
     }
 
-  # Subset calibration regions and parameters not to be optimized
-    n.param    <- 1:length(Parameters)
-    v.param    <- as.vector(rep(sort(unique(region)),4))
-	  id.param   <- v.param %in% No.Optim
-    nopt.param <- Parameters[id.param]
-
   # Define calibration regions and parameters ranges to optimize
     if(is.null(No.Optim)==TRUE){
         opt.param  <- Parameters
         opt.region <- unique(region)
-     }else{
-        opt.param  <- Parameters[!id.param]
+    }else{
+        n.param    <- 1:length(Parameters)
+        v.param    <- as.vector(rep(sort(unique(region)),4))
+        id.nopt    <- v.param %in% No.Optim
+        nopt.param <- Parameters[id.nopt]
+        opt.param  <- Parameters[!id.nopt]
         opt.region <- unique(region[!(region %in% No.Optim)])
-     }
-     opt.param.min <- rep(Parameters.Min, each=length(opt.region))
-     opt.param.max <- rep(Parameters.Max, each=length(opt.region))
+    }
+    opt.param.min <- rep(Parameters.Min, each=length(opt.region))
+    opt.param.max <- rep(Parameters.Max, each=length(opt.region))
 
   # Useful functions
     Subset_Param <- function(Param, Region){
@@ -122,14 +120,14 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
     }
 
   # Objective function
-    OFUN <- function(Variable){
+    OFUN <- function(pars){
 
 		  # Select model parameters to optimize
 			if(is.null(No.Optim)==TRUE){
-				all.param <- Variable
+				all.param <- pars
 			}else{
-				new.param <- rbind(cbind(n.param[!id.param], Variable),
-								     cbind(n.param[id.param], nopt.param))
+				new.param <- rbind(cbind(n.param[!id.nopt], pars),
+								     cbind(n.param[id.nopt], nopt.param))
 				all.param <- new.param[match(n.param, new.param[,1]), 2]
 			}
 
@@ -153,11 +151,6 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
                 # Parameters and factors to run the model
                   ParamSub  <- Subset_Param(Param, region[i])
                   FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
-                  if(time==1){
-                    NewDate   <- as.POSIXct(floor_date(FixInputs$DatesR+months(1),"month"))
-                    NewStep   <- data.frame(DatesR=NewDate, P=100, E=100)
-                    FixInputs <- rbind(FixInputs,NewStep)
-                  }
 
                 # Prepare model inputs
                   InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
@@ -188,7 +181,7 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
                   OutputsModel <- RunModel(InputsModel=InputsModel,
                                            RunOptions=RunOptions,
                                            Param=ParamSub,
-                                           FUN=RunModel_GR2M)
+                                           FUN_MOD=RunModel_GR2M)
 
                 return(OutputsModel)
                 })
@@ -210,13 +203,13 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
     }
 
   # Subset model results (exclude warm-up)
-    Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+    Ind_cal     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
                        which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-    Database2   <- Database[Subset2,]
+    Database2   <- Database[Ind_cal,]
     Qobs        <- Database2$Qm3s
-    Qsim        <- qOut[Subset2]
+    Qsim        <- qOut[Ind_cal]
     if(Remove==TRUE){
-       Qsim <- Qsim - qSub[Subset2, IdBasin]
+       Qsim <- Qsim-qSub[Ind_cal,IdBasin]
     }
 
   # Evaluation criteria
@@ -243,9 +236,7 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
                          pars=opt.param,
                          lower=opt.param.min,
                          upper=opt.param.max,
-                         maxn=Max.Functions,
-                         kstop=3,
-                         pcento=0.1)
+                         maxn=Max.Functions)
 
   # Extracting calibration results
     if(Optimization == 'PBIAS' | Optimization == 'RMSE'){
@@ -254,13 +245,13 @@ Optim_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Max.
       fo <- round(1-Calibration$value,3)
     }
     if(is.null(No.Optim)==TRUE){
-      all.param <- round(Calibration$par,3)
+      parameter <- round(Calibration$par,3)
     }else{
-      new.param <- rbind(cbind(n.param[!id.param], round(Calibration$par,3)),
-                         cbind(n.param[id.param], nopt.param))
-      all.param <- new.param[match(n.param, new.param[,1]), 2]
+      order     <- rbind(cbind(n.param[!id.nopt], round(Calibration$par,3)),
+                         cbind(n.param[id.nopt], nopt.param))
+      parameter <- order[match(n.param, order[,1]), 2]
     }
-    Ans <- list(Param=all.param, Value=fo)
+    Ans <- list(Param=parameter, Value=fo)
 
   # Create output folder and save simulation
     dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
