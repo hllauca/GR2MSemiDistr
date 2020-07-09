@@ -71,14 +71,14 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     }
     Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'), "GMT", tryFormats=c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"))
     if(is.null(WarmIni)==TRUE){
-      Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
-                       which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+      Ind_run  <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
+                      which(format(Data$DatesR, format="%m/%Y") == RunEnd))
     } else{
-      Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
-                       which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+      Ind_run  <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
+                      which(format(Data$DatesR, format="%m/%Y") == RunEnd))
     }
-    Database    <- Data[Subset,]
-    time        <- length(Subset)
+    Database   <- Data[Ind_run,]
+    time       <- length(Ind_run)
 
   # Number of days in a month (to convert mm to m3/s)
     nDays <- c()
@@ -193,21 +193,21 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
       }
 
     # Subset model results (exclude warm-up)
-      Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
+      Ind_cal     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
                          which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-      Database2   <- Database[Subset2,]
+      Database2   <- Database[Ind_cal,]
       Dates2      <- Database2$DatesR
       if(nsub==1){
-        Qsub <- qSub[Subset2]
-        Prod <- prod[Subset2]
+        Qsub <- qSub[Ind_cal]
+        Prod <- prod[Ind_cal]
       } else {
-        Qsub <- qSub[Subset2,]
-        Prod <- prod[Subset2,]
+        Qsub <- qSub[Ind_cal,]
+        Prod <- prod[Ind_cal,]
       }
 
     # Factors Fpp and Fpet
-      pp  <- matrix(NA, ncol=nsub, nrow=length(Subset2))
-      pet <- matrix(NA, ncol=nsub, nrow=length(Subset2))
+      pp  <- matrix(NA, ncol=nsub, nrow=length(Ind_cal))
+      pet <- matrix(NA, ncol=nsub, nrow=length(Ind_cal))
       for (w in 1:nsub){
         pp[,w]  <- subset(Param$Fpp, Param$Region==region[w])*Database2[,(w+1)]
         pet[,w] <- subset(Param$Fpet, Param$Region==region[w])*Database2[,(nsub+w)]
@@ -216,9 +216,9 @@ Run_GR2MSemiDistr <- function(Parameters, Location, Shapefile, Input='Inputs_Bas
     # Local mode
     if(Regional==FALSE){
       Qobs <- Database2$Qm3s
-      Qsim <- qOut[Subset2]
+      Qsim <- qOut[Ind_cal]
       if (Remove==TRUE){
-        Qsim <- Qsim - qSub[Subset2, IdBasin]
+        Qsim <- Qsim - qSub[Ind_cal, IdBasin]
       }
       evaluation <- data.frame(KGE=round(KGE(Qsim, Qobs), 3),
                                NSE=round(NSE(Qsim, Qobs), 3),
