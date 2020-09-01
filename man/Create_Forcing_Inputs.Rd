@@ -15,9 +15,9 @@ Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
 
 \item{Qobs}{Observed streamflow (in m3/s). NULL as default.}
 
-\item{DateIni}{Initial date for subsetting data (in '%m/%Y' format).}
+\item{DateIni}{Initial date for subsetting data (in mm/yyyy format).}
 
-\item{DateEnd}{Final date for subsetting data (in '%m/%Y' format).}
+\item{DateEnd}{Final date for subsetting data (in mm/yyyy format).}
 
 \item{Resolution}{Resolution to resample gridded-datasets. 0.01 as default.}
 
