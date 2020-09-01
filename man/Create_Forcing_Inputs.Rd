@@ -2,42 +2,40 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Prepare forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.}
+\title{Prepare model data inputs in airGR format.}
 \usage{
-Create_Forcing_Inputs(Shapefile, Database, Precip, PotEvap, Qobs = NULL,
-  DateIni, DateEnd, Resolution = 0.01, Factor = 1, Positions = NULL,
+Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
+  DateEnd, Resolution = 0.01, Buffer = 1, Positions = NULL,
   Members = NULL, Horiz = NULL, Update = FALSE)
 }
 \arguments{
-\item{Shapefile}{Subbasin shapefile with attributes of Region, Area and ID.}
+\item{Precip}{Netcdf filename for precipitation dataset.}
 
-\item{Database}{Directory where forcing data (precip, pet) in netcdf format are located.}
+\item{PotEvap}{Netcdf filename for potential evapotranspiration dataset.}
 
-\item{Precip}{Precipitation filename (in netcdf format).}
+\item{Qobs}{Observed streamflow (in m3/s). NULL as default.}
 
-\item{PotEvap}{Evapotranspiration filename (in netcdf format).}
+\item{DateIni}{Initial date for subsetting data (in '%m/%Y' format).}
 
-\item{Qobs}{Observed streamflow filename (data in m3/s). NULL as default.}
+\item{DateEnd}{Final date for subsetting data (in '%m/%Y' format).}
 
-\item{DateIni}{Initial date 'mm/yyyy' for export data.}
+\item{Resolution}{Resolution to resample gridded-datasets. 0.01 as default.}
 
-\item{DateEnd}{Final date 'mm/yyyy' for export data.}
+\item{Buffer}{Factor to create a buffer of subbasins. 1 as default}
 
-\item{Resolution}{Resolution to resample rasters and extract areal mean values for each subbasin. 0.01 as default.}
+\item{Positions}{Cell numbers of subbasins to extract data faster. NULL as default}
 
-\item{Factor}{Factor between 1 and 1.2 to buffer subbasins and extract data. 1 as default}
+\item{Members}{Number of ensemble members for forcasting. NULL as default.}
 
-\item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default}
+\item{Horiz}{Number of months for forcasting. NULL as default.}
 
-\item{Members}{Number of ensemble members. NULL as default.}
+\item{Update}{Boolean to extract the last value for updating model. FALSE as default.}
 
-\item{Horiz}{Number of months for forcastting. NULL as default.}
-
-\item{Update}{Contiditional to take into account just the last forcing value for updating model. FALSE as default.}
+\item{Shapefile}{Subbasins shapefile.}
 }
 \value{
-Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
+Export a text file with data inputs in airGR format (DatesR,P,Ep,Q).
 }
 \description{
-Prepare forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.
+Prepare model data inputs in airGR format.
 }

@@ -1,57 +1,45 @@
-#' Prepare forcing data (Dates, Precip, PotEvap, Qobs) for each subbasin.
+#' Prepare model data inputs in airGR format.
 #'
-#' @param Shapefile Subbasin shapefile with attributes of Region, Area and ID.
-#' @param Database Directory where forcing data (precip, pet) in netcdf format are located.
-#' @param Precip Precipitation filename (in netcdf format).
-#' @param PotEvap Evapotranspiration filename (in netcdf format).
-#' @param Qobs Observed streamflow filename (data in m3/s). NULL as default.
-#' @param Resolution Resolution to resample rasters and extract areal mean values for each subbasin. 0.01 as default.
-#' @param DateIni Initial date 'mm/yyyy' for export data.
-#' @param DateEnd Final date 'mm/yyyy' for export data.
-#' @param Factor Factor between 1 and 1.2 to buffer subbasins and extract data. 1 as default
-#' @param Positions Cell numbers to extract data faster for each subbasin. NULL as default
-#' @param Members Number of ensemble members. NULL as default.
-#' @param Horiz Number of months for forcastting. NULL as default.
-#' @param Update Contiditional to take into account just the last forcing value for updating model. FALSE as default.
-#' @return Export and save a text file with forcing data inputs (Dates, Precip, Evap, Qobs).
+#' @param Shapefile Subbasins shapefile.
+#' @param Precip  Netcdf filename for precipitation dataset.
+#' @param PotEvap Netcdf filename for potential evapotranspiration dataset.
+#' @param Qobs Observed streamflow (in m3/s). NULL as default.
+#' @param DateIni Initial date for subsetting data (in '%m/%Y' format).
+#' @param DateEnd Final date for subsetting data (in '%m/%Y' format).
+#' @param Resolution Resolution to resample gridded-datasets. 0.01 as default.
+#' @param Buffer Factor to create a buffer of subbasins. 1 as default
+#' @param Positions Cell numbers of subbasins to extract data faster. NULL as default
+#' @param Members Number of ensemble members for forcasting. NULL as default.
+#' @param Horiz Number of months for forcasting. NULL as default.
+#' @param Update Boolean to extract the last value for updating model. FALSE as default.
+#' @return Export a text file with data inputs in airGR format (DatesR,P,Ep,Q).
 #' @export
 #' @import  rgdal
 #' @import  raster
 #' @import  rgeos
 #' @import  tictoc
-#' @import  ncdf4
 #' @import  parallel
-Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NULL, DateIni, DateEnd,
-                                  Resolution=0.01, Factor=1, Positions=NULL, Members=NULL, Horiz=NULL, Update=FALSE){
-
-# Shapefile=File.Shape
-# Database=Database
-# Precip=File.Precip
-# PotEvap=File.PotEvap
-# Qobs=NULL
-# DateIni=RunModel.Ini
-# DateEnd=RunModel.End
-# Resolution=0.01
-# Factor=1
-# Positions=Positions
-# # Members=NULL
-# # Horiz=NULL
-# Members=Members
-# Horiz=Horiz
-
+Create_Forcing_Inputs <- function(Subbasins,
+                                  Precip,
+                                  PotEvap,
+                                  Qobs=NULL,
+                                  DateIni,
+                                  DateEnd,
+                                  Resolution=0.01,
+                                  Buffer=1,
+                                  Positions=NULL,
+                                  Members=NULL,
+                                  Horiz=NULL,
+                                  Update=FALSE){
 
     # Load packages
       require(rgdal)
       require(raster)
       require(rgeos)
       require(tictoc)
-      require(ncdf4)
       require(parallel)
       tic()
 
-
-    # Useful functions
-    #=================
     # Functions adopted from Cesar Aybar
       generate_mask_geom<-function(cov, geom){
         specialcov=cov
@@ -71,9 +59,6 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
         })
       }
 
-
-    # Auxiliary variables
-    #====================
     # Create a vector of dates
       if(Update==TRUE){
         DatesMonths <- as.Date(paste0('01/',DateEnd), "%d/%m/%Y")
@@ -90,27 +75,24 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       }
 
 
-
     # Load subbasins shapefiles
-      Basins  <- readOGR(file.path(getwd(),'Inputs', Shapefile))
-      nBasins <- length(Basins)
+      nBasins <- length(Subbasins)
 
 
     # Extract monthly precipitation data for each subbasin
-    #=====================================================
     # Show message
       cat('\f')
-      message('Extracting monthly precipitation [mm]')
+      message('Calculating areal monthly precipitation [mm]')
       message('Please wait...')
 
     # Read precipitation data
-      pp <- brick(file.path(Database, Precip))
+      pp <- brick(Precip)
       if(Update==TRUE){
         pp <- pp[[nlayers(pp)]]
       }
 
     # Crop for basin domain
-      pp.crop <- crop(pp, extent(Basins)*Factor)
+      pp.crop <- crop(pp, extent(Subbasins)*Buffer)
 
     # Mask for resampling using 'ngb' method
       pp.res      <- raster(extent(pp.crop[[1]]))
@@ -128,7 +110,6 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
       cl=makeCluster(detectCores()-1)
       clusterEvalQ(cl,c(library(raster)))
       clusterExport(cl,varlist=c("pp.res","pp.crop","positionPP","mask_Fast_Extract"),envir=environment())
-      # nlayers(pp.crop)
       mean.pp <- parLapply(cl, 1:nlayers(pp.crop), function(z) {
                      res <- resample(pp.crop[[z]], pp.res, method='ngb')
                      ans <- mask_Fast_Extract(cov=res, positionPP, fun=mean, na.rm=T)
@@ -145,20 +126,19 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
 
 
     # Extract monthly potential evapotranspiration for each subbasin
-    #===============================================================
     # Show message
       cat('\f')
-      message('Extracting monthly evapotranspiration [mm]')
+      message('Calcutaling areal monthly pot. evapotranspiration [mm]')
       message('Please wait...')
 
     # Read potential evapotranspiration data
-      pet      <- brick(file.path(Database, PotEvap))
+      pet      <- brick(PotEvap)
       if(Update==TRUE){
         pet <- pet[[nlayers(pet)]]
       }
 
     # Crop for basin domain
-      pet.crop <- crop(pet, extent(Basins)*Factor)
+      pet.crop <- crop(pet, extent(Subbasins)*Buffer)
 
     # Mask for resampling using 'ngb' method
       pet.res      <- raster(extent(pet.crop[[1]]))
@@ -191,29 +171,28 @@ Create_Forcing_Inputs <- function(Shapefile, Database, Precip, PotEvap, Qobs=NUL
         mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
       }
 
+
     # Export results in airGR format
-    #===============================
     # Data to export
       if(is.null(Qobs)==TRUE){
         df      <- data.frame(DatesMonths, mean.pp, mean.pet)
         colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins))
       } else{
         # Subsetting streamflow data
-        Obs     <- read.table(file.path("Inputs",Qobs), sep='\t', header=F)
-        Ind_Obs <- seq(which(format(as.Date(Obs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == Ini),
-                       which(format(as.Date(Obs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == End))
-        qobs    <- Obs[Ind_Obs,2]
+        Ind_Obs <- seq(which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == DateIni),
+                       which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == DateEnd))
+        qobs    <- Qobs[Ind_Obs,2]
         df      <- data.frame(DatesMonths, mean.pp, mean.pet, qobs)
-        colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Qm3s')
+        colnames(df) <- c('DatesR', paste0('P',1:nBasins), paste0('E',1:nBasins), 'Q')
       }
 
     # Saving data as text file
-      write.table(df, file=file.path(getwd(),'Inputs','Inputs_Basins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
+      write.table(df, file=file.path(getwd(),'Inputs','Forcing_Subbasins.txt'), sep='\t', col.names=TRUE, row.names=FALSE)
 
     # Saving positions
     if(is.null(Positions)==TRUE){
       Positions <- list(PP=positionPP, PET=positionPET)
-      save(Positions, file=file.path(getwd(),'Inputs','Positions_Forcing.Rda'))
+      save(Positions, file=file.path(getwd(),'Inputs','Forcing_Positions.Rda'))
     }
 
     # End
