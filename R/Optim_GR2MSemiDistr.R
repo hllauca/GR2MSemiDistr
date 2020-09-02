@@ -243,7 +243,7 @@ Optim_GR2MSemiDistr <- function(Data,
   print("Optimization results:")
   print("======================")
   print(paste0(rep(c('X1=','X2=', 'fprecip=', 'fpet='), each=length(Ans$Param)/4), Ans$Param))
-  print(paste0(Optim.Eval,'=', Ans$Value))
+  print(paste0(Optimization,'=', Ans$Value))
 
   # Show message
   message("Done!")
