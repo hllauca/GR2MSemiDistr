@@ -4,44 +4,35 @@
 \alias{Optim_GR2MSemiDistr}
 \title{Model parameter optimization with SCE-UA algorithm.}
 \usage{
-Optim_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Max.Functions = 10000, Optimization = "NSE", Location, Shapefile,
-  Input = "Inputs_Basins.txt", WarmIni, RunIni, RunEnd, IdBasin,
-  Remove = FALSE, No.Optim = NULL, IniState = NULL)
+Optim_GR2MSemiDistr(Data, Subbasin, RunIni, RunEnd, WarmUp, Parameters,
+  Parameters.Min, Parameters.Max, Max.Functions = 5000,
+  Optimization = "NSE", No.Optim = NULL)
 }
 \arguments{
-\item{Parameters}{GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.}
+\item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
 
-\item{Parameters.Min}{Minimum GR2M (X1, X2, fprecip and fpet) model parameters values.}
+\item{RunIni}{Initial date of model simulation (in mm/yyyy format).}
 
-\item{Parameters.Max}{Maximum GR2M (X1, X2, fprecip and fpet) model parameters values.}
+\item{RunEnd}{Final date of model simulation (in mm/yyyy format).}
 
-\item{Max.Functions}{Maximum number of functions used in the optimization loop. 10000 as default.}
+\item{WarmUp}{Number of months for warm-up.}
 
-\item{Optimization}{Mono-objective evaluation criteria for GR2M (NSE, lnNSE, KGE, RMSE, R, PBIAS).}
+\item{Parameters}{GR2M model parameters and correction factor of P and E.}
 
-\item{Location}{Directory where 'Inputs' folder is located.}
+\item{Parameters.Min}{Minimum values of GR2M model parameters and correction factor of P and E.}
 
-\item{Shapefile}{Subbasin shapefile.}
+\item{Parameters.Max}{Maximum values of GR2M model parameters and correction factor of P and E.}
 
-\item{Input}{Forcing data texfile (Dates, Precip, PotEvap, Qobs). 'Inputs_Basins.txt' as default.}
+\item{Max.Functions}{Maximum number of function evaluation for optimization. 5000 as default.}
 
-\item{WarmIni}{Initial date (in 'mm/yyyy' format) of the warm-up period.}
+\item{Optimization}{Objective function (NSE, KGE, RMSE).}
 
-\item{RunIni}{Initial date (in 'mm/yyyy' format) of the model simulation period.}
+\item{No.Optim}{Regions not to be optimized. NULL as default.}
 
-\item{RunEnd}{Final date (in 'mm/yyyy' format) of the model simulation period.}
-
-\item{IdBasin}{ID for the outlet subbasin (from shapefile attribute table).}
-
-\item{Remove}{Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.}
-
-\item{No.Optim}{Calibration regions not to be optimized.}
-
-\item{IniState}{Initial GR2M states variables. NULL as default.}
+\item{Subbasins}{Subbasins shapefile.}
 }
 \value{
-Best GR2M model parameters.
+Optimal GR2M model parameters.
 }
 \description{
 Model parameter optimization with SCE-UA algorithm.

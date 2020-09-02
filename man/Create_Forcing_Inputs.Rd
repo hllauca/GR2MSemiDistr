@@ -9,6 +9,8 @@ Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
   Members = NULL, Horiz = NULL, Update = FALSE)
 }
 \arguments{
+\item{Subbasins}{Subbasins shapefile.}
+
 \item{Precip}{Netcdf filename for precipitation dataset.}
 
 \item{PotEvap}{Netcdf filename for potential evapotranspiration dataset.}
@@ -30,8 +32,6 @@ Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
 \item{Horiz}{Number of months for forcasting. NULL as default.}
 
 \item{Update}{Boolean to extract the last value for updating model. FALSE as default.}
-
-\item{Shapefile}{Subbasins shapefile.}
 }
 \value{
 Export a text file with data inputs in airGR format (DatesR,P,Ep,Q).
