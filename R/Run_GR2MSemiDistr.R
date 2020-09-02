@@ -283,8 +283,8 @@ Run_GR2MSemiDistr <- function(Data,
       DataQsub <- data.frame(format(Database$DatesR,'%Y-%m-%d'), Qsub)
       ProdName <- paste0('Production_GR2MSemiDistr_',MnYr,'.txt')
       QsubName <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr,'.txt')
-      colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
-      colnames(DataQsub) <- c('Dates', paste0('ID_',1:nsub))
+      colnames(DataProd) <- c('Dates', paste0('GR2M-ID_',1:nsub))
+      colnames(DataQsub) <- c('Dates', paste0('GR2M-ID_',1:nsub))
       write.table(DataProd, file=file.path(getwd(),'Outputs',ProdName),
                   sep='\t', row.names=FALSE)
       write.table(DataQsub, file=file.path(getwd(),'Outputs',QsubName),
