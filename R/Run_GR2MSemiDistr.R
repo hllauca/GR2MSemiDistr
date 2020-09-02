@@ -5,7 +5,6 @@
 #' @param RunIni      Initial date of model simulation (in mm/yyyy format).
 #' @param RunEnd      Final date of model simulation (in mm/yyyy format).
 #' @param Parameters  GR2M model parameters and correction factor of P and E.
-#' @param Plot        Logical value to plot observed and simulated streamflow timeseries. FALSE as default.
 #' @param IniState    Initial GR2M states variables. NULL as default.
 #' @param Regional    Logical value to simulate in a regional mode (more than one outlet). FALSE as default.
 #' @param Update      Logical value to update a previous production and qsubbasin '.csv' files. FALSE as default.
@@ -26,7 +25,6 @@ Run_GR2MSemiDistr <- function(Data,
                               RunIni,
                               RunEnd,
                               Parameters,
-                              Plot=TRUE,
                               IniState=NULL,
                               Regional=FALSE,
                               Update=FALSE,
@@ -55,7 +53,7 @@ Run_GR2MSemiDistr <- function(Data,
   require(lubridate)
   tic()
 
-  # Load subbasins
+  # Load subbasin data
   area    <- Subbasin@data$Area
   region  <- Subbasin@data$Region
   nsub    <- nrow(Subbasin@data)
@@ -212,10 +210,6 @@ Run_GR2MSemiDistr <- function(Data,
     Qobs <- Database$Q
     Qsim <- qOut
 
-    if(Plot==TRUE){
-      x11()
-      ggof(Qsim, Qobs, main='Streamflow at basin outlet', digits=3, gofs=c("NSE","KGE","RMSE"))
-    }
     Ans <- list(Qsim=Qsim,
                 Qobs=Qobs,
                 Qsub=Qsub,

@@ -1,19 +1,19 @@
 #' Uncertainty analysis of GR2M model parameters with the MCMC algorithm.
 #'
-#' @param Parameters      GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.
-#' @param Parameters.Min  Minimum GR2M (X1, X2, fprecip and fpet) model parameters values.
-#' @param Parameters.Max  Maximum GR2M (X1, X2, fprecip and fpet) model parameters values.
+#' @param Data        File with input data in airGR format (DatesR,P,E,Q)
+#' @param Subbasins   Subbasins shapefile.
+#' @param Dem          Raster DEM.
+#' @param RunIni      Initial date of model simulation (in mm/yyyy format).
+#' @param RunEnd      Final date of model simulation (in mm/yyyy format).
+#' @param WarmUp      Number of months for warm-up.
+#' @param Parameters      GR2M model parameters and correction factor of P and E.
+#' @param Parameters.Min  Minimum values of GR2M model parameters and correction factor of P and E.
+#' @param Parameters.Max  Maximum values of GR2M model parameters and correction factor of P and E.
 #' @param Niter 	        Number of iterations. 1000 as default.
-#' @param Location    Directory where 'Inputs' folder is located.
-#' @param Shapefile   Subbasin shapefile.
-#' @param Input       Forcing data texfile (Dates, Precip, PotEvap, Qobs). 'Inputs_Basins.txt' as default.
-#' @param WarmIni     Initial date (in 'mm/yyyy' format) of the warm-up period.
-#' @param RunIni      Initial date (in 'mm/yyyy' format) of the model simulation period.
-#' @param RunEnd      Final date (in 'mm/yyyy' format) of the model simulation period.
-#' @param IdBasin     ID for the outlet subbasin (from shapefile attribute table).
-#' @param Remove      Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.
 #' @param IniState    Initial GR2M states variables. NULL as default.
-#' @return  Parameter and streamflow uncertanty bounds.
+#' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
+#' @param MCMC    MCMC data in .Rda format.
+#' @return  Lower(Q5) and upper (Q95) streamflows uncertanty bounds.
 #' @export
 #' @import  rgdal
 #' @import  raster
@@ -22,287 +22,140 @@
 #' @import  parallel
 #' @import  tictoc
 #' @import  airGR
-Uncertainty_GR2MSemiDistr <- function(Parameters, Parameters.Min, Parameters.Max, Niter=1000,
-                                      Location, Shapefile, Input='Inputs_Basins.txt', WarmIni,
-                                      RunIni, RunEnd, IdBasin, Remove=FALSE, IniState=NULL){
-
-  # Parameters=Model.Param
-  # Parameters.Min=Model.ParMin
-  # Parameters.Max=Model.ParMax
-  # Niter=1000
-  # Location=Location
-  # Shapefile=File.Shape
-  # Input='Inputs_Basins.txt'
-  # WarmIni=WarmUp.Ini
-  # RunIni=RunModel.Ini
-  # RunEnd=RunModel.End
-  # IdBasin=Optim.Basin
-  # Remove=Optim.Remove
+#' @import  abind
+Uncertainty_GR2MSemiDistr <- function(Data,
+                                      Subbasin,
+                                      Dem,
+                                      RunIni,
+                                      RunEnd,
+                                      WarmUp,
+                                      Parameters,
+                                      Parameters.Min,
+                                      Parameters.Max,
+                                      Niter,
+                                      IniState=NULL,
+                                      Positions=NULL,
+                                      MCMC=NULL){
+  # Data=Ans1
+  # Subbasin=roi
+  # Dem='Subbasins.tif'
+  # RunIni='01/1981'
+  # RunEnd='05/1981'
+  # WarmUp=2
+  # Parameters=BestParam
+  # Parameters.Min=c(1, 0.01, 0.8, 0.8)
+  # Parameters.Max=c(2000, 2, 1.2, 1.2)
+  # Niter=5
   # IniState=NULL
+  # Positions=NULL
+  # MCMC=NULL
 
 
   # Load packages
   require(rgdal)
   require(raster)
   require(rgeos)
-  require(ProgGUIinR)
   require(parallel)
   require(tictoc)
   require(airGR)
   require(FME)
+  require(abind)
   tic()
 
+  # Generate parameters
+  if(is.null(MCMC)==TRUE){
 
-  # Read sub-basins
-  path.shp   <- file.path(Location,'Inputs', Shapefile)
-  basin      <- readOGR(path.shp, verbose=F)
-  area       <- basin@data$Area
-  region     <- basin@data$Region
-  nsub       <- nrow(basin@data)
+    # Show message
+    cat('\f')
+    message('Calculating parameter uncertainty with MCMC')
+    message('Please wait...')
 
+    # Residual function
+    RFUN <- function(Variable){
 
-  # Read and subset input data
-  Data        <- read.table(file.path(Location, 'Inputs', Input), sep='\t', header=T)
-  Data$DatesR <- as.POSIXct(Data$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y","%Y/%m/%d", "%d-%m-%Y"))
-  if(is.null(WarmIni)==TRUE){
-    Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == RunIni),
-                     which(format(Data$DatesR, format="%m/%Y") == RunEnd))
-  } else{
-    Subset    <- seq(which(format(Data$DatesR, format="%m/%Y") == WarmIni),
-                     which(format(Data$DatesR, format="%m/%Y") == RunEnd))
+      Ans <- Run_GR2MSemiDistr(Data=Data,
+                               Subbasin=Subbasin,
+                               RunIni=RunIni,
+                               RunEnd=RunEnd,
+                               Parameters=Variable,
+                               IniState=IniState,
+                               Regional=FALSE,
+                               Update=FALSE,
+                               Save=FALSE)
+
+      # Calculate residuals
+      Qobs <- Ans$Qobs[-WarmUp:-1]
+      Qsim <- Ans$Qsim[-WarmUp:-1]
+      mRes <- as.vector(na.omit(Qsim-Qobs))
+      return(mRes)
+    } # End function
+
+    msr  <- mean((RFUN(Parameters))^2)
+    MCMC <- modMCMC(f=RFUN,
+                    p=Parameters,
+                    lower=Parameters.Min,
+                    upper=Parameters.Max,
+                    niter=Niter,
+                    var0=msr)
+    dir.create(file.path(getwd(),'Inputs'),recursive=T,showWarnings=F)
+    save(MCMC, file=file.path(getwd(),'Inputs','MCMC.Rda'))
+  }else{
+    load(file.path(getwd(),'Inputs','MCMC.Rda'))
   }
-  Database    <- Data[Subset,]
-  time        <- length(Subset)
-
-
-  # Number of days in a month (to convert mm to m3/s)
-  nDays <- c()
-  for (j in 1:time){
-    nDays[j] <- days.in.month(as.numeric(format(Database$DatesR[j],'%Y')),
-                              as.numeric(format(Database$DatesR[j],'%m')))
-  }
-
-
-  # Define calibration regions and parameters ranges to optimize
-  Opt.Region     <- unique(region)
-  Parameters.Min <- rep(Parameters.Min, each=length(Opt.Region))
-  Parameters.Max <- rep(Parameters.Max, each=length(Opt.Region))
-  Parameters.Log <- rep(c(TRUE, TRUE, FALSE, FALSE), each=length(Opt.Region))
-
-
-  # Useful functions
-  Subset_Param <- function(Param, Region){
-    ParamSub  <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
-    return(ParamSub)
-  }
-
-  Forcing_Subbasin <- function(Param, Region, Database, Nsub, ID){
-    FactorPP  <- subset(Param$Fpp, Param$Region==Region)
-    FactorPET <- subset(Param$Fpet, Param$Region==Region)
-    Inputs    <- Database[,c(1,ID+1,ID+1+Nsub)]
-    FixInputs <- data.frame(DatesR=Inputs[,1], P=round(FactorPP*Inputs[,2],1), E=round(FactorPET*Inputs[,3],1))
-    FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%d/%m/%Y"))
-    return(FixInputs)
-  }
-
-
-  # Residual function
-  RFUN <- function(Variable){
-
-    # Model parameters
-    nreg  <- length(sort(unique(region)))
-    Param <- data.frame(Region=sort(unique(region)),
-                        X1=Variable[1:nreg],
-                        X2=Variable[(nreg+1):(2*nreg)],
-                        Fpp=Variable[(2*nreg+1):(3*nreg)],
-                        Fpet=Variable[(3*nreg+1):length(Variable)])
-
-    # Open cluster
-    cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR))) # Load package to each node
-    clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
-                               "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
-
-    # Run GR2M
-    ResModel <- parLapply(cl, 1:nsub, function(i) {
-
-      ParamSub  <- Subset_Param(Param, region[i])
-      FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
-
-      InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
-                                       DatesR=FixInputs$DatesR,
-                                       Precip=FixInputs$P,
-                                       PotEvap=FixInputs$E)
-
-      if(is.null(IniState)==TRUE){
-        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
-                                       InputsModel=InputsModel,
-                                       IndPeriod_Run=1:time,
-                                       verbose=FALSE,
-                                       warnings=FALSE)
-      } else{
-        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
-                                       InputsModel=InputsModel,
-                                       IniStates=IniState[[i]],
-                                       IndPeriod_Run=1:time,
-                                       verbose=FALSE,
-                                       warnings=FALSE)
-      }
-
-      OutputsModel <- RunModel(InputsModel=InputsModel,
-                               RunOptions=RunOptions,
-                               Param=ParamSub,
-                               FUN=RunModel_GR2M)
-
-      return(OutputsModel)
-    })
-    stopCluster(cl)
-
-    # Prepare model results
-    if (nsub==1){
-      qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
-      qOut <- qSub
-    } else{
-      Qlist <- list()
-      for(w in 1:nsub){Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)}
-      qSub <- do.call(cbind, Qlist)
-      qOut <- round(apply(qSub, 1, FUN=sum),2)
-    }
-
-    # Subset model results (exclude warm-up)
-    Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
-                       which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-    Database2   <- Database[Subset2,]
-
-    # Calculate model residuals
-    Qobs <- Database2$Qm3s
-    Qsim <- qOut[Subset2]
-    if (Remove==TRUE){
-      Qsim <- Qsim - qSub[Subset2, IdBasin]
-    }
-    mRes <- as.vector(na.omit(Qsim-Qobs))
-    return(mRes)
-
-  } # End function
 
 
   # Show message
   cat('\f')
-  message('Parameter uncertainty with MCMC')
-  message('Please wait...')
-  msr  <- mean((RFUN(Parameters))^2)
-  MCMC <- modMCMC(f=RFUN, p=Parameters, lower=Parameters.Min, upper=Parameters.Max, niter=Niter, var0=msr)
-
-
-  # Model function
-  MFUN <- function(Variable){
-
-    # Model parameters
-    nreg  <- length(sort(unique(region)))
-    Param <- data.frame(Region=sort(unique(region)),
-                        X1=Variable[1:nreg],
-                        X2=Variable[(nreg+1):(2*nreg)],
-                        Fpp=Variable[(2*nreg+1):(3*nreg)],
-                        Fpet=Variable[(3*nreg+1):length(Variable)])
-
-    # Open cluster
-    cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR))) # Load package to each node
-    clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
-                               "IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
-
-    # Run GR2M
-    ResModel <- parLapply(cl, 1:nsub, function(i) {
-
-      ParamSub  <- Subset_Param(Param, region[i])
-      FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
-
-      InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
-                                       DatesR=FixInputs$DatesR,
-                                       Precip=FixInputs$P,
-                                       PotEvap=FixInputs$E)
-
-      if(is.null(IniState)==TRUE){
-        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
-                                       InputsModel=InputsModel,
-                                       IndPeriod_Run=1:time,
-                                       verbose=FALSE,
-                                       warnings=FALSE)
-      } else{
-        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
-                                       InputsModel=InputsModel,
-                                       IniStates=IniState[[i]],
-                                       IndPeriod_Run=1:time,
-                                       verbose=FALSE,
-                                       warnings=FALSE)
-      }
-
-      OutputsModel <- RunModel(InputsModel=InputsModel,
-                               RunOptions=RunOptions,
-                               Param=ParamSub,
-                               FUN=RunModel_GR2M)
-
-      return(OutputsModel)
-
-    })
-    stopCluster(cl)
-
-    # Main model results (Qsim in m3/s and EndState variables)
-    if (nsub==1){
-      qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
-      qOut <- qSub
-    } else{
-      Qlist <- list()
-      for(w in 1:nsub){Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)}
-      qSub <- do.call(cbind, Qlist)
-      qOut <- round(apply(qSub, 1, FUN=sum),2)
-    }
-
-    # Subset model results (exclude warm-up)
-    Subset2     <- seq(which(format(Database$DatesR, format="%m/%Y") == RunIni),
-                       which(format(Database$DatesR, format="%m/%Y") == RunEnd))
-    Database2   <- Database[Subset2,]
-
-    # Streamflow at the basin outlet
-    Qsim <- qOut[Subset2]
-    if (Remove==TRUE){
-      Qsim <- Qsim - qSub[Subset2, IdBasin]
-    }
-    return(Qsim)
-
-  } # End model function
-
-
-  # Show message
-  cat('\f')
-  message('Generating streamflow uncertainty')
+  message('Generating streamflow uncertainty bounds')
   message('Please wait...')
   pars <- unique(MCMC$pars)
-  sens <- list()
-  for (w in 1:nrow(pars)){
-    sens[[w]] <- MFUN(pars[w,])
+  Ans  <- list()
+  for(w in 1:nrow(pars)){
+    # Run model
+    Qmod <- Run_GR2MSemiDistr(Data=Data,
+                              Subbasin=Subbasin,
+                              RunIni=RunIni,
+                              RunEnd=RunEnd,
+                              Parameters=pars[w,],
+                              IniState=IniState,
+                              Regional=FALSE,
+                              Update=FALSE,
+                              Save=FALSE)
+    Ans[[w]] <- Qmod$Qsub[-WarmUp:-1,]
+    Dates    <- Qmod$Dates[-WarmUp:-1]
   }
-  sR   <- do.call(cbind,sens)
-  best <- MFUN(Parameters)
-  min  <- apply(sR, 1, min)
-  max  <- apply(sR, 1, max)
-  mean <- apply(sR, 1, mean)
-  std  <- apply(sR, 1, sd)
-  q5   <- apply(sR,1, function(x) quantile(x,0.05))
-  q90  <- apply(sR,1, function(x) quantile(x,0.9))
-  sensStats  <- data.frame(best=best, min=min, max=max, mean=mean, std=std, q5=q5, q90=q90)
-  sensOutput <- sR
-  sen  <- list(stats=sensStats, out=sensOutput)
+  qsub <- abind(Ans, along=3)
+  q5   <- apply(qsub, c(1,2), function(x) quantile(x,0.05))
+  q95  <- apply(qsub, c(1,2), function(x) quantile(x,0.95))
 
+  # Routing streamflow for each subbasin at quantile 5
+  M5 <- list(Qsub=q5,Dates=Dates)
+  Q5 <- Routing_GR2MSemiDistr(Model=M55,
+                              Subbasin=Subbasin,
+                              Dem=Dem,
+                              AcumIni=format(as.Date(head(Dates,1)),'%m/%Y'),
+                              AcumEnd=format(as.Date(tail(Dates,1)),'%m/%Y'),
+                              Positions=Positions,
+                              Save=FALSE,
+                              Update=FALSE,
+                              all=FALSE)
 
-  # Create output folder and save results
-  dir.create(file.path(Location, 'Outputs'), recursive=T, showWarnings=F)
-  Ans <- list(mcmc=MCMC, sens=sen)
-  save(Ans, file=file.path(Location,'Outputs','Uncertainty_GR2MSemiDistr.Rda'))
+  M95 <- list(Qsub=q5,Dates=Dates)
+  Q95 <- Routing_GR2MSemiDistr(Model=M95,
+                               Subbasin=Subbasin,
+                               Dem=Dem,
+                               AcumIni=format(as.Date(head(Dates,1)),'%m/%Y'),
+                               AcumEnd=format(as.Date(tail(Dates,1)),'%m/%Y'),
+                               Positions=Positions,
+                               Save=FALSE,
+                               Update=FALSE,
+                               all=FALSE)
+
+  sens <- list(lower=Q5, upper=Q95)
 
   # Show message
   message("Done!")
   toc()
-  return(Ans)
+  return(sens)
 
 } # End (not run)

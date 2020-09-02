@@ -20,6 +20,7 @@ Imports:
   rtop,
   tictoc,
   lubridate,
-  FME
+  FME,
+  abind
 LazyData: true
 RoxygenNote: 7.1.0
