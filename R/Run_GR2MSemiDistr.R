@@ -62,7 +62,8 @@ Run_GR2MSemiDistr <- function(Data,
 
   # Input data
   Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'),"GMT",
-                            tryFormats=c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y"))
+                            tryFormats=c("%Y-%m-%d","%Y/%m/%d",
+                                         "%d-%m-%Y","%d/%m/%Y"))
   Ind_run     <- seq(which(format(Data$DatesR, format="%m/%Y")==RunIni),
                      which(format(Data$DatesR, format="%m/%Y")==RunEnd))
   Database    <- Data[Ind_run,]
@@ -88,8 +89,12 @@ Run_GR2MSemiDistr <- function(Data,
     FactorPP  <- subset(Param$Fpp, Param$Region==Region)
     FactorPET <- subset(Param$Fpet, Param$Region==Region)
     Inputs    <- Database[,c(1,ID+1,ID+1+Nsub)]
-    FixInputs <- data.frame(DatesR=Inputs[,1], P=round(FactorPP*Inputs[,2],1), E=round(FactorPET*Inputs[,3],1))
-    FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"))
+    FixInputs <- data.frame(DatesR=Inputs[,1],
+                            P=round(FactorPP*Inputs[,2],1),
+                            E=round(FactorPET*Inputs[,3],1))
+    FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT",
+                                   tryFormats=c("%Y-%m-%d","%Y/%m/%d",
+                                                "%d-%m-%Y","%d/%m/%Y"))
     return(FixInputs)
   }
 
@@ -115,7 +120,9 @@ Run_GR2MSemiDistr <- function(Data,
   # Open cluster
   cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
   clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR),library(lubridate))) # Load package to each node
-  clusterExport(cl,varlist=c("Param","region","nsub","Database","time","IniState","Subset_Param","Forcing_Subbasin"),envir=environment())
+  clusterExport(cl,varlist=c("Param","region","nsub","Database",
+                             "time","IniState","Subset_Param",
+                             "Forcing_Subbasin"),envir=environment())
 
   # Run GR2M
   ResModel <- parLapply(cl, 1:nsub, function(i) {
@@ -242,26 +249,32 @@ Run_GR2MSemiDistr <- function(Data,
 
       ProdName1 <- paste0('Production_GR2MSemiDistr_',MnYr1,'.txt')
       ProdName2 <- paste0('Production_GR2MSemiDistr_',MnYr2,'.txt')
-      Data      <- read.table(file.path(getwd(),'Outputs',ProdName1), header=T, sep=',')
-      Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%Y/%m/%d','%d/%m/%Y','%d-%m-%Y'))
+      Data      <- read.table(file.path(getwd(),'Outputs',ProdName1),
+                              header=T, sep='\t')
+      Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%Y/%m/%d',
+                                                    '%d/%m/%Y','%d-%m-%Y'))
       Prod_Old  <- Data[,-1]
       Prod_New  <- rbind(as.matrix(Prod_Old),Prod)
       Dates_New <- c(Dates,as.Date(Database$DatesR))
       DataProd  <- data.frame(Dates_New, Prod_New)
       colnames(DataProd) <- c('Dates', paste0('GR2M-ID_',1:nsub))
-      write.table(DataProd, file=file.path(getwd,'Outputs',ProdName2), sep='\t', row.names=FALSE)
+      write.table(DataProd, file=file.path(getwd,'Outputs',ProdName2),
+                  sep='\t', row.names=FALSE)
       file.remove(file.path(getwd(),'Outputs',ProdName1))
 
       QsubName1 <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr1,'.txt')
       QsubName2 <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr2,'.txt')
-      Data      <- read.table(file.path(getwd(),'Outputs',QsubName1), header=T, sep=',')
-      Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%Y/%m/%d','%d/%m/%Y','%d-%m-%Y'))
+      Data      <- read.table(file.path(getwd(),'Outputs',QsubName1), header=T,
+                              sep='\t')
+      Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%Y/%m/%d',
+                                                    '%d/%m/%Y','%d-%m-%Y'))
       Qsub_Old  <- Data[,-1]
       Qsub_New  <- rbind(as.matrix(Qsub_Old), Qsub)
       Dates_New <- c(Dates,as.Date(Database$DatesR))
       DataQsub  <- data.frame(Dates_New, Qsub_New)
       colnames(DataQsub) <- c('Dates', paste0('GR2M-ID_',1:nsub))
-      write.table(DataQsub, file=file.path(getwd(),'Outputs',QsubName2), sep='\t', row.names=FALSE)
+      write.table(DataQsub, file=file.path(getwd(),'Outputs',QsubName2),
+                  sep='\t', row.names=FALSE)
       file.remove(file.path(getwd(),'Outputs',QsubName1))
 
     } else{
@@ -272,8 +285,10 @@ Run_GR2MSemiDistr <- function(Data,
       QsubName <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr,'.txt')
       colnames(DataProd) <- c('Dates', paste0('ID_',1:nsub))
       colnames(DataQsub) <- c('Dates', paste0('ID_',1:nsub))
-      write.table(DataProd, file=file.path(getwd(),'Outputs',ProdName), sep='\t', row.names=FALSE)
-      write.table(DataQsub, file=file.path(getwd(),'Outputs',QsubName), sep='\t', row.names=FALSE)
+      write.table(DataProd, file=file.path(getwd(),'Outputs',ProdName),
+                  sep='\t', row.names=FALSE)
+      write.table(DataQsub, file=file.path(getwd(),'Outputs',QsubName),
+                  sep='\t', row.names=FALSE)
     }
   }
   message('Done!')
