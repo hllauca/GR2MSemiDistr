@@ -1,6 +1,6 @@
 #' Prepare model data inputs in airGR format.
 #'
-#' @param Shapefile Subbasins shapefile.
+#' @param Subbasins Subbasins shapefile.
 #' @param Precip  Netcdf filename for precipitation dataset.
 #' @param PotEvap Netcdf filename for potential evapotranspiration dataset.
 #' @param Qobs Observed streamflow (in m3/s). NULL as default.
