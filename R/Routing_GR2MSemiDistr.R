@@ -1,15 +1,14 @@
 #' Routing simulated monthly streamflows for each subbasin.
 #'
-#' @param Location		 Directory where 'Inputs' folder is located.
 #' @param Model        Model results from Run_GR2MSemiDistr.
-#' @param Shapefile		 Subbasin shapefile.
+#' @param Subbasin		 Subbasin shapefile.
 #' @param Dem          Raster DEM.
-#' @param AcumIni      Initial date 'mm/yyyy' for accumulation.
-#' @param AcumEnd      Final date 'mm/yyyy' for accumulation.
-#' @param Save         Logical value to save raster results for each time-step. FALSE as default.
-#' @param Update       Logical value to update a previous accumulation csv file. FALSE as default.
+#' @param AcumIni      Initial date for accumulation (in mm/yyyy format).
+#' @param AcumEnd      Final date for accumulation (in mm/yyyy format).
 #' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
-#' @param all          Conditional to consider all the period of model from GR2MSemiDistr. FALSE as default
+#' @param Save         Boolean to save raster results for each time-step. FALSE as default.
+#' @param Update       Boolean to update a previous accumulation file. FALSE as default.
+#' @param all          Boolean to consider all the period of model from GR2MSemiDistr. FALSE as default
 #' @return  Export and save an accumulation csv file.
 #' @export
 #' @import  rgdal
@@ -19,18 +18,27 @@
 #' @import  tictoc
 #' @import  parallel
 #' @import  lubridate
-Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, AcumEnd,
-                                  Save=FALSE, Update=FALSE, Positions=NULL, all=FALSE){
+Routing_GR2MSemiDistr <- function(Model,
+                                  Subbasin,
+                                  Dem,
+                                  AcumIni,
+                                  AcumEnd,
+                                  Positions=NULL,
+                                  Save=FALSE,
+                                  Update=FALSE,
+                                  all=FALSE){
 
 
   # Require packages
-    require(foreach)
     require(rgdal)
-    require(rgeos)
     require(raster)
+    require(rgeos)
+    require(foreach)
     require(tictoc)
     require(parallel)
+    require(lubridate)
     tic()
+    loc <- getwd()
 
   # Auxiliary function (from https://stackoverflow.com/questions/44327994/calculate-centroid-within-inside-a-spatialpolygon)
     gCentroidWithin <- function(pol) {
@@ -54,7 +62,8 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
       } else {
         # substitue outside centroids with points INSIDE the polygon
         newPoints <- SpatialPointsDataFrame(gPointOnSurface(pol[!centsInOwnPoly, ],
-                                                            byid = T), pol@data[!centsInOwnPoly,])
+                                                            byid = T),
+                                            pol@data[!centsInOwnPoly,])
         newPoints$isCentroid <- FALSE
         centsDF <- rbind(centsDF[centsInOwnPoly,], newPoints)
 
@@ -70,22 +79,20 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
         return(centsDF)
       }}
 
-  # Load subbasins shapefile and raster dem from 'Inputs' directory
-    area  <- readOGR(file.path(Location,'Inputs', Shapefile), verbose=F)
-    dem   <- raster(file.path(Location,'Inputs', Dem))
 
-  # extract cell position for each subbasin (centroid)
-    qMask <- dem
+  # Extract cell position for each subbasin (centroid)
+    qMask <- Dem
     values(qMask) <- 0
-    xycen <- gCentroidWithin(area)
+    xycen <- gCentroidWithin(Subbasin)
     index <- extract(qMask, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
 
   # Pitremove DEM
-    setwd(file.path(Location,'Inputs'))
+    setwd(file.path(getwd(),'Inputs'))
     system(paste0("mpiexec -n 8 pitremove -z ",Dem," -fel Ras.tif"))
 
   # Create flow direction raster
-    system("mpiexec -n 8 D8Flowdir -p Flow_Direction.tif -sd8 X.tif -fel Ras.tif",show.output.on.console=F,invisible=F)
+    system("mpiexec -n 8 D8Flowdir -p Flow_Direction.tif -sd8 X.tif -fel Ras.tif",
+           show.output.on.console=F,invisible=F)
     fdr <- as.matrix(raster("Flow_Direction.tif"))
     file.remove('Ras.tif')
     file.remove('X.tif')
@@ -141,9 +148,10 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
 
         # Save flow accumulation rasters
           if(Save==TRUE){
-            dir.create(file.path(Location,'Outputs','Simulations'))
-            NameOut <- paste0('Streamflow_GR2MSemiDistr_',format(as.Date(dates[i]),'%Y%m'),'.tif')
-            writeRaster(qAcum, filename=file.path(Location,'Outputs','Simulations',NameOut), overwrite=TRUE)
+            dir.create(file.path(Loc,'Outputs','Simulations'))
+            NameOut <- paste0('Streamflow_GR2MSemiDistr_',
+                              format(as.Date(dates[i]),'%Y%m'),'.tif')
+            writeRaster(qAcum, filename=file.path(Loc,'Outputs','Simulations',NameOut), overwrite=TRUE)
           }
 
         # Show message
@@ -198,9 +206,9 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     if(Update==TRUE){
       MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),"%b%y")
       MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),"%b%y")
-      OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.csv')
-      NewName   <- paste0('Routing_GR2MSemiDistr_',MnYr2,'.csv')
-      Data      <- read.table(file.path(Location,'Outputs',OldName), header=T, sep=',')
+      OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.txt')
+      NewName   <- paste0('Routing_GR2MSemiDistr_',MnYr2,'.txt')
+      Data      <- read.table(file.path(Loc,'Outputs',OldName), header=T, sep='\t')
       Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%d/%m/%Y'))
       qSub_Old  <- Data[,-1]
       qSub_New  <- rbind(as.matrix(qSub_Old), qSub)
@@ -210,12 +218,14 @@ Routing_GR2MSemiDistr <- function(Location, Model, Shapefile, Dem, AcumIni, Acum
     }
     if(Update==FALSE){
       Database  <- data.frame(dates, qSub)
-      NewName   <- paste0('Routing_GR2MSemiDistr_',format(tail(dates,1),'%b%y'),'.csv')
+      NewName   <- paste0('Routing_GR2MSemiDistr_',format(tail(dates,1),'%b%y'),'.txt')
     }
     colnames(Database) <- c('Dates', paste0('ID_',1:nsub))
-    write.table(Database, file=file.path(Location,'Outputs',NewName), sep=',', row.names=FALSE)
+    write.table(Database, file=file.path(Loc,'Outputs',NewName), sep='\t',
+                row.names=FALSE)
 
     message('Done!')
+    setwd(Loc)
     toc()
     return(Database)
 }

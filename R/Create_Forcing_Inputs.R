@@ -7,12 +7,13 @@
 #' @param DateIni Initial date for subsetting data (in mm/yyyy format).
 #' @param DateEnd Final date for subsetting data (in mm/yyyy format).
 #' @param Resolution Resolution to resample gridded-datasets. 0.01 as default.
-#' @param Buffer Factor to create a buffer of subbasins. 1 as default
+#' @param Buffer Factor to create a buffer of subbasins. 1 as default.
+#' @param Save   Boolean to save database as textfile.
 #' @param Positions Cell numbers of subbasins to extract data faster. NULL as default
 #' @param Members Number of ensemble members for forcasting. NULL as default.
 #' @param Horiz Number of months for forcasting. NULL as default.
 #' @param Update Boolean to extract the last value for updating model. FALSE as default.
-#' @return Export a text file with data inputs in airGR format (DatesR,P,Ep,Q).
+#' @return Return a dataframe with data inputs in airGR format (DatesR,P,Ep,Q).
 #' @export
 #' @import  rgdal
 #' @import  raster
@@ -27,6 +28,7 @@ Create_Forcing_Inputs <- function(Subbasins,
                                   DateEnd,
                                   Resolution=0.01,
                                   Buffer=1,
+                                  Save=TRUE,
                                   Positions=NULL,
                                   Members=NULL,
                                   Horiz=NULL,
@@ -187,21 +189,23 @@ Create_Forcing_Inputs <- function(Subbasins,
   # Export results in airGR format
   # Data to export
   if(is.null(Qobs)==TRUE){
-    df      <- data.frame(DatesMonths, mean.pp, mean.pet)
-    colnames(df) <- c('DatesR', paste0('P',1:nSub), paste0('E',1:nSub))
+    Ans <- data.frame(DatesMonths, mean.pp, mean.pet)
+    colnames(Ans) <- c('DatesR', paste0('P',1:nSub), paste0('E',1:nSub))
   } else{
     # Subsetting streamflow data
     Ind_Obs <- seq(which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == Ini),
                    which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == End))
-    qobs    <- Qobs[Ind_Obs,2]
-    df      <- data.frame(DatesMonths, mean.pp, mean.pet, qobs)
-    colnames(df) <- c('DatesR', paste0('P',1:nSub), paste0('E',1:nSub), 'Q')
+    qobs <- Qobs[Ind_Obs,2]
+    Ans  <- data.frame(DatesMonths, mean.pp, mean.pet, qobs)
+    colnames(Ans) <- c('DatesR', paste0('P',1:nSub), paste0('E',1:nSub), 'Q')
   }
 
   # Saving data as text file
-  dir.create(file.path(getwd(),'Inputs'))
-  write.table(df, file=file.path(getwd(),'Inputs','Forcing_Subbasins.txt'),
-              sep='\t', col.names=TRUE, row.names=FALSE)
+  if(Save==TRUE){
+    dir.create(file.path(getwd(),'Inputs'))
+    write.table(Ans, file=file.path(getwd(),'Inputs','Forcing_Subbasins.txt'),
+                sep='\t', col.names=TRUE, row.names=FALSE)
+  }
 
   # Saving positions
   if(is.null(Positions)==TRUE){
@@ -211,6 +215,7 @@ Create_Forcing_Inputs <- function(Subbasins,
 
   # End
   message('Done!')
- toc()
+  toc()
+  return(Ans)
 
 }# End (not run)
