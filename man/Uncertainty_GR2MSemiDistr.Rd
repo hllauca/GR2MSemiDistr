@@ -4,39 +4,39 @@
 \alias{Uncertainty_GR2MSemiDistr}
 \title{Uncertainty analysis of GR2M model parameters with the MCMC algorithm.}
 \usage{
-Uncertainty_GR2MSemiDistr(Parameters, Parameters.Min, Parameters.Max,
-  Niter = 1000, Location, Shapefile, Input = "Inputs_Basins.txt",
-  WarmIni, RunIni, RunEnd, IdBasin, Remove = FALSE, IniState = NULL)
+Uncertainty_GR2MSemiDistr(Data, Subbasin, Dem, RunIni, RunEnd, WarmUp,
+  Parameters, Parameters.Min, Parameters.Max, Niter, IniState = NULL,
+  Positions = NULL, MCMC = NULL)
 }
 \arguments{
-\item{Parameters}{GR2M (X1 and X2) model parameters and a multiplying factor to adjust monthly P and PET values.}
+\item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
 
-\item{Parameters.Min}{Minimum GR2M (X1, X2, fprecip and fpet) model parameters values.}
+\item{Dem}{Raster DEM.}
 
-\item{Parameters.Max}{Maximum GR2M (X1, X2, fprecip and fpet) model parameters values.}
+\item{RunIni}{Initial date of model simulation (in mm/yyyy format).}
+
+\item{RunEnd}{Final date of model simulation (in mm/yyyy format).}
+
+\item{WarmUp}{Number of months for warm-up.}
+
+\item{Parameters}{GR2M model parameters and correction factor of P and E.}
+
+\item{Parameters.Min}{Minimum values of GR2M model parameters and correction factor of P and E.}
+
+\item{Parameters.Max}{Maximum values of GR2M model parameters and correction factor of P and E.}
 
 \item{Niter}{Number of iterations. 1000 as default.}
 
-\item{Location}{Directory where 'Inputs' folder is located.}
-
-\item{Shapefile}{Subbasin shapefile.}
-
-\item{Input}{Forcing data texfile (Dates, Precip, PotEvap, Qobs). 'Inputs_Basins.txt' as default.}
-
-\item{WarmIni}{Initial date (in 'mm/yyyy' format) of the warm-up period.}
-
-\item{RunIni}{Initial date (in 'mm/yyyy' format) of the model simulation period.}
-
-\item{RunEnd}{Final date (in 'mm/yyyy' format) of the model simulation period.}
-
-\item{IdBasin}{ID for the outlet subbasin (from shapefile attribute table).}
-
-\item{Remove}{Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.}
-
 \item{IniState}{Initial GR2M states variables. NULL as default.}
+
+\item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default.}
+
+\item{MCMC}{MCMC data in .Rda format.}
+
+\item{Subbasins}{Subbasins shapefile.}
 }
 \value{
-Parameter and streamflow uncertanty bounds.
+Lower(Q5) and upper (Q95) streamflows uncertanty bounds.
 }
 \description{
 Uncertainty analysis of GR2M model parameters with the MCMC algorithm.

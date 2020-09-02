@@ -5,8 +5,7 @@
 \title{Run the GR2M model for each subbasins.}
 \usage{
 Run_GR2MSemiDistr(Data, Subbasin, RunIni, RunEnd, Parameters,
-  Plot = TRUE, IniState = NULL, Regional = FALSE, Update = FALSE,
-  Save = TRUE)
+  IniState = NULL, Regional = FALSE, Update = FALSE, Save = TRUE)
 }
 \arguments{
 \item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
@@ -16,8 +15,6 @@ Run_GR2MSemiDistr(Data, Subbasin, RunIni, RunEnd, Parameters,
 \item{RunEnd}{Final date of model simulation (in mm/yyyy format).}
 
 \item{Parameters}{GR2M model parameters and correction factor of P and E.}
-
-\item{Plot}{Logical value to plot observed and simulated streamflow timeseries. FALSE as default.}
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
 
