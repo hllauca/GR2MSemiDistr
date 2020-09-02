@@ -56,14 +56,15 @@ Optim_GR2MSemiDistr <- function(Data,
   require(parallel)
   tic()
 
-  # Load subbasins
+  # Load subbasins data
   area    <- Subbasin@data$Area
   region  <- Subbasin@data$Region
   nsub    <- nrow(Subbasin@data)
 
   # Input data
   Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'),"GMT",
-                            tryFormats=c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y"))
+                            tryFormats=c("%Y-%m-%d","%Y/%m/%d",
+                                         "%d-%m-%Y","%d/%m/%Y"))
   Ind_run     <- seq(which(format(Data$DatesR, format="%m/%Y")==RunIni),
                      which(format(Data$DatesR, format="%m/%Y")==RunEnd))
   Database    <- Data[Ind_run,]
@@ -86,7 +87,8 @@ Optim_GR2MSemiDistr <- function(Data,
 
   # Useful functions
   Subset_Param <- function(Param, Region){
-    ParamSub <- c(subset(Param$X1, Param$Region==Region), subset(Param$X2, Param$Region==Region))
+    ParamSub <- c(subset(Param$X1, Param$Region==Region),
+                  subset(Param$X2, Param$Region==Region))
     return(ParamSub)
   }
 
@@ -94,8 +96,12 @@ Optim_GR2MSemiDistr <- function(Data,
     FactorPP  <- subset(Param$Fpp, Param$Region==Region)
     FactorPET <- subset(Param$Fpet, Param$Region==Region)
     Inputs    <- Database[,c(1,ID+1,ID+1+Nsub)]
-    FixInputs <- data.frame(DatesR=Inputs[,1], P=round(FactorPP*Inputs[,2],1), E=round(FactorPET*Inputs[,3],1))
-    FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT", tryFormats=c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"))
+    FixInputs <- data.frame(DatesR=Inputs[,1],
+                            P=round(FactorPP*Inputs[,2],1),
+                            E=round(FactorPET*Inputs[,3],1))
+    FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT",
+                                   tryFormats=c("%Y-%m-%d","%Y/%m/%d",
+                                                "%d-%m-%Y", "%d/%m/%Y"))
     return(FixInputs)
   }
 
@@ -114,13 +120,13 @@ Optim_GR2MSemiDistr <- function(Data,
   }
 
   # Objective function
-  OFUN <- function(pars){
+  OFUN <- function(parameter_set){
 
     # Select model parameters to optimize
     if(is.null(No.Optim)==TRUE){
-      all.param <- pars
+      all.param <- parameter_set
     }else{
-      new.param <- rbind(cbind(n.param[!id.nopt], pars),
+      new.param <- rbind(cbind(n.param[!id.nopt], parameter_set),
                          cbind(n.param[id.nopt], nopt.param))
       all.param <- new.param[match(n.param, new.param[,1]), 2]
     }
@@ -129,16 +135,17 @@ Optim_GR2MSemiDistr <- function(Data,
     Zone  <- sort(unique(region))
     nreg  <- length(Zone)
     Param <- data.frame(Region=sort(unique(region)),
-                        X1=Parameters[1:nreg],
-                        X2=Parameters[(nreg+1):(2*nreg)],
-                        Fpp=Parameters[(2*nreg+1):(3*nreg)],
-                        Fpet=Parameters[(3*nreg+1):length(all.param)])
+                        X1=all.param[1:nreg],
+                        X2=all.param[(nreg+1):(2*nreg)],
+                        Fpp=all.param[(2*nreg+1):(3*nreg)],
+                        Fpet=all.param[(3*nreg+1):length(all.param)])
 
     # Open cluster
     cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
     clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR)))
-    clusterExport(cl,varlist=c("Param","region","nsub","Database","time",
-                               "Subset_Param","Forcing_Subbasin"),envir=environment())
+    clusterExport(cl,varlist=c("Param","region","nsub",
+                               "Database","time","Subset_Param",
+                               "Forcing_Subbasin"),envir=environment())
 
     # Run GR2M
     ResModel <- parLapply(cl, 1:nsub, function(i) {
@@ -187,8 +194,8 @@ Optim_GR2MSemiDistr <- function(Data,
     }
 
     # Subset model results (exclude warm-up)
-    Qobs        <- Database$Q[-WarmUp:-1]
-    Qsim        <- qOut[-WarmUp:-1]
+    Qobs  <- Database$Q[-WarmUp:-1]
+    Qsim  <- qOut[-WarmUp:-1]
 
     # Evaluation criteria
     res.df   <- na.omit(data.frame(sim=Qsim, obs=Qobs))
