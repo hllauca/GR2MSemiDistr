@@ -4,29 +4,18 @@
 \alias{Run_GR2MSemiDistr}
 \title{Run the GR2M model for each subbasins.}
 \usage{
-Run_GR2MSemiDistr(Parameters, Location, Shapefile,
-  Input = "Inputs_Basins.txt", WarmIni = NULL, RunIni, RunEnd,
-  IdBasin = NULL, Remove = FALSE, Plot = FALSE, IniState = NULL,
-  Regional = FALSE, Update = FALSE, Save = TRUE)
+Run_GR2MSemiDistr(Data, Subbasin, RunIni, RunEnd, Parameters,
+  Plot = TRUE, IniState = NULL, Regional = FALSE, Update = FALSE,
+  Save = TRUE)
 }
 \arguments{
-\item{Parameters}{GR2M model parameters (X1 and X2) and multiplying factors for P and PET.}
+\item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
 
-\item{Location}{Directory where 'Inputs' folder is located.}
+\item{RunIni}{Initial date of model simulation (in mm/yyyy format).}
 
-\item{Shapefile}{Subbasin shapefile.}
+\item{RunEnd}{Final date of model simulation (in mm/yyyy format).}
 
-\item{Input}{Forcing data texfile (Dates, Precip, PotEvap, Qobs). 'Inputs_Basins.txt' as default.}
-
-\item{WarmIni}{Initial date (in 'mm/yyyy' format) of the warm-up period.}
-
-\item{RunIni}{Initial date (in 'mm/yyyy' format) of the model simulation period.}
-
-\item{RunEnd}{Final date (in 'mm/yyyy' format) of the model simulation period.}
-
-\item{IdBasin}{ID for the outlet subbasin (from shapefile attribute table).}
-
-\item{Remove}{Logical value to remove streamflows of the outlet subbasin (IdBasin). FALSE as default.}
+\item{Parameters}{GR2M model parameters and correction factor of P and E.}
 
 \item{Plot}{Logical value to plot observed and simulated streamflow timeseries. FALSE as default.}
 
@@ -37,6 +26,8 @@ Run_GR2MSemiDistr(Parameters, Location, Shapefile,
 \item{Update}{Logical value to update a previous production and qsubbasin '.csv' files. FALSE as default.}
 
 \item{Save}{Logical valute to export simulation results as '.Rda'. TRUE as default.}
+
+\item{Subbasins}{Subbasins shapefile.}
 }
 \value{
 GR2M model outputs for each subbasin.
