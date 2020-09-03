@@ -189,14 +189,14 @@ Create_Forcing_Inputs <- function(Subbasins,
   # Export results in airGR format
   # Data to export
   if(is.null(Qobs)==TRUE){
-    Ans <- data.frame(DatesMonths, mean.pp, mean.pet)
+    Ans <- data.frame(DatesMonths, round(mean.pp,1), round(mean.pet,1))
     colnames(Ans) <- c('DatesR', paste0('P',1:nSub), paste0('E',1:nSub))
   } else{
     # Subsetting streamflow data
     Ind_Obs <- seq(which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == Ini),
                    which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == End))
     qobs <- Qobs[Ind_Obs,2]
-    Ans  <- data.frame(DatesMonths, mean.pp, mean.pet, qobs)
+    Ans  <- data.frame(DatesMonths, round(mean.pp,1), round(mean.pet,1), round(qobs,3))
     colnames(Ans) <- c('DatesR', paste0('P',1:nSub), paste0('E',1:nSub), 'Q')
   }
 
@@ -209,8 +209,8 @@ Create_Forcing_Inputs <- function(Subbasins,
 
   # Saving positions
   if(is.null(Positions)==TRUE){
-     Positions <- list(PP=positionPP, PET=positionPET)
-     save(Positions, file=file.path(getwd(),'Inputs','Positions_Dat.Rda'))
+    Positions_Dat <- list(PP=positionPP, PET=positionPET)
+    save(Positions_Dat, file=file.path(getwd(),'Inputs','Positions_Dat.Rda'))
   }
 
   # End

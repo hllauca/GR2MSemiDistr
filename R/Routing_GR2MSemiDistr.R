@@ -8,7 +8,6 @@
 #' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
 #' @param Save         Boolean to save raster results for each time-step. FALSE as default.
 #' @param Update       Boolean to update a previous accumulation file. FALSE as default.
-#' @param all          Boolean to consider all the period of model from GR2MSemiDistr. FALSE as default
 #' @return  Export and save an accumulation csv file.
 #' @export
 #' @import  rgdal
@@ -25,8 +24,7 @@ Routing_GR2MSemiDistr <- function(Model,
                                   AcumEnd,
                                   Positions=NULL,
                                   Save=FALSE,
-                                  Update=FALSE,
-                                  all=FALSE){
+                                  Update=FALSE){
 
   # Model=Ans3
   # Subbasin=roi
@@ -107,31 +105,19 @@ Routing_GR2MSemiDistr <- function(Model,
   file.remove('X.tif')
 
   # Streamflow accumulation with WFAC
-  if(all==TRUE){
-    Qmodel <- Model$Qsub
-    dates  <- Model$Dates
-    if(is.null(ncol(Qmodel))==TRUE){
-      nsub  <- length(Qmodel)
-      ntime <- 1
-    }else{
-      nsub   <- ncol(Qmodel)
-      ntime  <- nrow(Qmodel)
-    }
-  }else{
-    dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
-                  as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
-                  by='months')
-    Ind    <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
-                  which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumEnd)))
+  dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
+                as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
+                by='months')
+  Ind    <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
+                which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumEnd)))
 
-    Qmodel <- Model$Qsub[Ind,]
-    if(is.null(ncol(Qmodel))==TRUE){
-      nsub  <- length(Qmodel)
-      ntime <- 1
-    }else{
-      nsub  <- ncol(Qmodel)
-      ntime <- nrow(Qmodel)
-    }
+  Qmodel <- Model$Qsub[Ind,]
+  if(is.null(ncol(Qmodel))==TRUE){
+    nsub  <- length(Qmodel)
+    ntime <- 1
+  }else{
+    nsub  <- ncol(Qmodel)
+    ntime <- nrow(Qmodel)
   }
 
   # Start loop
@@ -177,8 +163,8 @@ Routing_GR2MSemiDistr <- function(Model,
           ans   <- extract(qAcum, Subbasin[z,], cellnumbers=TRUE, df=TRUE)$cell
           return(ans)
         })
-        Positions <- xycoord
-        save(Positions, file=file.path(getwd(),'Positions_Rou.Rda'))
+        Positions_Rou <- xycoord
+        save(Positions_Rou, file=file.path(getwd(),'Positions_Rou.Rda'))
       }
     }else{
       if(i==1){
@@ -202,9 +188,9 @@ Routing_GR2MSemiDistr <- function(Model,
   stopCluster(cl)
 
   if(ntime==1){
-    qSub <- matrix(unlist(qMon), nrow=1, ncol=nsub)
+    qSub <- round(matrix(unlist(qMon), nrow=1, ncol=nsub),3)
   }else{
-    qSub <- do.call(rbind,qMon)
+    qSub <- round(do.call(rbind,qMon),3)
   }
 
   # Remove auxiliary rasters
