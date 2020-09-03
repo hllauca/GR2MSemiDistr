@@ -5,7 +5,7 @@
 \title{Run the GR2M model for each subbasins.}
 \usage{
 Run_GR2MSemiDistr(Data, Subbasin, RunIni, RunEnd, Parameters,
-  IniState = NULL, Regional = FALSE, Update = FALSE, Save = TRUE)
+  IniState = NULL, Regional = FALSE, Save = FALSE, Update = FALSE)
 }
 \arguments{
 \item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
@@ -20,9 +20,9 @@ Run_GR2MSemiDistr(Data, Subbasin, RunIni, RunEnd, Parameters,
 
 \item{Regional}{Logical value to simulate in a regional mode (more than one outlet). FALSE as default.}
 
-\item{Update}{Logical value to update a previous production and qsubbasin '.csv' files. FALSE as default.}
-
 \item{Save}{Logical valute to export simulation results as '.Rda'. TRUE as default.}
+
+\item{Update}{Logical value to update a previous outputs text files. FALSE as default.}
 
 \item{Subbasins}{Subbasins shapefile.}
 }

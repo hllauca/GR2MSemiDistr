@@ -6,13 +6,14 @@
 #' @param Qobs Observed streamflow (in m3/s). NULL as default.
 #' @param DateIni Initial date for subsetting data (in mm/yyyy format).
 #' @param DateEnd Final date for subsetting data (in mm/yyyy format).
+#' @param Save   Boolean to save database as textfile. FALSE as default.
+#' @param Update Boolean to extract the last value for updating model. FALSE as default.
+#' @param Positions Cell numbers of subbasins to extract data faster. NULL as default
 #' @param Resolution Resolution to resample gridded-datasets. 0.01 as default.
 #' @param Buffer Factor to create a buffer of subbasins. 1 as default.
-#' @param Save   Boolean to save database as textfile.
-#' @param Positions Cell numbers of subbasins to extract data faster. NULL as default
 #' @param Members Number of ensemble members for forcasting. NULL as default.
 #' @param Horiz Number of months for forcasting. NULL as default.
-#' @param Update Boolean to extract the last value for updating model. FALSE as default.
+
 #' @return Return a dataframe with data inputs in airGR format (DatesR,P,Ep,Q).
 #' @export
 #' @import  rgdal
@@ -26,13 +27,13 @@ Create_Forcing_Inputs <- function(Subbasins,
                                   Qobs=NULL,
                                   DateIni,
                                   DateEnd,
+                                  Save=FALSE,
+                                  Update=FALSE,
+                                  Positions=NULL,
                                   Resolution=0.01,
                                   Buffer=1,
-                                  Save=TRUE,
-                                  Positions=NULL,
                                   Members=NULL,
-                                  Horiz=NULL,
-                                  Update=FALSE){
+                                  Horiz=NULL){
 
   # Subbasins=roi
   # Precip=file.path(Inputs,File.Precip)
@@ -40,12 +41,13 @@ Create_Forcing_Inputs <- function(Subbasins,
   # Qobs=qdf
   # DateIni=WarmUp.Ini
   # DateEnd=RunModel.End
+  # Save=FALSE
+  # Update=FALSE
+  # Positions=NULL
   # Resolution=0.01
   # Buffer=1
-  # Positions=NULL
   # Members=NULL
   # Horiz=NULL
-  # Update=FALSE
 
   # Load packages
   require(rgdal)
@@ -89,8 +91,9 @@ Create_Forcing_Inputs <- function(Subbasins,
     }
   }
 
-  # Number of subbasins
-  nSub <- length(Subbasins)
+  # Load subbasin data
+  sub.id <- paste0('GR2M_ID_',Subbasin@data@GR2M_ID)
+  nsub   <- nrow(Subbasin@data)
 
 
   # Extract monthly precipitation data for each subbasin
@@ -123,10 +126,14 @@ Create_Forcing_Inputs <- function(Subbasins,
   # Mean areal rainfall for each subbasin
   cl=makeCluster(detectCores()-1)
   clusterEvalQ(cl,c(library(raster)))
-  clusterExport(cl,varlist=c("pp.res","pp.crop","positionPP","mask_Fast_Extract"),envir=environment())
+  clusterExport(cl,varlist=c("pp.res","pp.crop","positionPP",
+                             "mask_Fast_Extract"),envir=environment())
   mean.pp <- parLapply(cl, 1:nlayers(pp.crop), function(z) {
     res <- resample(pp.crop[[z]], pp.res, method='ngb')
-    ans <- mask_Fast_Extract(cov=res, positionPP, fun=mean, na.rm=T)
+    ans <- mask_Fast_Extract(cov=res,
+                             positionPP,
+                             fun=mean,
+                             na.rm=T)
     return(ans)
   })
   # stopCluster(cl) #Close the cluster
@@ -169,11 +176,15 @@ Create_Forcing_Inputs <- function(Subbasins,
 
   # Mean areal evapotranspiration for each subbasin
   clusterEvalQ(cl,c(library(raster)))
-  clusterExport(cl,varlist=c("pet.res","pet.crop","positionPET","mask_Fast_Extract"),envir=environment())
+  clusterExport(cl,varlist=c("pet.res","pet.crop","positionPET",
+                             "mask_Fast_Extract"),envir=environment())
 
   mean.pet <- parLapply(cl, 1:nlayers(pet.crop), function(z) {
     res <- raster::resample(pet.crop[[z]], pet.res, method='ngb')
-    ans <- mask_Fast_Extract(cov=res, positionPET, fun=mean, na.rm=T)
+    ans <- mask_Fast_Extract(cov=res,
+                             positionPET,
+                             fun=mean,
+                             na.rm=T)
     return(ans)
   })
   stopCluster(cl) #Close the cluster
@@ -185,19 +196,17 @@ Create_Forcing_Inputs <- function(Subbasins,
     mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
   }
 
-
   # Export results in airGR format
-  # Data to export
   if(is.null(Qobs)==TRUE){
     Ans <- data.frame(DatesMonths, round(mean.pp,1), round(mean.pet,1))
-    colnames(Ans) <- c('DatesR', paste0('P',1:nSub), paste0('E',1:nSub))
+    colnames(Ans) <- c('DatesR', paste0('P_',sub.id), paste0('E_',sub.id))
   } else{
     # Subsetting streamflow data
     Ind_Obs <- seq(which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == Ini),
                    which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == End))
     qobs <- Qobs[Ind_Obs,2]
     Ans  <- data.frame(DatesMonths, round(mean.pp,1), round(mean.pet,1), round(qobs,3))
-    colnames(Ans) <- c('DatesR', paste0('P',1:nSub), paste0('E',1:nSub), 'Q')
+    colnames(Ans) <- c('DatesR', paste0('P_',sub.id), paste0('E_',sub.id), 'Q')
   }
 
   # Saving data as text file

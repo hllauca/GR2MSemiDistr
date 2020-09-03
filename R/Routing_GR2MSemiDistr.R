@@ -6,7 +6,7 @@
 #' @param AcumIni      Initial date for accumulation (in mm/yyyy format).
 #' @param AcumEnd      Final date for accumulation (in mm/yyyy format).
 #' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
-#' @param Save         Boolean to save raster results for each time-step. FALSE as default.
+#' @param Save         Boolean to results as text file. FALSE as default.
 #' @param Update       Boolean to update a previous accumulation file. FALSE as default.
 #' @return  Export and save an accumulation csv file.
 #' @export
@@ -34,7 +34,6 @@ Routing_GR2MSemiDistr <- function(Model,
   # Positions=NULL
   # Save=FALSE
   # Update=FALSE
-  # all=FALSE
 
   # Require packages
   require(rgdal)
@@ -88,10 +87,10 @@ Routing_GR2MSemiDistr <- function(Model,
 
 
   # Extract cell position for each subbasin (centroid)
-  qMask <- raster(file.path(getwd(),'Inputs',Dem))
-  values(qMask) <- 0
+  Qmask <- raster(file.path(getwd(),'Inputs',Dem))
+  values(Qmask) <- 0
   xycen <- gCentroidWithin(Subbasin)
-  index <- extract(qMask, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
+  index <- extract(Qmask, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
 
   # Pitremove DEM
   setwd(file.path(getwd(),'Inputs'))
@@ -105,23 +104,23 @@ Routing_GR2MSemiDistr <- function(Model,
   file.remove('X.tif')
 
   # Streamflow accumulation with WFAC
-  dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
+  Dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
                 as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
                 by='months')
   Ind    <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
                 which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumEnd)))
 
-  Qmodel <- Model$Qsub[Ind,]
-  if(is.null(ncol(Qmodel))==TRUE){
-    nsub  <- length(Qmodel)
+  Qsub <- Model$Qsub[Ind,]
+  if(is.null(ncol(Qsub))==TRUE){
+    nsub  <- length(Qsub)
     ntime <- 1
   }else{
-    nsub  <- ncol(Qmodel)
-    ntime <- nrow(Qmodel)
+    nsub  <- ncol(Qsub)
+    ntime <- nrow(Qsub)
   }
 
   # Start loop
-  qMon <- list()
+  Qmon <- list()
   for (i in 1:ntime){
     # Show message
     cat('\f')
@@ -130,27 +129,19 @@ Routing_GR2MSemiDistr <- function(Model,
 
     # Create a raster of weights (streamflow for each subbasin)
     if(ntime==1){
-      qMask[index$cells] <- Qmodel
+      Qmask[index$cells] <- Qsub
     } else{
-      qMask[index$cells] <- Qmodel[i,]
+      Qmask[index$cells] <- Qsub[i,]
     }
-    writeRaster(qMask, filename='Weights.tif', overwrite=T)
+    writeRaster(Qmask, filename='Weights.tif', overwrite=T)
 
     # Weighted Flow Accumulation
     system("mpiexec -n 8 AreaD8 -p Flow_Direction.tif -wg Weights.tif -ad8 Flow_Accumulation.tif")
-    qAcum <- raster("Flow_Accumulation.tif")
-    qmat  <- as.matrix(qAcum)
-
-    # Save flow accumulation rasters
-    if(Save==TRUE){
-      dir.create(file.path(loc,'Outputs','Simulations'))
-      NameOut <- paste0('Streamflow_GR2MSemiDistr_',
-                        format(as.Date(dates[i]),'%Y%m'),'.tif')
-      writeRaster(qAcum, filename=file.path(loc,'Outputs','Simulations',NameOut), overwrite=TRUE)
-    }
+    Qacum <- raster("Flow_Accumulation.tif")
+    Qmat  <- as.matrix(Qacum)
 
     # Show message
-    message(paste0('Extracting accumulated streamflows for ', format(as.Date(dates[i]),'%b-%Y')))
+    message(paste0('Extracting accumulated streamflows for ', format(as.Date(Dates[i]),'%b-%Y')))
     message('Please wait..')
 
     # Positions for extracting accumulated streamflows for each subbasin
@@ -158,9 +149,9 @@ Routing_GR2MSemiDistr <- function(Model,
       if(i==1){
         cl=makeCluster(detectCores()-1)
         clusterEvalQ(cl,c(library(raster)))
-        clusterExport(cl,varlist=c("Subbasin","qAcum","nsub"),envir=environment())
+        clusterExport(cl,varlist=c("Subbasin","Qacum","nsub"),envir=environment())
         xycoord <- parLapply(cl, 1:nsub, function(z) {
-          ans   <- extract(qAcum, Subbasin[z,], cellnumbers=TRUE, df=TRUE)$cell
+          ans   <- extract(Qacum, Subbasin[z,], cellnumbers=TRUE, df=TRUE)$cell
           return(ans)
         })
         Positions_Rou <- xycoord
@@ -175,22 +166,22 @@ Routing_GR2MSemiDistr <- function(Model,
     }
 
     # Extracting accumulated streamflows for each subbasin
-    clusterExport(cl,varlist=c("qAcum","xycoord","qmat","nsub"),envir=environment())
+    clusterExport(cl,varlist=c("Qacum","xycoord","Qmat","nsub"),envir=environment())
     fstr <- parLapply(cl, 1:nsub, function(z){
-      x   <- rowFromCell(qAcum, xycoord[[z]])
-      y   <- colFromCell(qAcum, xycoord[[z]])
-      ans <- max(diag(qmat[x,y]), na.rm=T)
+      x   <- rowFromCell(Qacum, xycoord[[z]])
+      y   <- colFromCell(Qacum, xycoord[[z]])
+      ans <- max(diag(Qmat[x,y]), na.rm=T)
       return(ans)
     })
-    qMon[[i]] <- unlist(fstr)
+    Qmon[[i]] <- unlist(fstr)
 
   }# End loop
   stopCluster(cl)
 
   if(ntime==1){
-    qSub <- round(matrix(unlist(qMon), nrow=1, ncol=nsub),3)
+    Qrou <- round(matrix(unlist(Qmon), nrow=1, ncol=nsub),3)
   }else{
-    qSub <- round(do.call(rbind,qMon),3)
+    Qrou <- round(do.call(rbind,Qmon),3)
   }
 
   # Remove auxiliary rasters
@@ -199,31 +190,34 @@ Routing_GR2MSemiDistr <- function(Model,
   file.remove("Flow_Direction.tif")
 
   # Export results
-  if(Update==TRUE){
-    MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),"%b%y")
-    MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),"%b%y")
-    OldName   <- paste0('QR_GR2MSemiDistr_',MnYr1,'.txt')
-    NewName   <- paste0('QR_GR2MSemiDistr_',MnYr2,'.txt')
-    Qrout_Old <- read.table(file.path(loc,'Outputs',OldName), header=TRUE, sep='\t')
-    Qrout_New <- as.data.frame(rbind(as.matrix(Qrout_Old),as.matrix(qSub)))
-    colnames(Qrout_New) <- paste0('GR2M_ID_',1:nsub)
-    rownames(Qrout_New) <- c(as.Date(rownames(Qrout_Old)),
-                             as.Date(dates))
-    write.table(Qrout_New, file=file.path(loc,'Outputs',NewName), sep='\t')
-    file.remove(file.path(loc,'Outputs',OldName))
-    Qrout <- Qrout_New
-  }
-  if(Update==FALSE){
-    Qrout <- as.data.frame(qSub)
-    colnames(Qrout) <- paste0('GR2M_ID_',1:nsub)
-    rownames(Qrout) <- as.Date(dates)
-    NewName  <- paste0('QR_GR2MSemiDistr_',
-                       format(tail(as.Date(dates),1),'%b%y'),'.txt')
-    write.table(Qrout, file=file.path(loc,'Outputs',NewName), sep='\t')
+  if(Save==TRUE){
+    if(Update==TRUE){
+      MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),"%b%y")
+      MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),"%b%y")
+      OldName   <- paste0('QR_GR2MSemiDistr_',MnYr1,'.txt')
+      NewName   <- paste0('QR_GR2MSemiDistr_',MnYr2,'.txt')
+      Qrou_Old <- read.table(file.path(loc,'Outputs',OldName), header=TRUE, sep='\t')
+      Qrou_New <- as.data.frame(rbind(as.matrix(Qrou_Old),as.matrix(Qrou)))
+      colnames(Qrou_New) <- Model$GR2M_ID
+      rownames(Qrou_New) <- c(as.Date(rownames(Qrou_Old)),Dates)
+      write.table(Qrou_New, file=file.path(loc,'Outputs',NewName), sep='\t')
+      file.remove(file.path(loc,'Outputs',OldName))
+    }
+    if(Update==FALSE){
+      Qrou <- as.data.frame(Qrou)
+      colnames(Qrou) <- Model$GR2M_ID
+      rownames(Qrou) <- Dates
+      NewName  <- paste0('QR_GR2MSemiDistr_',
+                         format(tail(Dates,1),'%b%y'),'.txt')
+      write.table(Qrou, file=file.path(loc,'Outputs',NewName), sep='\t')
+    }
   }
 
+  Ans <- as.data.frame(Qrou)
+  colnames(Ans) <- Model$GR2M_ID
+  rownames(Ans) <- Dates
   message('Done!')
   setwd(loc)
   toc()
-  return(qSub)
+  return(Ans)
 }

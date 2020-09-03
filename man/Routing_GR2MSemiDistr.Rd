@@ -20,7 +20,7 @@ Routing_GR2MSemiDistr(Model, Subbasin, Dem, AcumIni, AcumEnd,
 
 \item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default.}
 
-\item{Save}{Boolean to save raster results for each time-step. FALSE as default.}
+\item{Save}{Boolean to results as text file. FALSE as default.}
 
 \item{Update}{Boolean to update a previous accumulation file. FALSE as default.}
 }
