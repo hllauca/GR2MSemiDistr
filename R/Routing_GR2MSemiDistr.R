@@ -218,20 +218,22 @@ Routing_GR2MSemiDistr <- function(Model,
     MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),"%b%y")
     OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.txt')
     NewName   <- paste0('Routing_GR2MSemiDistr_',MnYr2,'.txt')
-    Outputs   <- read.table(file.path(loc,'Outputs',OldName), header=T, sep='\t')
-    Dates     <- as.Date(Outputs$Dates, '%d/%m/%Y')
-    qSub_Old  <- Outputs[,-1]
-    qSub_New  <- rbind(as.matrix(qSub_Old), qSub)
-    Dates_New <- c(Dates,as.Date(dates))
-    Database  <- data.frame(Dates_New, qSub_New)
+    Qrout_Old <- read.table(file.path(loc,'Outputs',OldName), header=TRUE, sep='\t')
+    Qrout_New <- as.data.frame(rbind(as.matrix(qSub), Qrout_Old))
+    colnames(Qrout_New) <- paste0('GR2M_ID_',1:nsub)
+    rownames(Qrout_New) <- c(as.Date(rownames(Qrout_Old)),
+                             as.Date(dates))
+    write.table(Qrout_New, file=file.path(loc,'Outputs',NewName), sep='\t')
     file.remove(file.path(loc,'Outputs',OldName))
   }
   if(Update==FALSE){
-    Database <- data.frame(dates, qSub)
-    NewName  <- paste0('Routing_GR2MSemiDistr_',format(tail(as.Date(dates),1),'%b%y'),'.txt')
+    Qrout <- as.data.frame(qSub)
+    colnames(Qrout) <- paste0('GR2M_ID_',1:nsub)
+    rownames(Qrout) <- as.Date(dates)
+    NewName  <- paste0('Routing_GR2MSemiDistr_',
+                       format(tail(as.Date(dates),1),'%b%y'),'.txt')
+    write.table(Qrout, file=file.path(loc,'Outputs',NewName), sep='\t')
   }
-  colnames(Database) <- c('Dates', paste0('GR2M_ID_',1:nsub))
-  write.table(Database, file=file.path(loc,'Outputs',NewName), sep='\t',row.names=FALSE)
 
   message('Done!')
   setwd(loc)
