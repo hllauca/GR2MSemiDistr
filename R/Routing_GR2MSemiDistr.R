@@ -202,8 +202,8 @@ Routing_GR2MSemiDistr <- function(Model,
   if(Update==TRUE){
     MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),"%b%y")
     MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),"%b%y")
-    OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.txt')
-    NewName   <- paste0('Routing_GR2MSemiDistr_',MnYr2,'.txt')
+    OldName   <- paste0('QR_GR2MSemiDistr_',MnYr1,'.txt')
+    NewName   <- paste0('QR_GR2MSemiDistr_',MnYr2,'.txt')
     Qrout_Old <- read.table(file.path(loc,'Outputs',OldName), header=TRUE, sep='\t')
     Qrout_New <- as.data.frame(rbind(as.matrix(qSub), Qrout_Old))
     colnames(Qrout_New) <- paste0('GR2M_ID_',1:nsub)
@@ -216,7 +216,7 @@ Routing_GR2MSemiDistr <- function(Model,
     Qrout <- as.data.frame(qSub)
     colnames(Qrout) <- paste0('GR2M_ID_',1:nsub)
     rownames(Qrout) <- as.Date(dates)
-    NewName  <- paste0('Routing_GR2MSemiDistr_',
+    NewName  <- paste0('QR_GR2MSemiDistr_',
                        format(tail(as.Date(dates),1),'%b%y'),'.txt')
     write.table(Qrout, file=file.path(loc,'Outputs',NewName), sep='\t')
   }
