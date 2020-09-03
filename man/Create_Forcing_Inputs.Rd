@@ -5,8 +5,8 @@
 \title{Prepare model data inputs in airGR format.}
 \usage{
 Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
-  DateEnd, Resolution = 0.01, Buffer = 1, Save = TRUE,
-  Positions = NULL, Members = NULL, Horiz = NULL, Update = FALSE)
+  DateEnd, Save = FALSE, Update = FALSE, Positions = NULL,
+  Resolution = 0.01, Buffer = 1, Members = NULL, Horiz = NULL)
 }
 \arguments{
 \item{Subbasins}{Subbasins shapefile.}
@@ -21,19 +21,19 @@ Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
 
 \item{DateEnd}{Final date for subsetting data (in mm/yyyy format).}
 
+\item{Save}{Boolean to save database as textfile. FALSE as default.}
+
+\item{Update}{Boolean to extract the last value for updating model. FALSE as default.}
+
+\item{Positions}{Cell numbers of subbasins to extract data faster. NULL as default}
+
 \item{Resolution}{Resolution to resample gridded-datasets. 0.01 as default.}
 
 \item{Buffer}{Factor to create a buffer of subbasins. 1 as default.}
 
-\item{Save}{Boolean to save database as textfile.}
-
-\item{Positions}{Cell numbers of subbasins to extract data faster. NULL as default}
-
 \item{Members}{Number of ensemble members for forcasting. NULL as default.}
 
 \item{Horiz}{Number of months for forcasting. NULL as default.}
-
-\item{Update}{Boolean to extract the last value for updating model. FALSE as default.}
 }
 \value{
 Return a dataframe with data inputs in airGR format (DatesR,P,Ep,Q).
