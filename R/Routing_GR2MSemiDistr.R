@@ -118,9 +118,9 @@ Routing_GR2MSemiDistr <- function(Model,
       ntime  <- nrow(Qmodel)
     }
   }else{
-    dates  <- format(seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
-                         as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
-                         by='months'),'%Y-%m-%d')
+    dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
+                  as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
+                  by='months')
     Ind    <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
                   which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumEnd)))
 
@@ -218,9 +218,9 @@ Routing_GR2MSemiDistr <- function(Model,
     MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),"%b%y")
     OldName   <- paste0('Routing_GR2MSemiDistr_',MnYr1,'.txt')
     NewName   <- paste0('Routing_GR2MSemiDistr_',MnYr2,'.txt')
-    Data      <- read.table(file.path(loc,'Outputs',OldName), header=T, sep='\t')
-    Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%d/%m/%Y'))
-    qSub_Old  <- Data[,-1]
+    Outputs   <- read.table(file.path(loc,'Outputs',OldName), header=T, sep='\t')
+    Dates     <- as.Date(Outputs$Dates, '%d/%m/%Y')
+    qSub_Old  <- Outputs[,-1]
     qSub_New  <- rbind(as.matrix(qSub_Old), qSub)
     Dates_New <- c(Dates,as.Date(dates))
     Database  <- data.frame(Dates_New, qSub_New)
@@ -230,7 +230,7 @@ Routing_GR2MSemiDistr <- function(Model,
     Database <- data.frame(dates, qSub)
     NewName  <- paste0('Routing_GR2MSemiDistr_',format(tail(as.Date(dates),1),'%b%y'),'.txt')
   }
-  colnames(Database) <- c('Dates', paste0('GR2M-ID_',1:nsub))
+  colnames(Database) <- c('Dates', paste0('GR2M_ID_',1:nsub))
   write.table(Database, file=file.path(loc,'Outputs',NewName), sep='\t',row.names=FALSE)
 
   message('Done!')

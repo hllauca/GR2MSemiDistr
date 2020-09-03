@@ -243,42 +243,40 @@ Run_GR2MSemiDistr <- function(Data,
 
       ProdName1 <- paste0('Production_GR2MSemiDistr_',MnYr1,'.txt')
       ProdName2 <- paste0('Production_GR2MSemiDistr_',MnYr2,'.txt')
-      Data      <- read.table(file.path(getwd(),'Outputs',ProdName1),
+      Output    <- read.table(file.path(getwd(),'Outputs',ProdName1),
                               header=T, sep='\t')
-      Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%Y/%m/%d',
-                                                    '%d/%m/%Y','%d-%m-%Y'))
-      Prod_Old  <- Data[,-1]
+      Dates     <- as.Date(Output$Dates,'%d/%m/%Y')
+      Prod_Old  <- Output[,-1]
       Prod_New  <- rbind(as.matrix(Prod_Old),Prod)
       Dates_New <- c(Dates,as.Date(Database$DatesR))
       DataProd  <- data.frame(Dates_New, Prod_New)
-      colnames(DataProd) <- c('Dates', paste0('GR2M-ID_',1:nsub))
+      colnames(DataProd) <- c('Dates', paste0('GR2M_ID_',1:nsub))
       write.table(DataProd, file=file.path(getwd,'Outputs',ProdName2),
                   sep='\t', row.names=FALSE)
       file.remove(file.path(getwd(),'Outputs',ProdName1))
 
       QsubName1 <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr1,'.txt')
       QsubName2 <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr2,'.txt')
-      Data      <- read.table(file.path(getwd(),'Outputs',QsubName1), header=T,
-                              sep='\t')
-      Dates     <- as.Date(Data$Dates, tryFormats=c('%Y-%m-%d','%Y/%m/%d',
-                                                    '%d/%m/%Y','%d-%m-%Y'))
-      Qsub_Old  <- Data[,-1]
+      Output    <- read.table(file.path(getwd(),'Outputs',QsubName1),
+                              header=T, sep='\t')
+      Dates     <- as.Date(Output$Dates,'%d/%m/%Y')
+      Qsub_Old  <- Output[,-1]
       Qsub_New  <- rbind(as.matrix(Qsub_Old), Qsub)
       Dates_New <- c(Dates,as.Date(Database$DatesR))
       DataQsub  <- data.frame(Dates_New, Qsub_New)
-      colnames(DataQsub) <- c('Dates', paste0('GR2M-ID_',1:nsub))
+      colnames(DataQsub) <- c('Dates', paste0('GR2M_ID_',1:nsub))
       write.table(DataQsub, file=file.path(getwd(),'Outputs',QsubName2),
                   sep='\t', row.names=FALSE)
       file.remove(file.path(getwd(),'Outputs',QsubName1))
 
     } else{
       MnYr     <- format(as.Date(paste0('01/',RunEnd),"%d/%m/%Y"),"%b%y")
-      DataProd <- data.frame(format(Database$DatesR,'%Y-%m-%d'), Prod)
-      DataQsub <- data.frame(format(Database$DatesR,'%Y-%m-%d'), Qsub)
+      DataProd <- data.frame(as.Date(Database$DatesR), Prod)
+      DataQsub <- data.frame(as.Date(Database$DatesR), Qsub)
       ProdName <- paste0('Production_GR2MSemiDistr_',MnYr,'.txt')
       QsubName <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr,'.txt')
-      colnames(DataProd) <- c('Dates', paste0('GR2M-ID_',1:nsub))
-      colnames(DataQsub) <- c('Dates', paste0('GR2M-ID_',1:nsub))
+      colnames(DataProd) <- c('Dates', paste0('GR2M_ID_',1:nsub))
+      colnames(DataQsub) <- c('Dates', paste0('GR2M_ID_',1:nsub))
       write.table(DataProd, file=file.path(getwd(),'Outputs',ProdName),
                   sep='\t', row.names=FALSE)
       write.table(DataQsub, file=file.path(getwd(),'Outputs',QsubName),
