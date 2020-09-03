@@ -225,5 +225,5 @@ Routing_GR2MSemiDistr <- function(Model,
   message('Done!')
   setwd(loc)
   toc()
-  return(Qrout)
+  return(qSub)
 }
