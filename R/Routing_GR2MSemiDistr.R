@@ -211,6 +211,7 @@ Routing_GR2MSemiDistr <- function(Model,
                              as.Date(dates))
     write.table(Qrout_New, file=file.path(loc,'Outputs',NewName), sep='\t')
     file.remove(file.path(loc,'Outputs',OldName))
+    Qrout <- Qrout_New
   }
   if(Update==FALSE){
     Qrout <- as.data.frame(qSub)
@@ -224,5 +225,5 @@ Routing_GR2MSemiDistr <- function(Model,
   message('Done!')
   setwd(loc)
   toc()
-  return(Database)
+  return(Qrout)
 }
