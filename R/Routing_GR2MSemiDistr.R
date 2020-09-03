@@ -205,7 +205,7 @@ Routing_GR2MSemiDistr <- function(Model,
     OldName   <- paste0('QR_GR2MSemiDistr_',MnYr1,'.txt')
     NewName   <- paste0('QR_GR2MSemiDistr_',MnYr2,'.txt')
     Qrout_Old <- read.table(file.path(loc,'Outputs',OldName), header=TRUE, sep='\t')
-    Qrout_New <- as.data.frame(rbind(as.matrix(qSub), Qrout_Old))
+    Qrout_New <- as.data.frame(rbind(as.matrix(Qrout_Old),as.matrix(qSub)))
     colnames(Qrout_New) <- paste0('GR2M_ID_',1:nsub)
     rownames(Qrout_New) <- c(as.Date(rownames(Qrout_Old)),
                              as.Date(dates))
