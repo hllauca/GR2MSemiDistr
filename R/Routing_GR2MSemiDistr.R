@@ -178,7 +178,7 @@ Routing_GR2MSemiDistr <- function(Model,
           return(ans)
         })
         Positions <- xycoord
-        save(Positions, file=file.path(getwd(),'Positions_Routing.Rda'))
+        save(Positions, file=file.path(getwd(),'Positions_Rou.Rda'))
       }
     }else{
       if(i==1){

@@ -203,14 +203,14 @@ Create_Forcing_Inputs <- function(Subbasins,
   # Saving data as text file
   if(Save==TRUE){
     dir.create(file.path(getwd(),'Inputs'))
-    write.table(Ans, file=file.path(getwd(),'Inputs','Forcing_Subbasins.txt'),
+    write.table(Ans, file=file.path(getwd(),'Inputs','Inputs_model.txt'),
                 sep='\t', col.names=TRUE, row.names=FALSE)
   }
 
   # Saving positions
   if(is.null(Positions)==TRUE){
      Positions <- list(PP=positionPP, PET=positionPET)
-     save(Positions, file=file.path(getwd(),'Inputs','Forcing_Positions.Rda'))
+     save(Positions, file=file.path(getwd(),'Inputs','Positions_Dat.Rda'))
   }
 
   # End
