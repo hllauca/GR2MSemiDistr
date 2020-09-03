@@ -137,8 +137,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                               AcumEnd=format(as.Date(tail(Dates,1)),'%m/%Y'),
                               Positions=Positions,
                               Save=FALSE,
-                              Update=FALSE,
-                              all=FALSE)
+                              Update=FALSE)
 
   M95 <- list(Qsub=q5,Dates=Dates)
   Q95 <- Routing_GR2MSemiDistr(Model=M95,
@@ -148,10 +147,9 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                                AcumEnd=format(as.Date(tail(Dates,1)),'%m/%Y'),
                                Positions=Positions,
                                Save=FALSE,
-                               Update=FALSE,
-                               all=FALSE)
+                               Update=FALSE)
 
-  sens <- list(lower=Q5, upper=Q95)
+  sens <- list(lower=round(Q5,3), upper=round(Q95,3))
 
   # Show message
   message("Done!")

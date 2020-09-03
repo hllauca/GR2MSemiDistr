@@ -194,21 +194,21 @@ Run_GR2MSemiDistr <- function(Data,
   }
 
   # Subset model results (exclude warm-up)
-  Qsub <- qSub
-  Prod <- prod
+  Qsub <- round(qSub,3)
+  Prod <- round(prod,3)
 
   # Factors Fpp and Fpet
   pp  <- matrix(NA, ncol=nsub, nrow=nrow(Qsub))
   pet <- matrix(NA, ncol=nsub, nrow=nrow(Qsub))
   for (w in 1:nsub){
-    pp[,w]  <- subset(Param$Fpp, Param$Region==region[w])*Database[,(w+1)]
-    pet[,w] <- subset(Param$Fpet, Param$Region==region[w])*Database[,(nsub+w)]
+    pp[,w]  <- round(subset(Param$Fpp, Param$Region==region[w])*Database[,(w+1)],1)
+    pet[,w] <- round(subset(Param$Fpet, Param$Region==region[w])*Database[,(nsub+w)],1)
   }
 
   # Local mode
   if(Regional==FALSE){
-    Qobs <- Database$Q
-    Qsim <- qOut
+    Qobs <- round(Database$Q,3)
+    Qsim <- round(qOut,3)
 
     Ans <- list(Qsim=Qsim,
                 Qobs=Qobs,
@@ -256,7 +256,7 @@ Run_GR2MSemiDistr <- function(Data,
       QsubName2 <- paste0('Qsubbasins_GR2MSemiDistr_',MnYr2,'.txt')
       Qsub_Old  <- read.table(file.path(getwd(),'Outputs',QsubName1),
                               header=TRUE, sep='\t')
-      Qsub_New  <- as.data.frame(rbind(as.matrix(Qsub_Old),Qsub))
+      Qsub_New  <- round(as.data.frame(rbind(as.matrix(Qsub_Old),Qsub)),3)
       colnames(Qsub_New) <- paste0('GR2M_ID_',1:nsub)
       rownames(Qsub_New) <- c(as.Date(rownames(Qsub_Old)),
                               as.Date(Database$DatesR))

@@ -5,7 +5,7 @@
 \title{Routing simulated monthly streamflows for each subbasin.}
 \usage{
 Routing_GR2MSemiDistr(Model, Subbasin, Dem, AcumIni, AcumEnd,
-  Positions = NULL, Save = FALSE, Update = FALSE, all = FALSE)
+  Positions = NULL, Save = FALSE, Update = FALSE)
 }
 \arguments{
 \item{Model}{Model results from Run_GR2MSemiDistr.}
@@ -23,8 +23,6 @@ Routing_GR2MSemiDistr(Model, Subbasin, Dem, AcumIni, AcumEnd,
 \item{Save}{Boolean to save raster results for each time-step. FALSE as default.}
 
 \item{Update}{Boolean to update a previous accumulation file. FALSE as default.}
-
-\item{all}{Boolean to consider all the period of model from GR2MSemiDistr. FALSE as default}
 }
 \value{
 Export and save an accumulation csv file.
