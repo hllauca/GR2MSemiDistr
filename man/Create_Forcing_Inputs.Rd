@@ -25,7 +25,7 @@ Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
 
 \item{Update}{Boolean to extract the last value for updating model. FALSE as default.}
 
-\item{Positions}{Cell numbers of subbasins to extract data faster. NULL as default}
+\item{Positions}{Cell numbers of subbasins to extract data faster. NULL as default.}
 
 \item{Resolution}{Resolution to resample gridded-datasets. 0.01 as default.}
 

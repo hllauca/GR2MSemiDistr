@@ -4,17 +4,20 @@
 \alias{Run_GR2MSemiDistr}
 \title{Run the GR2M model for each subbasins.}
 \usage{
-Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, Parameters,
-  IniState = NULL, Regional = FALSE, Save = FALSE, Update = FALSE)
+Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
+  Parameters, IniState = NULL, Regional = FALSE, Save = FALSE,
+  Update = FALSE)
 }
 \arguments{
-\item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
+\item{Data}{File with input data in airGR format (DatesR,P,E,Q).}
 
 \item{Subbasins}{Subbasins shapefile.}
 
 \item{RunIni}{Initial date of model simulation (in mm/yyyy format).}
 
 \item{RunEnd}{Final date of model simulation (in mm/yyyy format).}
+
+\item{WarmUp}{Number of months for warm-up. NULL as default.}
 
 \item{Parameters}{GR2M model parameters and correction factor of P and E.}
 

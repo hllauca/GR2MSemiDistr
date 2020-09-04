@@ -4,12 +4,12 @@
 \alias{Optim_GR2MSemiDistr}
 \title{Model parameter optimization with SCE-UA algorithm.}
 \usage{
-Optim_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp, Parameters,
-  Parameters.Min, Parameters.Max, Max.Functions = 5000,
+Optim_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
+  Parameters, Parameters.Min, Parameters.Max, Max.Functions = 5000,
   Optimization = "NSE", No.Optim = NULL)
 }
 \arguments{
-\item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
+\item{Data}{File with input data in airGR format (DatesR,P,E,Q).}
 
 \item{Subbasins}{Subbasins shapefile.}
 
@@ -17,7 +17,7 @@ Optim_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp, Parameters,
 
 \item{RunEnd}{Final date of model simulation (in mm/yyyy format).}
 
-\item{WarmUp}{Number of months for warm-up.}
+\item{WarmUp}{Number of months for warm-up. NULL as default.}
 
 \item{Parameters}{GR2M model parameters and correction factor of P and E.}
 

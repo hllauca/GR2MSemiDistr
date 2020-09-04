@@ -1,10 +1,10 @@
 #' Model parameter optimization with SCE-UA algorithm.
 #'
-#' @param Data        File with input data in airGR format (DatesR,P,E,Q)
+#' @param Data        File with input data in airGR format (DatesR,P,E,Q).
 #' @param Subbasins   Subbasins shapefile.
 #' @param RunIni      Initial date of model simulation (in mm/yyyy format).
 #' @param RunEnd      Final date of model simulation (in mm/yyyy format).
-#' @param WarmUp      Number of months for warm-up.
+#' @param WarmUp      Number of months for warm-up. NULL as default.
 #' @param Parameters      GR2M model parameters and correction factor of P and E.
 #' @param Parameters.Min  Minimum values of GR2M model parameters and correction factor of P and E.
 #' @param Parameters.Max  Maximum values of GR2M model parameters and correction factor of P and E.
@@ -25,7 +25,7 @@ Optim_GR2MSemiDistr <- function(Data,
                                 Subbasins,
                                 RunIni,
                                 RunEnd,
-                                WarmUp,
+                                WarmUp=NULL,
                                 Parameters,
                                 Parameters.Min,
                                 Parameters.Max,
@@ -194,8 +194,14 @@ Optim_GR2MSemiDistr <- function(Data,
     }
 
     # Subset model results (exclude warm-up)
-    Qobs  <- Database$Q[-WarmUp:-1]
-    Qsim  <- qOut[-WarmUp:-1]
+    if(is.null(WarmUp)==TRUE){
+      Qobs  <- Database$Q
+      Qsim  <- qOut
+    }else{
+      Qobs  <- Database$Q[-WarmUp:-1]
+      Qsim  <- qOut[-WarmUp:-1]
+    }
+
 
     # Evaluation criteria
     res.df   <- na.omit(data.frame(sim=Qsim, obs=Qobs))

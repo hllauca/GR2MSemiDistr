@@ -4,22 +4,22 @@
 \alias{Uncertainty_GR2MSemiDistr}
 \title{Uncertainty analysis of GR2M model parameters with the MCMC algorithm.}
 \usage{
-Uncertainty_GR2MSemiDistr(Data, Subbasins, Dem, RunIni, RunEnd, WarmUp,
-  Parameters, Parameters.Min, Parameters.Max, Niter, IniState = NULL,
-  Positions = NULL, MCMC = NULL)
+Uncertainty_GR2MSemiDistr(Data, Subbasins, Dem, RunIni, RunEnd,
+  WarmUp = NULL, Parameters, Parameters.Min, Parameters.Max, Niter,
+  IniState = NULL, Positions = NULL, MCMC = NULL)
 }
 \arguments{
-\item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
+\item{Data}{File with input data in airGR format (DatesR,P,E,Q).}
 
 \item{Subbasins}{Subbasins shapefile.}
 
-\item{Dem}{Raster DEM.}
+\item{Dem}{Raster DEM filename.}
 
 \item{RunIni}{Initial date of model simulation (in mm/yyyy format).}
 
 \item{RunEnd}{Final date of model simulation (in mm/yyyy format).}
 
-\item{WarmUp}{Number of months for warm-up.}
+\item{WarmUp}{Number of months for warm-up. NULL as default.}
 
 \item{Parameters}{GR2M model parameters and correction factor of P and E.}
 
