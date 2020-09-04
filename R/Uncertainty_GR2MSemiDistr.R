@@ -24,7 +24,7 @@
 #' @import  airGR
 #' @import  abind
 Uncertainty_GR2MSemiDistr <- function(Data,
-                                      Subbasin,
+                                      Subbasins,
                                       Dem,
                                       RunIni,
                                       RunEnd,
@@ -37,7 +37,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                                       Positions=NULL,
                                       MCMC=NULL){
   # Data=Ans1
-  # Subbasin=roi
+  # Subbasins=roi
   # Dem='Subbasins.tif'
   # RunIni='01/1981'
   # RunEnd='05/1981'
@@ -74,7 +74,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
     RFUN <- function(Variable){
 
       Ans <- Run_GR2MSemiDistr(Data=Data,
-                               Subbasin=Subbasin,
+                               Subbasins=Subbasins,
                                RunIni=RunIni,
                                RunEnd=RunEnd,
                                Parameters=Variable,
@@ -84,8 +84,8 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                                Save=FALSE)
 
       # Calculate residuals
-      Qobs <- Ans$Qobs[-WarmUp:-1]
-      Qsim <- Ans$Qsim[-WarmUp:-1]
+      Qobs <- Ans$Qout$obs[-WarmUp:-1]
+      Qsim <- Ans$Qout$sim[-WarmUp:-1]
       mRes <- as.vector(na.omit(Qsim-Qobs))
       return(mRes)
     } # End function
@@ -113,7 +113,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
   for(w in 1:nrow(pars)){
     # Run model
     Qmod <- Run_GR2MSemiDistr(Data=Data,
-                              Subbasin=Subbasin,
+                              Subbasins=Subbasins,
                               RunIni=RunIni,
                               RunEnd=RunEnd,
                               Parameters=pars[w,],
@@ -121,7 +121,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                               Regional=FALSE,
                               Update=FALSE,
                               Save=FALSE)
-    Ans[[w]] <- Qmod$Qsub[-WarmUp:-1,]
+    Ans[[w]] <- as.matrix(Qmod$Qsub[-WarmUp:-1,])
     Dates    <- Qmod$Dates[-WarmUp:-1]
   }
   qsub <- abind(Ans, along=3)
@@ -131,7 +131,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
   # Routing streamflow for each subbasin at quantile 5
   M5 <- list(Qsub=q5,Dates=Dates)
   Q5 <- Routing_GR2MSemiDistr(Model=M55,
-                              Subbasin=Subbasin,
+                              Subbasins=Subbasins,
                               Dem=Dem,
                               AcumIni=format(as.Date(head(Dates,1)),'%m/%Y'),
                               AcumEnd=format(as.Date(tail(Dates,1)),'%m/%Y'),
@@ -141,7 +141,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
 
   M95 <- list(Qsub=q5,Dates=Dates)
   Q95 <- Routing_GR2MSemiDistr(Model=M95,
-                               Subbasin=Subbasin,
+                               Subbasins=Subbasins,
                                Dem=Dem,
                                AcumIni=format(as.Date(head(Dates,1)),'%m/%Y'),
                                AcumEnd=format(as.Date(tail(Dates,1)),'%m/%Y'),
@@ -149,7 +149,16 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                                Save=FALSE,
                                Update=FALSE)
 
-  sens <- list(lower=round(Q5,3), upper=round(Q95,3))
+  # Prepare data to export
+  sub.id <- paste0('GR2M_ID_',as.vector(Subbasins$GR2M_ID))
+  QR5  <- as.data.frame(round(Q5,3))
+  QR95 <- as.data.frame(round(Q95,3))
+  colnames(QR5)  <- sub.id
+  colnames(QR95) <- sub.id
+  rownames(QR5)  <- as.date(Dates)
+  rownames(QR95) <- as.date(Dates)
+  Ans <- list(lower=QR5,
+              upper=QR95)
 
   # Show message
   message("Done!")
