@@ -13,7 +13,7 @@
 #' @param IniState    Initial GR2M states variables. NULL as default.
 #' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
 #' @param MCMC    MCMC data in .Rda format.
-#' @return  Lower(Q5) and upper (Q95) streamflows uncertanty bounds.
+#' @return  Lower(Q5) and upper (Q95) streamflows uncertainty bounds.
 #' @export
 #' @import  rgdal
 #' @import  raster
@@ -130,7 +130,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
 
   # Routing streamflow for each subbasin at quantile 5
   M5 <- list(Qsub=q5,Dates=Dates)
-  Q5 <- Routing_GR2MSemiDistr(Model=M55,
+  Q5 <- Routing_GR2MSemiDistr(Model=M5,
                               Subbasins=Subbasins,
                               Dem=Dem,
                               AcumIni=format(as.Date(head(Dates,1)),'%m/%Y'),
