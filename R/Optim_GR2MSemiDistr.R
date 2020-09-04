@@ -22,7 +22,7 @@
 #' @import  tictoc
 #' @import  parallel
 Optim_GR2MSemiDistr <- function(Data,
-                                Subbasin,
+                                Subbasins,
                                 RunIni,
                                 RunEnd,
                                 WarmUp,
@@ -34,7 +34,7 @@ Optim_GR2MSemiDistr <- function(Data,
                                 No.Optim=NULL){
 
   # Data=Data
-  # Subbasin=roi
+  # Subbasins=roi
   # RunIni=RunModel.Ini
   # RunEnd=RunModel.End
   # WarmUp=WarmUp
@@ -57,9 +57,9 @@ Optim_GR2MSemiDistr <- function(Data,
   tic()
 
   # Load subbasins data
-  area    <- Subbasin@data$Area
-  region  <- Subbasin@data$Region
-  nsub    <- nrow(Subbasin@data)
+  area    <- Subbasins@data$Area
+  region  <- Subbasins@data$Region
+  nsub    <- nrow(Subbasins@data)
 
   # Input data
   Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'),"GMT",
@@ -234,10 +234,6 @@ Optim_GR2MSemiDistr <- function(Data,
     parameter <- order[match(n.param, order[,1]), 2]
   }
   Ans <- list(Param=parameter, Value=fo)
-
-  # Create output folder and save simulation
-  dir.create(file.path(getwd(), 'Outputs'), recursive=T, showWarnings=F)
-  save(Ans, file=file.path(getwd(),'Outputs','Optimization_GR2MSemiDistr.Rda'))
 
   # Print results
   print("Optimization results:")

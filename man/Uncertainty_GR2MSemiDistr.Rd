@@ -36,7 +36,7 @@ Uncertainty_GR2MSemiDistr(Data, Subbasins, Dem, RunIni, RunEnd, WarmUp,
 \item{MCMC}{MCMC data in .Rda format.}
 }
 \value{
-Lower(Q5) and upper (Q95) streamflows uncertanty bounds.
+Lower(Q5) and upper (Q95) streamflows uncertainty bounds.
 }
 \description{
 Uncertainty analysis of GR2M model parameters with the MCMC algorithm.
