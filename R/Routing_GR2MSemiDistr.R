@@ -1,7 +1,7 @@
 #' Routing simulated monthly streamflows for each subbasin.
 #'
 #' @param Model        Model results from Run_GR2MSemiDistr.
-#' @param Subbasin		 Subbasin shapefile.
+#' @param Subbasins		 Subbasins shapefile.
 #' @param Dem          Raster DEM.
 #' @param AcumIni      Initial date for accumulation (in mm/yyyy format).
 #' @param AcumEnd      Final date for accumulation (in mm/yyyy format).
@@ -18,7 +18,7 @@
 #' @import  parallel
 #' @import  lubridate
 Routing_GR2MSemiDistr <- function(Model,
-                                  Subbasin,
+                                  Subbasins,
                                   Dem,
                                   AcumIni,
                                   AcumEnd,
@@ -27,7 +27,7 @@ Routing_GR2MSemiDistr <- function(Model,
                                   Update=FALSE){
 
   # Model=Ans3
-  # Subbasin=roi
+  # Subbasins=roi
   # Dem='Subbasins.tif'
   # AcumIni='11/2016'
   # AcumEnd='12/2016'
@@ -89,7 +89,7 @@ Routing_GR2MSemiDistr <- function(Model,
   # Extract cell position for each subbasin (centroid)
   Qmask <- raster(file.path(getwd(),'Inputs',Dem))
   values(Qmask) <- 0
-  xycen <- gCentroidWithin(Subbasin)
+  xycen <- gCentroidWithin(Subbasins)
   index <- extract(Qmask, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
 
   # Pitremove DEM
@@ -149,9 +149,9 @@ Routing_GR2MSemiDistr <- function(Model,
       if(i==1){
         cl=makeCluster(detectCores()-1)
         clusterEvalQ(cl,c(library(raster)))
-        clusterExport(cl,varlist=c("Subbasin","Qacum","nsub"),envir=environment())
+        clusterExport(cl,varlist=c("Subbasins","Qacum","nsub"),envir=environment())
         xycoord <- parLapply(cl, 1:nsub, function(z) {
-          ans   <- extract(Qacum, Subbasin[z,], cellnumbers=TRUE, df=TRUE)$cell
+          ans   <- extract(Qacum, Subbasins[z,], cellnumbers=TRUE, df=TRUE)$cell
           return(ans)
         })
         Positions_Rou <- xycoord
