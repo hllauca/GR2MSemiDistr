@@ -4,11 +4,13 @@
 \alias{Run_GR2MSemiDistr}
 \title{Run the GR2M model for each subbasins.}
 \usage{
-Run_GR2MSemiDistr(Data, Subbasin, RunIni, RunEnd, Parameters,
+Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, Parameters,
   IniState = NULL, Regional = FALSE, Save = FALSE, Update = FALSE)
 }
 \arguments{
 \item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
+
+\item{Subbasins}{Subbasins shapefile.}
 
 \item{RunIni}{Initial date of model simulation (in mm/yyyy format).}
 
@@ -23,8 +25,6 @@ Run_GR2MSemiDistr(Data, Subbasin, RunIni, RunEnd, Parameters,
 \item{Save}{Logical valute to export simulation results as '.Rda'. TRUE as default.}
 
 \item{Update}{Logical value to update a previous outputs text files. FALSE as default.}
-
-\item{Subbasins}{Subbasins shapefile.}
 }
 \value{
 GR2M model outputs for each subbasin.

@@ -21,7 +21,7 @@
 #' @import  parallel
 #' @import  lubridate
 Run_GR2MSemiDistr <- function(Data,
-                              Subbasin,
+                              Subbasins,
                               RunIni,
                               RunEnd,
                               Parameters,
@@ -31,7 +31,7 @@ Run_GR2MSemiDistr <- function(Data,
                               Update=FALSE){
 
   # Data=Data
-  # Subbasin=roi
+  # Subbasins=roi
   # RunIni=RunModel.Ini
   # RunEnd=RunModel.End
   # Parameters=Model.Param
@@ -52,11 +52,11 @@ Run_GR2MSemiDistr <- function(Data,
   require(lubridate)
   tic()
 
-  # Load subbasin data
-  area    <- Subbasin@data$Area
-  region  <- Subbasin@data$Region
-  sub.id  <- paste0('GR2M_ID_',Subbasin@data@GR2M_ID)
-  nsub    <- nrow(Subbasin@data)
+  # Load Subbasins data
+  area    <- Subbasins@data$Area
+  region  <- Subbasins@data$Region
+  sub.id  <- paste0('GR2M_ID_',as.vector(Subbasins$GR2M_ID))
+  nsub    <- nrow(Subbasins@data)
 
   # Input data
   Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'),"GMT",
