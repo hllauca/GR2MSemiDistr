@@ -107,10 +107,10 @@ Routing_GR2MSemiDistr <- function(Model,
   Dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
                 as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
                 by='months')
-  Ind    <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
+  Ind  <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
                 which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumEnd)))
 
-  Qsub <- Model$Qsub[Ind,]
+  Qsub <- as.matrix(Model$Qsub[Ind,])
   if(is.null(ncol(Qsub))==TRUE){
     nsub  <- length(Qsub)
     ntime <- 1

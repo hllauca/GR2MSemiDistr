@@ -4,13 +4,13 @@
 \alias{Routing_GR2MSemiDistr}
 \title{Routing simulated monthly streamflows for each subbasin.}
 \usage{
-Routing_GR2MSemiDistr(Model, Subbasin, Dem, AcumIni, AcumEnd,
+Routing_GR2MSemiDistr(Model, Subbasins, Dem, AcumIni, AcumEnd,
   Positions = NULL, Save = FALSE, Update = FALSE)
 }
 \arguments{
 \item{Model}{Model results from Run_GR2MSemiDistr.}
 
-\item{Subbasin}{Subbasin shapefile.}
+\item{Subbasins}{Subbasins shapefile.}
 
 \item{Dem}{Raster DEM.}
 

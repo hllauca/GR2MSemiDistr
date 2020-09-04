@@ -4,12 +4,14 @@
 \alias{Uncertainty_GR2MSemiDistr}
 \title{Uncertainty analysis of GR2M model parameters with the MCMC algorithm.}
 \usage{
-Uncertainty_GR2MSemiDistr(Data, Subbasin, Dem, RunIni, RunEnd, WarmUp,
+Uncertainty_GR2MSemiDistr(Data, Subbasins, Dem, RunIni, RunEnd, WarmUp,
   Parameters, Parameters.Min, Parameters.Max, Niter, IniState = NULL,
   Positions = NULL, MCMC = NULL)
 }
 \arguments{
 \item{Data}{File with input data in airGR format (DatesR,P,E,Q)}
+
+\item{Subbasins}{Subbasins shapefile.}
 
 \item{Dem}{Raster DEM.}
 
@@ -32,8 +34,6 @@ Uncertainty_GR2MSemiDistr(Data, Subbasin, Dem, RunIni, RunEnd, WarmUp,
 \item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default.}
 
 \item{MCMC}{MCMC data in .Rda format.}
-
-\item{Subbasins}{Subbasins shapefile.}
 }
 \value{
 Lower(Q5) and upper (Q95) streamflows uncertanty bounds.
