@@ -1,11 +1,11 @@
 #' Uncertainty analysis of GR2M model parameters with the MCMC algorithm.
 #'
-#' @param Data        File with input data in airGR format (DatesR,P,E,Q)
+#' @param Data        File with input data in airGR format (DatesR,P,E,Q).
 #' @param Subbasins   Subbasins shapefile.
-#' @param Dem          Raster DEM.
+#' @param Dem         Raster DEM filename.
 #' @param RunIni      Initial date of model simulation (in mm/yyyy format).
 #' @param RunEnd      Final date of model simulation (in mm/yyyy format).
-#' @param WarmUp      Number of months for warm-up.
+#' @param WarmUp      Number of months for warm-up. NULL as default.
 #' @param Parameters      GR2M model parameters and correction factor of P and E.
 #' @param Parameters.Min  Minimum values of GR2M model parameters and correction factor of P and E.
 #' @param Parameters.Max  Maximum values of GR2M model parameters and correction factor of P and E.
@@ -28,7 +28,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                                       Dem,
                                       RunIni,
                                       RunEnd,
-                                      WarmUp,
+                                      WarmUp=NULL,
                                       Parameters,
                                       Parameters.Min,
                                       Parameters.Max,
@@ -38,18 +38,17 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                                       MCMC=NULL){
   # Data=Ans1
   # Subbasins=roi
-  # Dem='Subbasins.tif'
-  # RunIni='01/1981'
-  # RunEnd='05/1981'
+  # Dem='Basin.tif'
+  # RunIni='08/1981'
+  # RunEnd='12/1981'
   # WarmUp=2
   # Parameters=BestParam
-  # Parameters.Min=c(1, 0.01, 0.8, 0.8)
-  # Parameters.Max=c(2000, 2, 1.2, 1.2)
+  # Parameters.Min=c(1, 0.01, 0.8, 0.8) # Minimum values for X1, X2, Fpp, and Fpet
+  # Parameters.Max=c(2000, 2, 1.2, 1.2) # Maximum values for X1, X2, Fpp, and Fpet
   # Niter=5
   # IniState=NULL
   # Positions=NULL
   # MCMC=NULL
-
 
   # Load packages
   require(rgdal)
@@ -84,8 +83,13 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                                Save=FALSE)
 
       # Calculate residuals
-      Qobs <- Ans$Qout$obs[-WarmUp:-1]
-      Qsim <- Ans$Qout$sim[-WarmUp:-1]
+      if(is.null(WarmUp)==TRUE){
+        Qobs <- Ans$Qout$obs
+        Qsim <- Ans$Qout$sim
+      }else{
+        Qobs <- Ans$Qout$obs[-WarmUp:-1]
+        Qsim <- Ans$Qout$sim[-WarmUp:-1]
+      }
       mRes <- as.vector(na.omit(Qsim-Qobs))
       return(mRes)
     } # End function
@@ -121,8 +125,13 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                               Regional=FALSE,
                               Update=FALSE,
                               Save=FALSE)
-    Ans[[w]] <- as.matrix(Qmod$Qsub[-WarmUp:-1,])
-    Dates    <- Qmod$Dates[-WarmUp:-1]
+    if(is.null(WarmUp)==TRUE){
+      Ans[[w]] <- as.matrix(Qmod$Qsub)
+      Dates    <- Qmod$Dates
+    }else{
+      Ans[[w]] <- as.matrix(Qmod$Qsub[-WarmUp:-1,])
+      Dates    <- Qmod$Dates[-WarmUp:-1]
+    }
   }
   qsub <- abind(Ans, along=3)
   q5   <- apply(qsub, c(1,2), function(x) quantile(x,0.05))
@@ -139,7 +148,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                               Save=FALSE,
                               Update=FALSE)
 
-  M95 <- list(Qsub=q5,Dates=Dates)
+  M95 <- list(Qsub=q95,Dates=Dates)
   Q95 <- Routing_GR2MSemiDistr(Model=M95,
                                Subbasins=Subbasins,
                                Dem=Dem,
@@ -155,14 +164,14 @@ Uncertainty_GR2MSemiDistr <- function(Data,
   QR95 <- as.data.frame(round(Q95,3))
   colnames(QR5)  <- sub.id
   colnames(QR95) <- sub.id
-  rownames(QR5)  <- as.date(Dates)
-  rownames(QR95) <- as.date(Dates)
+  rownames(QR5)  <- as.Date(Dates)
+  rownames(QR95) <- as.Date(Dates)
   Ans <- list(lower=QR5,
               upper=QR95)
 
   # Show message
   message("Done!")
   toc()
-  return(sens)
+  return(Ans)
 
 } # End (not run)

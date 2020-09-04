@@ -8,7 +8,7 @@
 #' @param DateEnd Final date for subsetting data (in mm/yyyy format).
 #' @param Save   Boolean to save database as textfile. FALSE as default.
 #' @param Update Boolean to extract the last value for updating model. FALSE as default.
-#' @param Positions Cell numbers of subbasins to extract data faster. NULL as default
+#' @param Positions Cell numbers of subbasins to extract data faster. NULL as default.
 #' @param Resolution Resolution to resample gridded-datasets. 0.01 as default.
 #' @param Buffer Factor to create a buffer of subbasins. 1 as default.
 #' @param Members Number of ensemble members for forcasting. NULL as default.

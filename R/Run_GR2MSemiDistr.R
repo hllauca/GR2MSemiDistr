@@ -1,9 +1,10 @@
 #' Run the GR2M model for each subbasins.
 #'
-#' @param Data        File with input data in airGR format (DatesR,P,E,Q)
+#' @param Data        File with input data in airGR format (DatesR,P,E,Q).
 #' @param Subbasins   Subbasins shapefile.
 #' @param RunIni      Initial date of model simulation (in mm/yyyy format).
 #' @param RunEnd      Final date of model simulation (in mm/yyyy format).
+#' @param WarmUp      Number of months for warm-up. NULL as default.
 #' @param Parameters  GR2M model parameters and correction factor of P and E.
 #' @param IniState    Initial GR2M states variables. NULL as default.
 #' @param Regional    Logical value to simulate in a regional mode (more than one outlet). FALSE as default.
@@ -24,6 +25,7 @@ Run_GR2MSemiDistr <- function(Data,
                               Subbasins,
                               RunIni,
                               RunEnd,
+                              WarmUp=NULL,
                               Parameters,
                               IniState=NULL,
                               Regional=FALSE,
@@ -198,9 +200,19 @@ Run_GR2MSemiDistr <- function(Data,
   if(nsub==1){
     Qsub <- as.data.frame(matrix(round(qsub,3), ncol=1, nrow=length(qsub)))
     Prod <- as.data.frame(matrix(round(prod,3), ncol=1, nrow=length(prod)))
+    if(is.null(WarmUp)==FALSE){
+      Qsub <- Qsub[-WarmUp:-1]
+      Prod <- Prod[-WarmUp:-1]
+      Dates <- Dates[-WarmUp:-1]
+    }
   }else{
     Qsub <- as.data.frame(round(qsub,3))
     Prod <- as.data.frame(round(prod,3))
+    if(is.null(WarmUp)==FALSE){
+      Qsub <- Qsub[-WarmUp:-1,]
+      Prod <- Prod[-WarmUp:-1,]
+      Dates <- Dates[-WarmUp:-1]
+    }
   }
   colnames(Qsub) <- sub.id
   rownames(Qsub) <- Dates
@@ -211,7 +223,10 @@ Run_GR2MSemiDistr <- function(Data,
   if(Regional==FALSE){
     Qout <- data.frame(sim=round(qout,3),
                        obs=round(Database$Q,3))
-    rownames(Qout) <- format(Database$DatesR,'%Y-%m-%d')
+    if(is.null(WarmUp)==FALSE){
+      Qout <- Qout[-WarmUp:-1,]
+    }
+    rownames(Qout) <- Dates
     Ans <- list(Qout=Qout,
                 Qsub=Qsub,
                 SM=Prod,
