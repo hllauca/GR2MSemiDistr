@@ -92,9 +92,8 @@ Create_Forcing_Inputs <- function(Subbasins,
   }
 
   # Load subbasin data
-  sub.id <- paste0('GR2M_ID_',Subbasin@data@GR2M_ID)
+  sub.id <- paste0('GR2M_ID_',as.vector(Subbasins$GR2M_ID))
   nsub   <- nrow(Subbasin@data)
-
 
   # Extract monthly precipitation data for each subbasin
   # Show message
