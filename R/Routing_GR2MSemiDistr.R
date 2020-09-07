@@ -3,8 +3,8 @@
 #' @param Model        Model results from Run_GR2MSemiDistr.
 #' @param Subbasins		 Subbasins shapefile.
 #' @param Dem          Raster DEM.
-#' @param AcumIni      Initial date for accumulation (in mm/yyyy format).
-#' @param AcumEnd      Final date for accumulation (in mm/yyyy format).
+#' @param AcumIni      Initial date for accumulation (in mm/yyyy format). NULL as default
+#' @param AcumEnd      Final date for accumulation (in mm/yyyy format). NULL as default
 #' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
 #' @param Save         Boolean to results as text file. FALSE as default.
 #' @param Update       Boolean to update a previous accumulation file. FALSE as default.
@@ -20,8 +20,8 @@
 Routing_GR2MSemiDistr <- function(Model,
                                   Subbasins,
                                   Dem,
-                                  AcumIni,
-                                  AcumEnd,
+                                  AcumIni=NULL,
+                                  AcumEnd=NULL,
                                   Positions=NULL,
                                   Save=FALSE,
                                   Update=FALSE){
@@ -104,13 +104,18 @@ Routing_GR2MSemiDistr <- function(Model,
   file.remove('X.tif')
 
   # Streamflow accumulation with WFAC
-  Dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
-                as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
-                by='months')
-  Ind  <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
+  if(is.null(AcumIni)==TRUE & is.null(AcumIni)==TRUE){
+    Qsub  <- as.matrix(Model$Qsub)
+    Dates <- Model$Dates
+  }else{
+    Dates  <- seq(as.Date(paste0('01/',AcumIni), format='%d/%m/%Y'),
+                  as.Date(paste0('01/',AcumEnd), format='%d/%m/%Y'),
+                  by='months')
+    Ind  <- seq(which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumIni)),
                 which(format(as.Date(Model$Dates),'%d/%m/%Y')==paste0('01/',AcumEnd)))
 
-  Qsub <- as.matrix(Model$Qsub[Ind,])
+    Qsub <- as.matrix(Model$Qsub[Ind,])
+  }
   if(is.null(ncol(Qsub))==TRUE){
     nsub  <- length(Qsub)
     ntime <- 1
