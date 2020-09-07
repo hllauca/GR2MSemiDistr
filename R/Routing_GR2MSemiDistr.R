@@ -220,7 +220,7 @@ Routing_GR2MSemiDistr <- function(Model,
 
   Ans <- as.data.frame(Qrou)
   colnames(Ans) <- Model$GR2M_ID
-  if(length(unique(Dates))!=1){
+  if(is.null(AcumIni)==FALSE & is.null(AcumIni)==FALSE){
     rownames(Ans) <- Dates
   }
   message('Done!')
