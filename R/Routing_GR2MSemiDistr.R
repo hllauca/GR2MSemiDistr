@@ -220,7 +220,9 @@ Routing_GR2MSemiDistr <- function(Model,
 
   Ans <- as.data.frame(Qrou)
   colnames(Ans) <- Model$GR2M_ID
-  rownames(Ans) <- Dates
+  if(length(unique(Dates))!=1){
+    rownames(Ans) <- Dates
+  }
   message('Done!')
   setwd(loc)
   toc()
