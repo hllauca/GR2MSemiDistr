@@ -36,6 +36,7 @@ Run_GR2MSemiDistr <- function(Data,
   # Subbasins=roi
   # RunIni=RunModel.Ini
   # RunEnd=RunModel.End
+  # WarmUp=NULL
   # Parameters=Model.Param
   # IniState=NULL
   # Regional=FALSE
@@ -154,9 +155,21 @@ Run_GR2MSemiDistr <- function(Data,
                                      warnings=FALSE)
     } else{
       # Set-up running options
+      IniStates <- CreateIniStates(FUN_MOD=RunModel_GR2M,
+                                   InputsModel=InputsModel,
+                                   ProdStore=IniState[[i]]$Store$Prod,
+                                   RoutStore=IniState[[i]]$Store$Rout,
+                                   ExpStore=IniState[[i]]$Store$Exp,
+                                   UH1=IniState[[i]]$UH$UH1,
+                                   UH2=IniState[[i]]$UH$UH2,
+                                   GCemaNeigeLayers=NULL,
+                                   eTGCemaNeigeLayers=NULL,
+                                   GthrCemaNeigeLayers=NULL,
+                                   GlocmaxCemaNeigeLayers=NULL)
+
       RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
                                      InputsModel=InputsModel,
-                                     IniStates=IniState[[i]],
+                                     IniStates=IniStates,
                                      IndPeriod_Run=1:ntime,
                                      verbose=FALSE,
                                      warnings=FALSE)
