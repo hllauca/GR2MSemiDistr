@@ -9,25 +9,25 @@ Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
   Update = FALSE)
 }
 \arguments{
-\item{Data}{File with input data in airGR format (DatesR,P,E,Q).}
+\item{Data}{Database in airGR format (DatesR,P,E,Q).}
 
 \item{Subbasins}{Subbasins shapefile.}
 
-\item{RunIni}{Initial date of model simulation (in mm/yyyy format).}
+\item{RunIni}{Initial date for model simulation (in mm/yyyy format).}
 
-\item{RunEnd}{Final date of model simulation (in mm/yyyy format).}
+\item{RunEnd}{Final date for model simulation (in mm/yyyy format).}
 
 \item{WarmUp}{Number of months for warm-up. NULL as default.}
 
-\item{Parameters}{GR2M model parameters and correction factor of P and E.}
+\item{Parameters}{Model parameters and correction factor of P and E.}
 
-\item{IniState}{Initial GR2M states variables. NULL as default.}
+\item{IniState}{Initial states variables. NULL as default.}
 
-\item{Regional}{Logical value to simulate in a regional mode (more than one outlet). FALSE as default.}
+\item{Regional}{Boolean to simulate in a regional mode (more than one hydrological station). FALSE as default.}
 
-\item{Save}{Logical valute to export simulation results as '.Rda'. TRUE as default.}
+\item{Save}{Boolean to save outputs as text files. FALSE as default.}
 
-\item{Update}{Logical value to update a previous outputs text files. FALSE as default.}
+\item{Update}{Bollean to update previous outputs text files. FALSE as default.}
 }
 \value{
 GR2M model outputs for each subbasin.

@@ -1,26 +1,27 @@
-#' Prepare model data inputs in airGR format.
+#' Prepare model inputs at subbasin scales in airGR format from gridded datasets.
 #'
 #' @param Subbasins Subbasins shapefile.
-#' @param Precip  Netcdf filename for precipitation dataset.
-#' @param PotEvap Netcdf filename for potential evapotranspiration dataset.
+#' @param Precip  Netcdf file for precipitation (in mm/month).
+#' @param PotEvap Netcdf file for potential evapotranspiration (in mm/month).
 #' @param Qobs Observed streamflow (in m3/s). NULL as default.
-#' @param DateIni Initial date for subsetting data (in mm/yyyy format).
-#' @param DateEnd Final date for subsetting data (in mm/yyyy format).
+#' @param DateIni Initial date of the data (in mm/yyyy format).
+#' @param DateEnd Final date of the data (in mm/yyyy format).
 #' @param Save   Boolean to save database as textfile. FALSE as default.
-#' @param Update Boolean to extract the last value for updating model. FALSE as default.
-#' @param Positions Cell numbers of subbasins to extract data faster. NULL as default.
-#' @param Resolution Resolution to resample gridded-datasets. 0.01 as default.
-#' @param Buffer Factor to create a buffer of subbasins. 1 as default.
-#' @param Members Number of ensemble members for forcasting. NULL as default.
-#' @param Horiz Number of months for forcasting. NULL as default.
+#' @param Update Boolean to extract the last values for model updating. FALSE as default.
+#' @param Resolution Resolution to resample gridded data. 0.01 as default.
+#' @param Buffer Multiplicative factor to buffer subbasins extents. 1.1 as default.
+#' @param Members Number of ensemble members for model forcasting. NULL as default.
+#' @param Horiz Number of months for model forcasting. NULL as default.
 
-#' @return Return a dataframe with data inputs in airGR format (DatesR,P,Ep,Q).
+#' @return Return a dataframe with datavase in airGR format (DatesR,P,E,Q).
 #' @export
-#' @import  rgdal
-#' @import  raster
-#' @import  rgeos
-#' @import  tictoc
-#' @import  parallel
+#' @import rgdal
+#' @import raster
+#' @import rgeos
+#' @import tictoc
+#' @import parallel
+#' @import exactextractr
+#' @import sf
 Create_Forcing_Inputs <- function(Subbasins,
                                   Precip,
                                   PotEvap,
@@ -29,9 +30,8 @@ Create_Forcing_Inputs <- function(Subbasins,
                                   DateEnd,
                                   Save=FALSE,
                                   Update=FALSE,
-                                  Positions=NULL,
                                   Resolution=0.01,
-                                  Buffer=1,
+                                  Buffer=1.1,
                                   Members=NULL,
                                   Horiz=NULL){
 
@@ -43,38 +43,98 @@ Create_Forcing_Inputs <- function(Subbasins,
   # DateEnd=RunModel.End
   # Save=FALSE
   # Update=FALSE
-  # Positions=NULL
   # Resolution=0.01
-  # Buffer=1
+  # Buffer=1.1
   # Members=NULL
   # Horiz=NULL
 
-  # Load packages
+  # Load required packages
   require(rgdal)
   require(raster)
   require(rgeos)
-  require(tictoc)
   require(parallel)
+  require(exactextractr)
+  require(sf)
+  require(tictoc)
   tic()
 
-  # Functions adopted from Cesar Aybar
-  generate_mask_geom<-function(cov, geom){
-    specialcov=cov
-    specialcov[]=1:ncell(cov)
-    Position_rowcol<-function(i){
-      quad1<-unlist(raster::extract(specialcov,geom[i,],small=T))
-    }
-    position<-lapply(1:length(geom),Position_rowcol)
-    return(position)
-  }
+  # Load subbasin data
+  roi   <- st_as_sf(Subbasins)
+  comid <- as.vector(roi$GR2M_ID)
+  nsub  <- nrow(comid@data)
 
-  mask_Fast_Extract <- function(cov, positionP, fun=mean, na.rm=T){
-    matrix_R <- t(as.matrix(cov))
-    sapply(1:length(positionP), function(i){
-      Value  <- matrix_R[positionP[[i]]]
-      fun(Value, na.rm=na.rm)
+  # Extract monthly precipitation data for each subbasin
+  # Show message
+  cat('\f')
+  message('Calculating monthly mean-areal precipitation [mm]')
+  message('Please wait...')
+
+    # Read precipitation data
+    pr <- brick(Precip)
+    if(Update==TRUE){
+      pr <- pr[[nlayers(pr)]]
+    }
+
+    # Buffer subbasins and resample raster
+    pr_buf      <- crop(pr, extent(roi)*Buffer)
+    pr_res      <- raster(extent(pr_buf[[1]]))
+    crs(pr_res) <- crs(pr_buf)
+    res(pr_res) <- Resolution
+
+    # Mean-areal precipitation for each subbasin
+    cl=makeCluster(detectCores()-1)
+    clusterEvalQ(cl,c(library(exactextractr)))
+    clusterExport(cl, varlist=c("pr_buf","pr_res","roi"), envir=environment())
+    pr_mean <- parLapply(cl, 1:nlayers(pr_buf), function(z) {
+      res <- resample(pr_buf[[z]], pr_res, method='ngb')
+      ans <- as.numeric(exact_extract(res, roi[z,], fun='mean'))
+      return(ans)
     })
-  }
+    if(Update==TRUE){
+      pr_mean <- round(unlist(pr_mean),1)
+      pr_mean <- matrix(pr_mean, ncol=length(pr_mean))
+    }else{
+      pr_mean <- do.call(rbind, pr_mean)
+      pr_mean <- round(pr_mean,1)
+    }
+
+
+  # Extract monthly mean-areal potential evapotranspiration
+  # Show message
+  cat('\f')
+  message('Calcutaling monthly mean-areal pot. evapotranspiration [mm]')
+  message('Please wait...')
+
+    # Read potential evapotranspiration data
+    pe <- brick(PotEvap)
+    if(Update==TRUE){
+      pe <- pe[[nlayers(pe)]]
+    }
+
+    # Buffer subbasins and resample raster
+    pe_buf      <- crop(pe, extent(roi)*Buffer)
+    pe_res      <- raster(extent(pe_buf[[1]]))
+    crs(pe_res) <- crs(pe_buf)
+    res(pe_res) <- Resolution
+
+    # Mean-areal evapotranspiration for each subbasin
+    cl=makeCluster(detectCores()-1)
+    clusterEvalQ(cl,c(library(exactextractr)))
+    clusterExport(cl, varlist=c("pe_buf","pe_res","roi"), envir=environment())
+    pe_mean <- parLapply(cl, 1:nlayers(pe_buf), function(z) {
+      res <- resample(pe_buf[[z]], pe_res, method='ngb')
+      ans <- as.numeric(exact_extract(res, roi[z,], fun='mean'))
+      return(ans)
+    })
+    stopCluster(cl) #Close the cluster
+    if(Update==TRUE){
+      pe_mean <- round(unlist(pe_mean),1)
+      pe_mean <- matrix(pe_mean,ncol=length(pe_mean))
+    }else{
+      pe_mean <- do.call(rbind, pe_mean)
+      pe_mean <- round(pe_mean,1)
+    }
+
 
   # Create a vector of dates
   if(Update==TRUE){
@@ -91,137 +151,23 @@ Create_Forcing_Inputs <- function(Subbasins,
     }
   }
 
-  # Load subbasin data
-  sub.id <- paste0('GR2M_ID_',as.vector(Subbasins$GR2M_ID))
-  nsub   <- nrow(Subbasins@data)
-
-  # Extract monthly precipitation data for each subbasin
-  # Show message
-  cat('\f')
-  message('Calculating areal monthly precipitation [mm]')
-  message('Please wait...')
-
-  # Read precipitation data
-  pp <- brick(Precip)
-  if(Update==TRUE){
-    pp <- pp[[nlayers(pp)]]
-  }
-
-  # Crop for basin domain
-  pp.crop <- crop(pp, extent(Subbasins)*Buffer)
-
-  # Mask for resampling using 'ngb' method
-  pp.res      <- raster(extent(pp.crop[[1]]))
-  crs(pp.res) <- crs(pp.crop)
-  res(pp.res) <- Resolution
-
-  # Cells within each subbasin
-  if(is.null(Positions)==TRUE){
-    positionPP  <- generate_mask_geom(pp.res[[1]], Subbasins)
-  } else{
-    positionPP  <- Positions$PP
-  }
-
-  # Mean areal rainfall for each subbasin
-  cl=makeCluster(detectCores()-1)
-  clusterEvalQ(cl,c(library(raster)))
-  clusterExport(cl,varlist=c("pp.res","pp.crop","positionPP",
-                             "mask_Fast_Extract"),envir=environment())
-  mean.pp <- parLapply(cl, 1:nlayers(pp.crop), function(z) {
-    res <- resample(pp.crop[[z]], pp.res, method='ngb')
-    ans <- mask_Fast_Extract(cov=res,
-                             positionPP,
-                             fun=mean,
-                             na.rm=T)
-    return(ans)
-  })
-  # stopCluster(cl) #Close the cluster
-  if(Update==TRUE){
-    mean.pp <- round(unlist(mean.pp),1)
-    mean.pp <- matrix(mean.pp,ncol=length(mean.pp))
-  }else{
-    mean.pp <- do.call(rbind, mean.pp)
-    mean.pp <- round(mean.pp[1:length(DatesMonths),],1)
-  }
-
-
-  # Extract monthly potential evapotranspiration for each subbasin
-  # Show message
-  cat('\f')
-  message('Calcutaling areal monthly pot. evapotranspiration [mm]')
-  message('Please wait...')
-
-  # Read potential evapotranspiration data
-  pet      <- brick(PotEvap)
-  if(Update==TRUE){
-    pet <- pet[[nlayers(pet)]]
-  }
-
-  # Crop for basin domain
-  pet.crop <- crop(pet, extent(Subbasins)*Buffer)
-
-  # Mask for resampling using 'ngb' method
-  pet.res      <- raster(extent(pet.crop[[1]]))
-  crs(pet.res) <- crs(pet.crop)
-  res(pet.res) <- Resolution
-
-  # Cells within each subbasin
-  # Cells within each subbasin
-  if(is.null(Positions)==TRUE){
-    positionPET  <- generate_mask_geom(pet.res[[1]], Subbasins)
-  } else{
-    positionPET  <- Positions$PET
-  }
-
-  # Mean areal evapotranspiration for each subbasin
-  clusterEvalQ(cl,c(library(raster)))
-  clusterExport(cl,varlist=c("pet.res","pet.crop","positionPET",
-                             "mask_Fast_Extract"),envir=environment())
-
-  mean.pet <- parLapply(cl, 1:nlayers(pet.crop), function(z) {
-    res <- raster::resample(pet.crop[[z]], pet.res, method='ngb')
-    ans <- mask_Fast_Extract(cov=res,
-                             positionPET,
-                             fun=mean,
-                             na.rm=T)
-    return(ans)
-  })
-  stopCluster(cl) #Close the cluster
-  if(Update==TRUE){
-    mean.pet <- round(unlist(mean.pet),1)
-    mean.pet <- matrix(mean.pet,ncol=length(mean.pet))
-  }else{
-    mean.pet <- do.call(rbind, mean.pet)
-    mean.pet <- round(mean.pet[1:length(DatesMonths),],1)
-  }
-
-  # Export results in airGR format
+  # Prepare database in airGR format
   if(is.null(Qobs)==TRUE){
-    Ans <- data.frame(DatesMonths, round(mean.pp,1), round(mean.pet,1))
-    colnames(Ans) <- c('DatesR', paste0('P_',sub.id), paste0('E_',sub.id))
-  } else{
-    # Subsetting streamflow data
-    Ind_Obs <- seq(which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == Ini),
-                   which(format(as.Date(Qobs[,1], tryFormats=c('%d/%m/%Y','%Y/%m/%d','%d-%m-%Y','%Y-%m-%d')), "%d/%m/%Y") == End))
-    qobs <- Qobs[Ind_Obs,2]
-    Ans  <- data.frame(DatesMonths, round(mean.pp,1), round(mean.pet,1), round(qobs,3))
-    colnames(Ans) <- c('DatesR', paste0('P_',sub.id), paste0('E_',sub.id), 'Q')
+    Ans           <- data.frame(DatesMonths, round(pr_mean,1), round(pe_mean,1))
+    colnames(Ans) <- c('DatesR', paste0('P_',comid), paste0('E_',comid))
+  }else{
+    qm_obs        <- Qobs[,2]
+    Ans           <- data.frame(DatesMonths, round(pr_mean,1), round(pe_mean,1), round(qm_obs,3))
+    colnames(Ans) <- c('DatesR', paste0('P_',comid), paste0('E_',comid), 'Q')
   }
 
-  # Saving data as text file
+  # Save database as textfile
   if(Save==TRUE){
-    dir.create(file.path(getwd(),'Inputs'))
-    write.table(Ans, file=file.path(getwd(),'Inputs','Inputs_model.txt'),
-                sep='\t', col.names=TRUE, row.names=FALSE)
+    dir.create('./Inputs')
+    write.table(Ans, file='./Inputs/Inputs_model.txt', sep='\t', col.names=TRUE, row.names=FALSE)
   }
 
-  # Saving positions
-  if(is.null(Positions)==TRUE){
-    Positions_Dat <- list(PP=positionPP, PET=positionPET)
-    save(Positions_Dat, file=file.path(getwd(),'Inputs','Positions_Dat.Rda'))
-  }
-
-  # End
+  # Final message
   message('Done!')
   toc()
   return(Ans)

@@ -1,15 +1,15 @@
 #' Run the GR2M model for each subbasins.
 #'
-#' @param Data        File with input data in airGR format (DatesR,P,E,Q).
+#' @param Data        Database in airGR format (DatesR,P,E,Q).
 #' @param Subbasins   Subbasins shapefile.
-#' @param RunIni      Initial date of model simulation (in mm/yyyy format).
-#' @param RunEnd      Final date of model simulation (in mm/yyyy format).
+#' @param RunIni      Initial date for model simulation (in mm/yyyy format).
+#' @param RunEnd      Final date for model simulation (in mm/yyyy format).
 #' @param WarmUp      Number of months for warm-up. NULL as default.
-#' @param Parameters  GR2M model parameters and correction factor of P and E.
-#' @param IniState    Initial GR2M states variables. NULL as default.
-#' @param Regional    Logical value to simulate in a regional mode (more than one outlet). FALSE as default.
-#' @param Save        Logical valute to export simulation results as '.Rda'. TRUE as default.
-#' @param Update      Logical value to update a previous outputs text files. FALSE as default.
+#' @param Parameters  Model parameters and correction factor of P and E.
+#' @param IniState    Initial states variables. NULL as default.
+#' @param Regional    Boolean to simulate in a regional mode (more than one hydrological station). FALSE as default.
+#' @param Save        Boolean to save outputs as text files. FALSE as default.
+#' @param Update      Bollean to update previous outputs text files. FALSE as default.
 #' @return GR2M model outputs for each subbasin.
 #' @export
 #' @import  rgdal
@@ -43,7 +43,7 @@ Run_GR2MSemiDistr <- function(Data,
   # Save=TRUE
   # Update=FALSE
 
-  # Load packages
+  # Load required packages
   require(rgdal)
   require(raster)
   require(rgeos)
@@ -55,30 +55,28 @@ Run_GR2MSemiDistr <- function(Data,
   require(lubridate)
   tic()
 
-  # Load Subbasins data
-  area    <- Subbasins@data$Area
-  region  <- Subbasins@data$Region
-  sub.id  <- paste0('GR2M_ID_',as.vector(Subbasins$GR2M_ID))
-  nsub    <- nrow(Subbasins@data)
+  # Load subbasins data
+  area   <- Subbasins@data$Area
+  region <- Subbasins@data$Region
+  comid  <- as.vector(Subbasins$GR2M_ID)
+  nsub   <- nrow(Subbasins@data)
 
-  # Input data
-  Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'),"GMT",
-                            tryFormats=c("%Y-%m-%d","%Y/%m/%d",
-                                         "%d-%m-%Y","%d/%m/%Y"))
+  # Subsetting input data
+  Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'),"GMT", tryFormats=c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y"))
   Ind_run     <- seq(which(format(Data$DatesR, format="%m/%Y")==RunIni),
                      which(format(Data$DatesR, format="%m/%Y")==RunEnd))
   Database    <- Data[Ind_run,]
-  ntime       <- length(Ind_run)
   Dates       <- as.Date(Database$DatesR)
+  ntime       <- length(Ind_run)
 
-  # GR2M model parameters
+  # Sort model parameters
   Zone  <- sort(unique(region))
   nreg  <- length(Zone)
   Param <- data.frame(Region=sort(unique(region)),
                       X1=Parameters[1:nreg],
                       X2=Parameters[(nreg+1):(2*nreg)],
                       Fpp=Parameters[(2*nreg+1):(3*nreg)],
-                      Fpet=Parameters[(3*nreg+1):length(Parameters)])
+                      Fpe=Parameters[(3*nreg+1):length(Parameters)])
 
   # Useful functions
   Subset_Param <- function(Param, Region){
@@ -86,10 +84,9 @@ Run_GR2MSemiDistr <- function(Data,
                   subset(Param$X2, Param$Region==Region))
     return(ParamSub)
   }
-
   Forcing_Subbasin <- function(Param, Region, Database, Nsub, ID){
     FactorPP  <- subset(Param$Fpp, Param$Region==Region)
-    FactorPET <- subset(Param$Fpet, Param$Region==Region)
+    FactorPET <- subset(Param$Fpe, Param$Region==Region)
     Inputs    <- Database[,c(1,ID+1,ID+1+Nsub)]
     FixInputs <- data.frame(DatesR=Inputs[,1],
                             P=round(FactorPP*Inputs[,2],1),
@@ -99,7 +96,6 @@ Run_GR2MSemiDistr <- function(Data,
                                                 "%d-%m-%Y","%d/%m/%Y"))
     return(FixInputs)
   }
-
   numberOfDays <- function(date) {
     m <- format(date, format="%m")
     while (format(date, format="%m")==m) {
@@ -108,7 +104,7 @@ Run_GR2MSemiDistr <- function(Data,
     return(as.integer(format(date-1,format="%d")))
   }
 
-  # Number of days in a month (to convert mm to m3/s)
+  # Number of days in a month (convert mm to m3/s)
   nDays <- c()
   for(i in 1:ntime){
     nDays[i] <- numberOfDays(as.Date(Database$DatesR)[i])
@@ -119,165 +115,215 @@ Run_GR2MSemiDistr <- function(Data,
   message(paste('Running GR2M model for', nsub, 'subbasins'))
   message('Please wait...')
 
-  # Open cluster
-  cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-  clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR),library(lubridate))) # Load package to each node
-  clusterExport(cl,varlist=c("Param","region","nsub","Database",
-                             "ntime","IniState","Subset_Param",
-                             "Forcing_Subbasin"),envir=environment())
-
-  # Run GR2M
-  ResModel <- parLapply(cl, 1:nsub, function(i) {
-
-    # Parameters and factors to run the model
-    ParamSub  <- Subset_Param(Param, region[i])
-    FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
-    if(ntime==1){
-      NewDate   <- as.POSIXct(floor_date(FixInputs$DatesR+months(1),"month"))
-      NewStep   <- data.frame(DatesR=NewDate, P=100, E=100)
-      FixInputs <- rbind(FixInputs,NewStep)
-    }
-
-    # Prepare model inputs
-    InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
-                                     DatesR=FixInputs$DatesR,
-                                     Precip=FixInputs$P,
-                                     PotEvap=FixInputs$E)
-
-    # Run GR2M model by an specific initial conditions
-    if(is.null(IniState)==TRUE){
-
-      # Set-up running options
-      RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
-                                     InputsModel=InputsModel,
-                                     IndPeriod_Run=1:ntime,
-                                     verbose=FALSE,
-                                     warnings=FALSE)
-    } else{
-      # Set-up running options
-      IniStates <- CreateIniStates(FUN_MOD=RunModel_GR2M,
-                                   InputsModel=InputsModel,
-                                   ProdStore=IniState[[i]]$Store$Prod,
-                                   RoutStore=IniState[[i]]$Store$Rout,
-                                   ExpStore=IniState[[i]]$Store$Exp,
-                                   UH1=IniState[[i]]$UH$UH1,
-                                   UH2=IniState[[i]]$UH$UH2,
-                                   GCemaNeigeLayers=NULL,
-                                   eTGCemaNeigeLayers=NULL,
-                                   GthrCemaNeigeLayers=NULL,
-                                   GlocmaxCemaNeigeLayers=NULL)
-
-      RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
-                                     InputsModel=InputsModel,
-                                     IniStates=IniStates,
-                                     IndPeriod_Run=1:ntime,
-                                     verbose=FALSE,
-                                     warnings=FALSE)
-    }
+    # Open cluster
+    cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
+    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR),library(lubridate))) # Load package to each node
+    clusterExport(cl,varlist=c("Param","region","nsub","Database",
+                               "ntime","IniState","Subset_Param",
+                               "Forcing_Subbasin"),envir=environment())
 
     # Run GR2M
-    OutputsModel <- RunModel(InputsModel=InputsModel,
-                             RunOptions=RunOptions,
-                             Param=ParamSub,
-                             FUN=RunModel_GR2M)
+    ResModel <- parLapply(cl, 1:nsub, function(i) {
 
-    return(OutputsModel)
-  })
+      # Parameters and factors to run the model
+      ParamSub  <- Subset_Param(Param, region[i])
+      FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
+      if(ntime==1){
+        NewDate   <- as.POSIXct(floor_date(FixInputs$DatesR+months(1),"month"))
+        NewStep   <- data.frame(DatesR=NewDate, P=100, E=100)
+        FixInputs <- rbind(FixInputs,NewStep)
+      }
 
-  # Close cluster
-  stopCluster(cl)
+      # Prepare model inputs
+      InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
+                                       DatesR=FixInputs$DatesR,
+                                       Precip=FixInputs$P,
+                                       PotEvap=FixInputs$E)
 
-  # Model results
+      # Run GR2M model by an specific initial conditions
+      if(is.null(IniState)==TRUE){
+
+        # Set-up running options
+        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
+                                       InputsModel=InputsModel,
+                                       IndPeriod_Run=1:ntime,
+                                       verbose=FALSE,
+                                       warnings=FALSE)
+      } else{
+        # Set-up running options
+        IniStates <- CreateIniStates(FUN_MOD=RunModel_GR2M,
+                                     InputsModel=InputsModel,
+                                     ProdStore=IniState[[i]]$Store$Prod,
+                                     RoutStore=IniState[[i]]$Store$Rout,
+                                     ExpStore=IniState[[i]]$Store$Exp,
+                                     UH1=IniState[[i]]$UH$UH1,
+                                     UH2=IniState[[i]]$UH$UH2,
+                                     GCemaNeigeLayers=NULL,
+                                     eTGCemaNeigeLayers=NULL,
+                                     GthrCemaNeigeLayers=NULL,
+                                     GlocmaxCemaNeigeLayers=NULL)
+
+        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
+                                       InputsModel=InputsModel,
+                                       IniStates=IniStates,
+                                       IndPeriod_Run=1:ntime,
+                                       verbose=FALSE,
+                                       warnings=FALSE)
+      }
+      # Run GR2M
+      OutputsModel <- RunModel(InputsModel=InputsModel,
+                               RunOptions=RunOptions,
+                               Param=ParamSub,
+                               FUN=RunModel_GR2M)
+
+      return(OutputsModel)
+    })
+    # Close cluster
+    stopCluster(cl)
+
+
+  # Read model results for each subbasin
   if(nsub==1){
-    prod <- ResModel[[1]]$Prod
-    qsub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
-    qout <- qsub
     EndState <- list(ResModel[[1]]$StateEnd)
-  }else{
-    Plist <- list()
-    Qlist <- list()
-    for(w in 1:nsub){
-      Plist[[w]] <- ResModel[[w]]$Prod
-      Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)
+    pr <- matrix(ResModel[[1]]$Precip, ncol=1, nrow=ntime)
+    ae <- matrix(ResModel[[1]]$AE, ncol=1, nrow=ntime)
+    sm <- matrix(ResModel[[1]]$Prod, ncol=1, nrow=ntime)
+    ru <- matrix(ResModel[[1]]$Qsim, ncol=1, nrow=ntime)
+    qs <- (area[1]*ru)/(86.4*nDays)
+    qt <- qs
+    if(is.null(WarmUp)==FALSE){
+      pr <- pr[-WarmUp:-1]
+      ae <- ae[-WarmUp:-1]
+      sm <- sm[-WarmUp:-1]
+      ru <- ru[-WarmUp:-1]
+      qs <- qs[-WarmUp:-1]
+      qt <- qt[-WarmUp:-1]
+      Dates <- Dates[-WarmUp:-1]
     }
-    prod <- do.call(cbind, Plist)
-    qsub <- do.call(cbind, Qlist)
-    qout <- round(apply(qsub, 1, FUN=sum),2)
+  }else{
     EndState <- list()
+    PRlist <- list()
+    AElist <- list()
+    SMlist <- list()
+    RUlist <- list()
+    QSlist <- list()
     for(w in 1:nsub){
       EndState[[w]] <- ResModel[[w]]$StateEnd
+      PRlist[[w]]   <- ResModel[[w]]$Precip
+      AElist[[w]]   <- ResModel[[w]]$AE
+      SMlist[[w]]   <- ResModel[[w]]$Prod
+      RUlist[[w]]   <- ResModel[[w]]$Qsim
+      QSlist[[w]]   <- (area[w]*RUlist[[w]])/(86.4*nDays)
+    }
+    pr <- do.call(cbind, PRlist)
+    ae <- do.call(cbind, AElist)
+    sm <- do.call(cbind, SMlist)
+    ru <- do.call(cbind, RUlist)
+    qs <- do.call(cbind, QSlist)
+    qt <- round(apply(qs,1,FUN=sum),2)
+    if(is.null(WarmUp)==FALSE){
+      pr <- pr[-WarmUp:-1,]
+      ae <- ae[-WarmUp:-1,]
+      sm <- sm[-WarmUp:-1,]
+      ru <- ru[-WarmUp:-1,]
+      qs <- qs[-WarmUp:-1,]
+      qt <- qt[-WarmUp:-1]
+      Dates <- Dates[-WarmUp:-1]
     }
   }
 
-  # Subset model results (exclude warm-up)
-  if(nsub==1){
-    Qsub <- as.data.frame(matrix(round(qsub,3), ncol=1, nrow=length(qsub)))
-    Prod <- as.data.frame(matrix(round(prod,3), ncol=1, nrow=length(prod)))
-    if(is.null(WarmUp)==FALSE){
-      Qsub <- Qsub[-WarmUp:-1]
-      Prod <- Prod[-WarmUp:-1]
-      Dates <- Dates[-WarmUp:-1]
-    }
-  }else{
-    Qsub <- as.data.frame(round(qsub,3))
-    Prod <- as.data.frame(round(prod,3))
-    if(is.null(WarmUp)==FALSE){
-      Qsub <- Qsub[-WarmUp:-1,]
-      Prod <- Prod[-WarmUp:-1,]
-      Dates <- Dates[-WarmUp:-1]
-    }
-  }
-  colnames(Qsub) <- sub.id
-  rownames(Qsub) <- Dates
-  colnames(Prod) <- sub.id
-  rownames(Prod) <- Dates
-
-  # Local mode
+  # Local mode - simulation with a unique hydrological station
   if(Regional==FALSE){
-    Qout <- data.frame(sim=round(qout,3),
-                       obs=round(Database$Q,3))
+    sink <- data.frame(sim=round(qt,3),obs=round(Database$Q,3))
     if(is.null(WarmUp)==FALSE){
-      Qout <- Qout[-WarmUp:-1,]
+      sink <- sink[-WarmUp:-1,]
     }
     rownames(Qout) <- Dates
-    Ans <- list(Qout=Qout,
-                Qsub=Qsub,
-                SM=Prod,
+    Ans <- list(SINK=sink,
+                QS=qs,
+                RU=ru,
+                PR=pr,
+                AE=ae,
+                SM=sm,
                 Dates=Dates,
-                GR2M_ID=sub.id,
-                EndState=EndState)
-  }else{
-    Ans <- list(Qsub=Qsub,
-                SM=Prod,
-                Dates=Dates,
-                GR2M_ID=sub.id,
+                COMID=comid,
                 EndState=EndState)
   }
 
-  # Save results
+  # Regional mode - simulation with more than one hydrological station
+  if(Regional==TRUE){
+    Ans <- list(SINK=sink,
+                QS=qs,
+                RU=ru,
+                PR=pr,
+                AE=ae,
+                SM=sm,
+                Dates=Dates,
+                COMID=comid,
+                EndState=EndState)
+  }
+
+
+  # Save model results
   if(Save==TRUE){
-
-    # Create output folder
-    dir.create(file.path(getwd(),'Outputs'), recursive=T, showWarnings=F)
-
-    # Save dataframes
+    dir.create('./Outputs', recursive=T, showWarnings=F)
     if(Update==TRUE){
-      MnYr1     <- format(floor_date(Sys.Date()-months(2), "month"),'%b%y')
-      MnYr2     <- format(floor_date(Sys.Date()-months(1), "month"),'%b%y')
-
-      ProdName1 <- paste0('SM_GR2MSemiDistr_',MnYr1,'.txt')
-      ProdName2 <- paste0('SM_GR2MSemiDistr_',MnYr2,'.txt')
-      Prod_Old  <- read.table(file.path(getwd(),'Outputs',ProdName1),
-                              header=TRUE, sep='\t')
-      Prod_New  <- as.data.frame(rbind(as.matrix(Prod_Old),as.matrix(Prod)))
-      colnames(Prod_New) <- sub.id
-      rownames(Prod_New) <- c(as.Date(rownames(Prod_Old)), Dates)
-      write.table(Prod_New, file=file.path(getwd(),'Outputs',ProdName2),sep='\t')
-      file.remove(file.path(getwd(),'Outputs',ProdName1))
+      MnYr1    <- format(floor_date(Sys.Date()-months(2), "month"),'%Y%m')
+      MnYr2    <- format(floor_date(Sys.Date()-months(1), "month"),'%Y%m')
+      PR_name1 <- paste0('PR_GR2MSemiDistr_',MnYr1,'.txt')
+      PR_name2 <- paste0('PR_GR2MSemiDistr_',MnYr2,'.txt')
+      AE_name1 <- paste0('AE_GR2MSemiDistr_',MnYr1,'.txt')
+      AE_name2 <- paste0('AE_GR2MSemiDistr_',MnYr2,'.txt')
+      SM_name1 <- paste0('SM_GR2MSemiDistr_',MnYr1,'.txt')
+      SM_name2 <- paste0('SM_GR2MSemiDistr_',MnYr2,'.txt')
+      RU_name1 <- paste0('RU_GR2MSemiDistr_',MnYr1,'.txt')
+      RU_name2 <- paste0('RU_GR2MSemiDistr_',MnYr2,'.txt')
+      pr_old   <- read.table(paste0('./Outputs/',PR_name1), header=TRUE, sep='\t')
+      ae_old   <- read.table(paste0('./Outputs/',AE_name1), header=TRUE, sep='\t')
+      sm_old   <- read.table(paste0('./Outputs/',SM_name1), header=TRUE, sep='\t')
+      ru_old   <- read.table(paste0('./Outputs/',RU_name1), header=TRUE, sep='\t')
+      pr_new   <- as.data.frame(rbind(as.matrix(pr_old),as.matrix(pr)))
+      ae_new   <- as.data.frame(rbind(as.matrix(ae_old),as.matrix(ae)))
+      sm_new   <- as.data.frame(rbind(as.matrix(sm_old),as.matrix(sm)))
+      ru_new   <- as.data.frame(rbind(as.matrix(ru_old),as.matrix(ru)))
+      colnames(pr_new) <- comid
+      colnames(ae_new) <- comid
+      colnames(sm_new) <- comid
+      colnames(ru_new) <- comid
+      rownames(pr_new) <- c(as.Date(rownames(pr_old)), Dates)
+      rownames(ae_new) <- c(as.Date(rownames(ae_old)), Dates)
+      rownames(sm_new) <- c(as.Date(rownames(sm_old)), Dates)
+      rownames(ru_new) <- c(as.Date(rownames(ru_old)), Dates)
+      write.table(pr_new, file=paste0('./Outputs/',PR_name2), sep='\t')
+      write.table(ae_new, file=paste0('./Outputs/',AE_name2), sep='\t')
+      write.table(sm_new, file=paste0('./Outputs/',SM_name2), sep='\t')
+      write.table(ru_new, file=paste0('./Outputs/',RU_name2), sep='\t')
+      file.remove(paste0('./Outputs/',PR_name1))
+      file.remove(paste0('./Outputs/',AE_name1))
+      file.remove(paste0('./Outputs/',SM_name1))
+      file.remove(paste0('./Outputs/',RU_name1))
     } else{
-      MnYr     <- format(as.Date(paste0('01/',RunEnd),"%d/%m/%Y"),"%b%y")
-      ProdName <- paste0('SM_GR2MSemiDistr_',MnYr,'.txt')
-      write.table(Prod, file=file.path(getwd(),'Outputs',ProdName),sep='\t')
+      MnYr    <- format(as.Date(paste0('01/',RunEnd),"%d/%m/%Y"),"%Y%m")
+      PR_name <- paste0('PR_GR2MSemiDistr_',MnYr,'.txt')
+      AE_name <- paste0('AE_GR2MSemiDistr_',MnYr,'.txt')
+      SM_name <- paste0('SM_GR2MSemiDistr_',MnYr,'.txt')
+      RU_name <- paste0('RU_GR2MSemiDistr_',MnYr,'.txt')
+      pr <- as.data.frame(pr)
+      ae <- as.data.frame(ae)
+      sm <- as.data.frame(sm)
+      ru <- as.data.frame(ru)
+      colnames(pr) <- comid
+      colnames(ae) <- comid
+      colnames(sm) <- comid
+      colnames(ru) <- comid
+      rownames(pr) <- Dates
+      rownames(ae) <- Dates
+      rownames(sm) <- Dates
+      rownames(ru) <- Dates
+      write.table(pr, file=paste0('./Outputs/',PR_name), sep='\t')
+      write.table(ae, file=paste0('./Outputs/',AE_name), sep='\t')
+      write.table(sm, file=paste0('./Outputs/',SM_name), sep='\t')
+      write.table(ru, file=paste0('./Outputs/',RU_name), sep='\t')
     }
   }
   message('Done!')
