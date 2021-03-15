@@ -2,42 +2,40 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Prepare model data inputs in airGR format.}
+\title{Prepare model inputs at subbasin scales in airGR format from gridded datasets.}
 \usage{
 Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
-  DateEnd, Save = FALSE, Update = FALSE, Positions = NULL,
-  Resolution = 0.01, Buffer = 1, Members = NULL, Horiz = NULL)
+  DateEnd, Save = FALSE, Update = FALSE, Resolution = 0.01,
+  Buffer = 1.1, Members = NULL, Horiz = NULL)
 }
 \arguments{
 \item{Subbasins}{Subbasins shapefile.}
 
-\item{Precip}{Netcdf filename for precipitation dataset.}
+\item{Precip}{Netcdf file for precipitation (in mm/month).}
 
-\item{PotEvap}{Netcdf filename for potential evapotranspiration dataset.}
+\item{PotEvap}{Netcdf file for potential evapotranspiration (in mm/month).}
 
 \item{Qobs}{Observed streamflow (in m3/s). NULL as default.}
 
-\item{DateIni}{Initial date for subsetting data (in mm/yyyy format).}
+\item{DateIni}{Initial date of the data (in mm/yyyy format).}
 
-\item{DateEnd}{Final date for subsetting data (in mm/yyyy format).}
+\item{DateEnd}{Final date of the data (in mm/yyyy format).}
 
 \item{Save}{Boolean to save database as textfile. FALSE as default.}
 
-\item{Update}{Boolean to extract the last value for updating model. FALSE as default.}
+\item{Update}{Boolean to extract the last values for model updating. FALSE as default.}
 
-\item{Positions}{Cell numbers of subbasins to extract data faster. NULL as default.}
+\item{Resolution}{Resolution to resample gridded data. 0.01 as default.}
 
-\item{Resolution}{Resolution to resample gridded-datasets. 0.01 as default.}
+\item{Buffer}{Multiplicative factor to buffer subbasins extents. 1.1 as default.}
 
-\item{Buffer}{Factor to create a buffer of subbasins. 1 as default.}
+\item{Members}{Number of ensemble members for model forcasting. NULL as default.}
 
-\item{Members}{Number of ensemble members for forcasting. NULL as default.}
-
-\item{Horiz}{Number of months for forcasting. NULL as default.}
+\item{Horiz}{Number of months for model forcasting. NULL as default.}
 }
 \value{
-Return a dataframe with data inputs in airGR format (DatesR,P,Ep,Q).
+Return a dataframe with datavase in airGR format (DatesR,P,E,Q).
 }
 \description{
-Prepare model data inputs in airGR format.
+Prepare model inputs at subbasin scales in airGR format from gridded datasets.
 }
