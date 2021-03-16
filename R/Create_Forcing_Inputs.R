@@ -60,7 +60,7 @@ Create_Forcing_Inputs <- function(Subbasins,
 
   # Load subbasin data
   roi   <- st_as_sf(Subbasins)
-  comid <- as.vector(roi$GR2M_ID)
+  comid <- as.vector(roi$COMID)
   nsub  <- length(comid)
 
   # Extract monthly precipitation data for each subbasin

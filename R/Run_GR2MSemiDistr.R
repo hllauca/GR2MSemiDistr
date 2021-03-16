@@ -58,7 +58,7 @@ Run_GR2MSemiDistr <- function(Data,
   # Load subbasins data
   area   <- Subbasins@data$Area
   region <- Subbasins@data$Region
-  comid  <- as.vector(Subbasins$GR2M_ID)
+  comid  <- as.vector(Subbasins$COMID)
   nsub   <- nrow(Subbasins@data)
 
   # Subsetting input data
