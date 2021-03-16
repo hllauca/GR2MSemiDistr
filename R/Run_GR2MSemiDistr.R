@@ -115,81 +115,81 @@ Run_GR2MSemiDistr <- function(Data,
   message(paste('Running GR2M model for', nsub, 'subbasins'))
   message('Please wait...')
 
-    # Open cluster
-    cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR),library(lubridate))) # Load package to each node
-    clusterExport(cl,varlist=c("Param","region","nsub","Database",
-                               "ntime","IniState","Subset_Param",
-                               "Forcing_Subbasin"),envir=environment())
+  # Open cluster
+  cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
+  clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR),library(lubridate))) # Load package to each node
+  clusterExport(cl,varlist=c("Param","region","nsub","Database",
+                             "ntime","IniState","Subset_Param",
+                             "Forcing_Subbasin"),envir=environment())
 
-    # Run GR2M
-    ResModel <- parLapply(cl, 1:nsub, function(i) {
+  # Run GR2M
+  ResModel <- parLapply(cl, 1:nsub, function(i) {
 
-      # Parameters and factors to run the model
-      ParamSub  <- Subset_Param(Param, region[i])
-      FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
-      if(ntime==1){
-        NewDate   <- as.POSIXct(floor_date(FixInputs$DatesR+months(1),"month"))
-        NewStep   <- data.frame(DatesR=NewDate, P=100, E=100)
-        FixInputs <- rbind(FixInputs,NewStep)
-      }
+    # Parameters and factors to run the model
+    ParamSub  <- Subset_Param(Param, region[i])
+    FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
+    if(ntime==1){
+      NewDate   <- as.POSIXct(floor_date(FixInputs$DatesR+months(1),"month"))
+      NewStep   <- data.frame(DatesR=NewDate, P=100, E=100)
+      FixInputs <- rbind(FixInputs,NewStep)
+    }
 
-      # Prepare model inputs
-      InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
-                                       DatesR=FixInputs$DatesR,
-                                       Precip=FixInputs$P,
-                                       PotEvap=FixInputs$E)
+    # Prepare model inputs
+    InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
+                                     DatesR=FixInputs$DatesR,
+                                     Precip=FixInputs$P,
+                                     PotEvap=FixInputs$E)
 
-      # Run GR2M model by an specific initial conditions
-      if(is.null(IniState)==TRUE){
+    # Run GR2M model by an specific initial conditions
+    if(is.null(IniState)==TRUE){
 
-        # Set-up running options
-        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
-                                       InputsModel=InputsModel,
-                                       IndPeriod_Run=1:ntime,
-                                       verbose=FALSE,
-                                       warnings=FALSE)
-      } else{
-        # Set-up running options
-        IniStates <- CreateIniStates(FUN_MOD=RunModel_GR2M,
+      # Set-up running options
+      RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
                                      InputsModel=InputsModel,
-                                     ProdStore=IniState[[i]]$Store$Prod,
-                                     RoutStore=IniState[[i]]$Store$Rout,
-                                     ExpStore=IniState[[i]]$Store$Exp,
-                                     UH1=IniState[[i]]$UH$UH1,
-                                     UH2=IniState[[i]]$UH$UH2,
-                                     GCemaNeigeLayers=NULL,
-                                     eTGCemaNeigeLayers=NULL,
-                                     GthrCemaNeigeLayers=NULL,
-                                     GlocmaxCemaNeigeLayers=NULL)
+                                     IndPeriod_Run=1:ntime,
+                                     verbose=FALSE,
+                                     warnings=FALSE)
+    } else{
+      # Set-up running options
+      IniStates <- CreateIniStates(FUN_MOD=RunModel_GR2M,
+                                   InputsModel=InputsModel,
+                                   ProdStore=IniState[[i]]$Store$Prod,
+                                   RoutStore=IniState[[i]]$Store$Rout,
+                                   ExpStore=IniState[[i]]$Store$Exp,
+                                   UH1=IniState[[i]]$UH$UH1,
+                                   UH2=IniState[[i]]$UH$UH2,
+                                   GCemaNeigeLayers=NULL,
+                                   eTGCemaNeigeLayers=NULL,
+                                   GthrCemaNeigeLayers=NULL,
+                                   GlocmaxCemaNeigeLayers=NULL)
 
-        RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
-                                       InputsModel=InputsModel,
-                                       IniStates=IniStates,
-                                       IndPeriod_Run=1:ntime,
-                                       verbose=FALSE,
-                                       warnings=FALSE)
-      }
-      # Run GR2M
-      OutputsModel <- RunModel(InputsModel=InputsModel,
-                               RunOptions=RunOptions,
-                               Param=ParamSub,
-                               FUN=RunModel_GR2M)
+      RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
+                                     InputsModel=InputsModel,
+                                     IniStates=IniStates,
+                                     IndPeriod_Run=1:ntime,
+                                     verbose=FALSE,
+                                     warnings=FALSE)
+    }
+    # Run GR2M
+    OutputsModel <- RunModel(InputsModel=InputsModel,
+                             RunOptions=RunOptions,
+                             Param=ParamSub,
+                             FUN=RunModel_GR2M)
 
-      return(OutputsModel)
-    })
-    # Close cluster
-    stopCluster(cl)
+    return(OutputsModel)
+  })
+  # Close cluster
+  stopCluster(cl)
 
 
   # Read model results for each subbasin
   if(nsub==1){
     EndState <- list(ResModel[[1]]$StateEnd)
-    pr <- matrix(ResModel[[1]]$Precip, ncol=1, nrow=ntime)
-    ae <- matrix(ResModel[[1]]$AE, ncol=1, nrow=ntime)
-    sm <- matrix(ResModel[[1]]$Prod, ncol=1, nrow=ntime)
-    ru <- matrix(ResModel[[1]]$Qsim, ncol=1, nrow=ntime)
-    qs <- (area[1]*ru)/(86.4*nDays)
+    pr <- round(matrix(ResModel[[1]]$Precip, ncol=1, nrow=ntime),1)
+    ae <- round(matrix(ResModel[[1]]$AE, ncol=1, nrow=ntime),1)
+    sm <- round(matrix(ResModel[[1]]$Prod, ncol=1, nrow=ntime),1)
+    ru <- round(matrix(ResModel[[1]]$Qsim, ncol=1, nrow=ntime),1)
+    qs <- round((area[1]*ru)/(86.4*nDays),1)
     qt <- qs
     if(is.null(WarmUp)==FALSE){
       pr <- pr[-WarmUp:-1]
@@ -215,11 +215,11 @@ Run_GR2MSemiDistr <- function(Data,
       RUlist[[w]]   <- ResModel[[w]]$Qsim
       QSlist[[w]]   <- (area[w]*RUlist[[w]])/(86.4*nDays)
     }
-    pr <- do.call(cbind, PRlist)
-    ae <- do.call(cbind, AElist)
-    sm <- do.call(cbind, SMlist)
-    ru <- do.call(cbind, RUlist)
-    qs <- do.call(cbind, QSlist)
+    pr <- round(do.call(cbind, PRlist),1)
+    ae <- round(do.call(cbind, AElist),1)
+    sm <- round(do.call(cbind, SMlist),1)
+    ru <- round(do.call(cbind, RUlist),1)
+    qs <- round(do.call(cbind, QSlist),1)
     qt <- round(apply(qs,1,FUN=sum),2)
     if(is.null(WarmUp)==FALSE){
       pr <- pr[-WarmUp:-1,]
