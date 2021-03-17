@@ -5,7 +5,7 @@
 \title{Routing simulated monthly streamflows for each subbasin.}
 \usage{
 Routing_GR2MSemiDistr(Model, Subbasins, Dem, AcumIni = NULL,
-  AcumEnd = NULL, Positions = NULL, Save = FALSE, Update = FALSE)
+  AcumEnd = NULL, Save = FALSE, Update = FALSE)
 }
 \arguments{
 \item{Model}{Model results from Run_GR2MSemiDistr.}
@@ -17,8 +17,6 @@ Routing_GR2MSemiDistr(Model, Subbasins, Dem, AcumIni = NULL,
 \item{AcumIni}{Initial date for accumulation (in mm/yyyy format). NULL as default}
 
 \item{AcumEnd}{Final date for accumulation (in mm/yyyy format). NULL as default}
-
-\item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default.}
 
 \item{Save}{Boolean to results as text file. FALSE as default.}
 
