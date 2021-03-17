@@ -34,7 +34,7 @@ Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
 \item{Horiz}{Number of months for model forcasting. NULL as default.}
 }
 \value{
-Return a dataframe with datavase in airGR format (DatesR,P,E,Q).
+Return a database in airGR format (DatesR,P,E,Q).
 }
 \description{
 Prepare model inputs at subbasin scales in airGR format from gridded datasets.
