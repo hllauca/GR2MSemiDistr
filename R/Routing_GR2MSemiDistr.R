@@ -96,7 +96,7 @@ Routing_GR2MSemiDistr <- function(Model,
   file.remove('X.tif')
 
   # Subsetting data for routing
-  if(is.null(AcumIni)==TRUE & is.null(AcumEnd)==TRUE | Update==TRUE){
+  if(is.null(AcumIni)==TRUE & is.null(AcumEnd)==TRUE | nrow(Model$QS)==1){
     Dates <- Model$Dates
     QS    <- as.matrix(Model$QS)
   }else{
