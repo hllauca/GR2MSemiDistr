@@ -78,23 +78,6 @@ Routing_GR2MSemiDistr <- function(Model,
       return(centsDF)
     }}
 
-  # Extract cell position for each subbasin (centroid)
-  Weight <- raster(paste0('./Inputs/',Dem))
-  values(Weight) <- 0
-  xycen <- gCentroidWithin(Subbasins)
-  index <- extract(Weight, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
-
-  # Pitremove DEM
-  setwd('./Inputs')
-  system(paste0("mpiexec -n 8 pitremove -z ",Dem," -fel Dem.tif"))
-
-  # Create flow direction raster
-  system("mpiexec -n 8 D8Flowdir -p FDir.tif -sd8 X.tif -fel Dem.tif",
-         show.output.on.console=F,invisible=F)
-  fdr <- raster("FDir.tif")
-  file.remove('Dem.tif')
-  file.remove('X.tif')
-
   # Subsetting data for routing
   if(is.null(AcumIni)==TRUE & is.null(AcumEnd)==TRUE | nrow(Model$QS)==1){
     Dates <- Model$Dates
@@ -115,15 +98,36 @@ Routing_GR2MSemiDistr <- function(Model,
     ntime <- nrow(QS)
   }
 
+  # Extract cell position for each subbasin (centroid)
+  Weight <- raster(paste0('./Inputs/',Dem))
+  values(Weight) <- 0
+  xycen <- gCentroidWithin(Subbasins)
+  index <- extract(Weight, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
+
+  # Pitremove DEM
+  setwd('./Inputs')
+  system(paste0("mpiexec -n 8 pitremove -z ",Dem," -fel Dem.tif"))
+
+  # Flow direction
+  system("mpiexec -n 8 D8Flowdir -p FDir.tif -sd8 X.tif -fel Dem.tif",
+         show.output.on.console=F,invisible=F)
+  fdr <- raster("FDir.tif")
+  file.remove('Dem.tif')
+  file.remove('X.tif')
+
   # Flow acumulation
-  b <- brick(fdr)
+  roi_sf <- st_as_sf(Subbasins)
+  comid  <- as.vector(roi_sf$COMID)
+  ans    <- list()
   for (i in 1:ntime){
     # Show message
     cat('\f')
     message(paste0('Routing streamflows for ',nsub,' sub-basins'))
     message(paste0('Processing...',round(100*i/ntime,3),'%'))
+    file.remove('Weights.tif')
+    file.remove('FAcum.tif')
 
-    # Create a raster of weights (streamflow for each subbasin)
+    # Raster of weights
     if(ntime==1){
       Weight[index$cells] <- QS
     } else{
@@ -133,31 +137,16 @@ Routing_GR2MSemiDistr <- function(Model,
 
     # Weighted Flow Accumulation
     system("mpiexec -n 8 AreaD8 -p FDir.tif -wg Weights.tif -ad8 FAcum.tif")
-    b[[i]] <- raster("FAcum.tif")
-    file.remove('FAcum.tif')
+    fac      <- raster("FAcum.tif")
+    ans[[i]] <- as.numeric(exact_extract(fac, roi_sf, fun='max'))
+    rm(fac)
   }
   file.remove('FDir.tif')
-  file.remove('Weights.tif')
-
-  # Extracting accumulated streamflows for each subbasin
-  message(' ')
-  message('Extracting streamflows values')
-  message('Please wait..')
-
-  roi   <- st_as_sf(Subbasins)
-  comid <- as.vector(roi$COMID)
-  cl=makeCluster(detectCores()-1)
-  clusterEvalQ(cl,c(library(exactextractr), library(raster)))
-  clusterExport(cl,varlist=c("b","roi"),envir=environment())
-  qr <- parLapply(cl, 1:ntime, function(z){
-    ans <- as.numeric(exact_extract(b[[z]], roi, fun='max'))
-    return(ans)
-  })
   if(Update==TRUE | ntime==1){
     qr <- round(unlist(qr),1)
     qr <- matrix(qr,ncol=length(qr))
   }else{
-    qr <- do.call(rbind, qr)
+    qr <- do.call(rbind, ans)
     qr <- round(qr,1)
   }
 
