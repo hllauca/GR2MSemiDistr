@@ -2,7 +2,7 @@
 % Please edit documentation in R/Routing_GR2MSemiDistr.R
 \name{Routing_GR2MSemiDistr}
 \alias{Routing_GR2MSemiDistr}
-\title{Routing simulated monthly streamflows for each subbasin.}
+\title{Routing discharges for each subbasin.}
 \usage{
 Routing_GR2MSemiDistr(Model, Subbasins, Dem, AcumIni = NULL,
   AcumEnd = NULL, Save = FALSE, Update = FALSE)
@@ -26,5 +26,5 @@ Routing_GR2MSemiDistr(Model, Subbasins, Dem, AcumIni = NULL,
 Export and save an accumulation csv file.
 }
 \description{
-Routing simulated monthly streamflows for each subbasin.
+Routing discharges for each subbasin.
 }

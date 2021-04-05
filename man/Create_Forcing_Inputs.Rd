@@ -2,7 +2,7 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Prepare model inputs at subbasin scales in airGR format from gridded datasets.}
+\title{Extract inputs data from gridded datasets and prepare data in airGR format}
 \usage{
 Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
   DateEnd, Save = FALSE, Update = FALSE, Resolution = 0.01,
@@ -37,5 +37,5 @@ Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
 Return a database in airGR format (DatesR,P,E,Q).
 }
 \description{
-Prepare model inputs at subbasin scales in airGR format from gridded datasets.
+Extract inputs data from gridded datasets and prepare data in airGR format
 }
