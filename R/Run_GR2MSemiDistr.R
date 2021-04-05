@@ -9,7 +9,7 @@
 #' @param IniState    Initial states variables. NULL as default.
 #' @param Regional    Boolean to simulate in a regional mode (more than one hydrological station). FALSE as default.
 #' @param Save        Boolean to save outputs as text files. FALSE as default.
-#' @param Update      Bollean to update previous outputs text files. FALSE as default.
+#' @param Update      Boolean to update previous outputs text files. FALSE as default.
 #' @return GR2M model outputs for each subbasin.
 #' @export
 #' @import  rgdal
@@ -240,8 +240,7 @@ Run_GR2MSemiDistr <- function(Data,
   }
 
   if(Regional==TRUE){
-    Ans <- list(SINK=sink,
-                QS=qs,
+    Ans <- list(QS=qs,
                 RU=ru,
                 PR=pr,
                 AE=ae,

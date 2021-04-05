@@ -33,17 +33,6 @@ Optim_GR2MSemiDistr <- function(Data,
                                 Optimization='NSE',
                                 No.Optim=NULL){
 
-  # Data=Data
-  # Subbasins=roi
-  # RunIni=RunModel.Ini
-  # RunEnd=RunModel.End
-  # WarmUp=WarmUp
-  # Parameters=Model.Param
-  # Parameters.Min=Model.Param.Min
-  # Parameters.Max=Model.Param.Max
-  # Max.Functions=5
-  # Optimization='KGE'
-  # No.Optim=NULL
 
   # Load packages
   require(rgdal)
@@ -91,7 +80,6 @@ Optim_GR2MSemiDistr <- function(Data,
                   subset(Param$X2, Param$Region==Region))
     return(ParamSub)
   }
-
   Forcing_Subbasin <- function(Param, Region, Database, Nsub, ID){
     FactorPP  <- subset(Param$Fpp, Param$Region==Region)
     FactorPET <- subset(Param$Fpet, Param$Region==Region)
@@ -104,7 +92,6 @@ Optim_GR2MSemiDistr <- function(Data,
                                                 "%d-%m-%Y", "%d/%m/%Y"))
     return(FixInputs)
   }
-
   numberOfDays <- function(date) {
     m <- format(date, format="%m")
     while (format(date, format="%m")==m) {
@@ -182,24 +169,24 @@ Optim_GR2MSemiDistr <- function(Data,
 
     # Model results
     if(nsub==1){
-      qSub <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
-      qOut <- qSub
+      qs   <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
+      sink <- qs
     }else{
-      Qlist <- list()
+      QSlist <- list()
       for(w in 1:nsub){
-        Qlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)
+        QSlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)
       }
-      qSub <- do.call(cbind, Qlist)
-      qOut <- round(apply(qSub, 1, FUN=sum),2)
+      qs   <- do.call(cbind, QSlist)
+      sink <- round(apply(qs, 1, FUN=sum),2)
     }
 
     # Subset model results (exclude warm-up)
     if(is.null(WarmUp)==TRUE){
       Qobs  <- Database$Q
-      Qsim  <- qOut
+      Qsim  <- sink
     }else{
       Qobs  <- Database$Q[-WarmUp:-1]
-      Qsim  <- qOut[-WarmUp:-1]
+      Qsim  <- sink[-WarmUp:-1]
     }
 
 
@@ -244,7 +231,7 @@ Optim_GR2MSemiDistr <- function(Data,
   # Print results
   print("Optimization results:")
   print("======================")
-  print(paste0(rep(c('X1=','X2=', 'fprecip=', 'fpet='), each=length(Ans$Param)/4), Ans$Param))
+  print(paste0(rep(c('X1=','X2=', 'fpr=', 'fpe='), each=length(Ans$Param)/4), Ans$Param))
   print(paste0(Optimization,'=', Ans$Value))
 
   # Show message

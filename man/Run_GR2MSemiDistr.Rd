@@ -27,7 +27,7 @@ Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
 
 \item{Save}{Boolean to save outputs as text files. FALSE as default.}
 
-\item{Update}{Bollean to update previous outputs text files. FALSE as default.}
+\item{Update}{Boolean to update previous outputs text files. FALSE as default.}
 }
 \value{
 GR2M model outputs for each subbasin.
