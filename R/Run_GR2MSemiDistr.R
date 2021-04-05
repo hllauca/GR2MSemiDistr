@@ -227,7 +227,7 @@ Run_GR2MSemiDistr <- function(Data,
     if(is.null(WarmUp)==FALSE){
       sink <- sink[-WarmUp:-1,]
     }
-    rownames(Qout) <- Dates
+    rownames(sink) <- Dates
     Ans <- list(SINK=sink,
                 QS=qs,
                 RU=ru,
