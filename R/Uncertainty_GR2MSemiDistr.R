@@ -11,7 +11,6 @@
 #' @param Parameters.Max  Maximum values of GR2M model parameters and correction factor of P and E.
 #' @param Niter 	        Number of iterations. 1000 as default.
 #' @param IniState    Initial GR2M states variables. NULL as default.
-#' @param Positions    Cell numbers to extract data faster for each subbasin. NULL as default.
 #' @param MCMC    MCMC data in .Rda format.
 #' @return  Lower(Q5) and upper (Q95) streamflows uncertainty bounds.
 #' @export
@@ -34,21 +33,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                                       Parameters.Max,
                                       Niter,
                                       IniState=NULL,
-                                      Positions=NULL,
                                       MCMC=NULL){
-  # Data=Ans1
-  # Subbasins=roi
-  # Dem='Basin.tif'
-  # RunIni='08/1981'
-  # RunEnd='12/1981'
-  # WarmUp=2
-  # Parameters=BestParam
-  # Parameters.Min=c(1, 0.01, 0.8, 0.8) # Minimum values for X1, X2, Fpp, and Fpet
-  # Parameters.Max=c(2000, 2, 1.2, 1.2) # Maximum values for X1, X2, Fpp, and Fpet
-  # Niter=5
-  # IniState=NULL
-  # Positions=NULL
-  # MCMC=NULL
 
   # Load packages
   require(rgdal)
@@ -84,11 +69,11 @@ Uncertainty_GR2MSemiDistr <- function(Data,
 
       # Calculate residuals
       if(is.null(WarmUp)==TRUE){
-        Qobs <- Ans$Qout$obs
-        Qsim <- Ans$Qout$sim
+        Qobs <- Ans$SINK$obs
+        Qsim <- Ans$SINK$sim
       }else{
-        Qobs <- Ans$Qout$obs[-WarmUp:-1]
-        Qsim <- Ans$Qout$sim[-WarmUp:-1]
+        Qobs <- Ans$SINK$obs[-WarmUp:-1]
+        Qsim <- Ans$SINK$sim[-WarmUp:-1]
       }
       mRes <- as.vector(na.omit(Qsim-Qobs))
       return(mRes)
@@ -101,10 +86,10 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                     upper=Parameters.Max,
                     niter=Niter,
                     var0=msr)
-    dir.create(file.path(getwd(),'Inputs'),recursive=T,showWarnings=F)
-    save(MCMC, file=file.path(getwd(),'Inputs','MCMC.Rda'))
+    dir.create('./Inputs',recursive=T,showWarnings=F)
+    save(MCMC, file='./Inputs/MCMC.Rda')
   }else{
-    load(file.path(getwd(),'Inputs','MCMC.Rda'))
+    load('Inputs/MCMC.Rda')
   }
 
 
@@ -126,10 +111,10 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                               Update=FALSE,
                               Save=FALSE)
     if(is.null(WarmUp)==TRUE){
-      Ans[[w]] <- as.matrix(Qmod$Qsub)
+      Ans[[w]] <- as.matrix(Qmod$QS)
       Dates    <- Qmod$Dates
     }else{
-      Ans[[w]] <- as.matrix(Qmod$Qsub[-WarmUp:-1,])
+      Ans[[w]] <- as.matrix(Qmod$QS[-WarmUp:-1,])
       Dates    <- Qmod$Dates[-WarmUp:-1]
     }
   }
@@ -144,7 +129,6 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                               Dem=Dem,
                               AcumIni=format(as.Date(head(Dates,1)),'%m/%Y'),
                               AcumEnd=format(as.Date(tail(Dates,1)),'%m/%Y'),
-                              Positions=Positions,
                               Save=FALSE,
                               Update=FALSE)
 
@@ -154,16 +138,15 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                                Dem=Dem,
                                AcumIni=format(as.Date(head(Dates,1)),'%m/%Y'),
                                AcumEnd=format(as.Date(tail(Dates,1)),'%m/%Y'),
-                               Positions=Positions,
                                Save=FALSE,
                                Update=FALSE)
 
   # Prepare data to export
-  sub.id <- paste0('GR2M_ID_',as.vector(Subbasins$GR2M_ID))
-  QR5  <- as.data.frame(round(Q5,3))
-  QR95 <- as.data.frame(round(Q95,3))
-  colnames(QR5)  <- sub.id
-  colnames(QR95) <- sub.id
+  comid <- paste0('COMID_',as.vector(Subbasins$COMID))
+  QR5   <- as.data.frame(round(Q5,3))
+  QR95  <- as.data.frame(round(Q95,3))
+  colnames(QR5)  <- comid
+  colnames(QR95) <- comid
   rownames(QR5)  <- as.Date(Dates)
   rownames(QR95) <- as.Date(Dates)
   Ans <- list(lower=QR5,
