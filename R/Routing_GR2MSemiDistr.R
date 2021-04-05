@@ -1,4 +1,4 @@
-#' Routing simulated monthly streamflows for each subbasin.
+#' Routing discharges for each subbasin.
 #'
 #' @param Model        Model results from Run_GR2MSemiDistr.
 #' @param Subbasins		 Subbasins shapefile.

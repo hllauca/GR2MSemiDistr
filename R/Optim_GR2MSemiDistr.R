@@ -1,4 +1,4 @@
-#' Model parameter optimization with SCE-UA algorithm.
+#' Model parameter optimization with the SCE-UA algorithm.
 #'
 #' @param Data        File with input data in airGR format (DatesR,P,E,Q).
 #' @param Subbasins   Subbasins shapefile.

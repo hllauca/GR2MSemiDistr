@@ -1,5 +1,4 @@
-#' Prepare model inputs at subbasin scales in airGR format from gridded datasets.
-#'
+#' Extract inputs data from gridded datasets and prepare data in airGR format
 #' @param Subbasins Subbasins shapefile.
 #' @param Precip  Netcdf file for precipitation (in mm/month).
 #' @param PotEvap Netcdf file for potential evapotranspiration (in mm/month).

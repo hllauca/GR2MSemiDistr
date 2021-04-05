@@ -4,7 +4,7 @@ Title: A package for hydrological modeling with a semi-distribute GR2M model ada
 Version: 3.7.1
 Author: Harold Llauca <hllauca@senamhi.gob.pe>
 Maintainer: Harold Llauca <hllauca@senamhi.gob.pe>
-Description: This packagerun a semi-distributed GR2M model adaptation using the Weighted Flow Accumulation algorithm in TauDEM_537 (required)
+Description: This package run a semi-distributed GR2M model adaptation using the Weighted Flow Accumulation algorithm in TauDEM_537 (required)
 License: HLL-16
 Encoding: UTF-8
 Depends:
