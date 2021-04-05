@@ -123,7 +123,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
   q95  <- apply(qsub, c(1,2), function(x) quantile(x,0.95))
 
   # Routing streamflow for each subbasin at quantile 5
-  M5 <- list(Qsub=q5,Dates=Dates)
+  M5 <- list(QS=q5,Dates=Dates)
   Q5 <- Routing_GR2MSemiDistr(Model=M5,
                               Subbasins=Subbasins,
                               Dem=Dem,
@@ -132,7 +132,7 @@ Uncertainty_GR2MSemiDistr <- function(Data,
                               Save=FALSE,
                               Update=FALSE)
 
-  M95 <- list(Qsub=q95,Dates=Dates)
+  M95 <- list(QS=q95,Dates=Dates)
   Q95 <- Routing_GR2MSemiDistr(Model=M95,
                                Subbasins=Subbasins,
                                Dem=Dem,
