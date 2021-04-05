@@ -1,10 +1,10 @@
 Package: GR2MSemiDistr
 Type: Package
-Title: A package for hydrological modelling with a semidistribute GR2M model version
-Version: 3.7.0
+Title: A package for hydrological modeling with a semi-distribute GR2M model adaptation
+Version: 3.7.1
 Author: Harold Llauca <hllauca@senamhi.gob.pe>
 Maintainer: Harold Llauca <hllauca@senamhi.gob.pe>
-Description: This package run a semidistributed GR2M version using a Weighted Flow Accumulation algorithm using TauDEM_537 (required)
+Description: This packagerun a semi-distributed GR2M model adaptation using the Weighted Flow Accumulation algorithm in TauDEM_537 (required)
 License: HLL-16
 Encoding: UTF-8
 Depends:
@@ -20,10 +20,8 @@ Imports:
   rtop,
   tictoc,
   lubridate,
-  FME,
   abind,
   sf,
   exactextractr,
-  FME
 LazyData: true
 RoxygenNote: 7.1.0

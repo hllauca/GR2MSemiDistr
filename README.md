@@ -1,6 +1,6 @@
 'GR2MSemiDistr' package
 ========================
-This is a preliminary R package to run a semidistributed version of the GR2M hydrological model applying a Weighted Flow Accumulation algorithm in order to obtain streamflows values at each subbasin outlets.
+This is a experimental R package for a semi-distributed GR2M hydrological model adaptation using a Weighted Flow Accumulation algorithm for routing discharges.
 
 For any issue or suggestion please write to Harold LLauca (hllauca@gmail.com).
 
