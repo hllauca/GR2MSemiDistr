@@ -6,7 +6,7 @@
 \usage{
 Uncertainty_GR2MSemiDistr(Data, Subbasins, Dem, RunIni, RunEnd,
   WarmUp = NULL, Parameters, Parameters.Min, Parameters.Max, Niter,
-  IniState = NULL, Positions = NULL, MCMC = NULL)
+  IniState = NULL, MCMC = NULL)
 }
 \arguments{
 \item{Data}{File with input data in airGR format (DatesR,P,E,Q).}
@@ -30,8 +30,6 @@ Uncertainty_GR2MSemiDistr(Data, Subbasins, Dem, RunIni, RunEnd,
 \item{Niter}{Number of iterations. 1000 as default.}
 
 \item{IniState}{Initial GR2M states variables. NULL as default.}
-
-\item{Positions}{Cell numbers to extract data faster for each subbasin. NULL as default.}
 
 \item{MCMC}{MCMC data in .Rda format.}
 }
