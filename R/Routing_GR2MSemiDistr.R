@@ -145,7 +145,7 @@ Routing_GR2MSemiDistr <- function(Model,
   file.remove('Weights.tif')
   file.remove('FAcum.tif')
   if(Update==TRUE | ntime==1){
-    qr <- round(unlist(qr),1)
+    qr <- round(unlist(ans),1)
     qr <- matrix(qr,ncol=length(qr))
   }else{
     qr <- do.call(rbind, ans)
