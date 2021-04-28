@@ -181,6 +181,7 @@ Run_GR2MSemiDistr <- function(Data,
     ru <- round(matrix(ResModel[[1]]$Qsim, ncol=1, nrow=ntime),1)
     qs <- round((area[1]*ru)/(86.4*nDays),1)
     qt <- qs
+    qo <- Database$Q
     if(is.null(WarmUp)==FALSE){
       pr <- pr[-WarmUp:-1]
       ae <- ae[-WarmUp:-1]
@@ -188,6 +189,7 @@ Run_GR2MSemiDistr <- function(Data,
       ru <- ru[-WarmUp:-1]
       qs <- qs[-WarmUp:-1]
       qt <- qt[-WarmUp:-1]
+      qo <- Database$Q[-WarmUp:-1]
       Dates <- Dates[-WarmUp:-1]
     }
   }else{
@@ -211,6 +213,7 @@ Run_GR2MSemiDistr <- function(Data,
     ru <- round(do.call(cbind, RUlist),1)
     qs <- round(do.call(cbind, QSlist),1)
     qt <- round(apply(qs,1,FUN=sum),2)
+    qo <- Database$Q
     if(is.null(WarmUp)==FALSE){
       pr <- pr[-WarmUp:-1,]
       ae <- ae[-WarmUp:-1,]
@@ -218,15 +221,13 @@ Run_GR2MSemiDistr <- function(Data,
       ru <- ru[-WarmUp:-1,]
       qs <- qs[-WarmUp:-1,]
       qt <- qt[-WarmUp:-1]
+      qo <- Database$Q[-WarmUp:-1]
       Dates <- Dates[-WarmUp:-1]
     }
   }
 
   if(Regional==FALSE){
-    sink <- data.frame(sim=round(qt,3),obs=round(Database$Q,3))
-    if(is.null(WarmUp)==FALSE){
-      sink <- sink[-WarmUp:-1,]
-    }
+    sink <- data.frame(sim=round(qt,3),obs=round(qo,3))
     rownames(sink) <- Dates
     Ans <- list(SINK=sink,
                 QS=qs,
