@@ -137,7 +137,9 @@ Routing_GR2MSemiDistr <- function(Model,
     # Weighted Flow Accumulation
     system("mpiexec -n 8 AreaD8 -p FDir.tif -wg Weights.tif -ad8 FAcum.tif")
     fac      <- raster("FAcum.tif")
-    ans[[i]] <- as.numeric(exact_extract(fac, roi_sf, fun='max'))
+    ans[[i]] <- as.numeric(exact_extract(fac, roi_sf, progress=FALSE,
+                                         function(values, coverage_fraction)
+                                         max(values[coverage_fraction==1], na.rm=TRUE)))
     rm(fac)
   }
   file.remove('Weights.tif')
