@@ -112,7 +112,7 @@ Routing_GR2MSemiDistr <- function(Model,
   system("mpiexec -n 8 D8Flowdir -p FDir.tif -sd8 X.tif -fel Dem.tif",
          show.output.on.console=F,invisible=F)
   fdr <- raster("FDir.tif")
-  # file.remove('X.tif')
+  file.remove('X.tif')
 
   # Flow acumulation
   roi_sf <- st_as_sf(Subbasins)
@@ -123,8 +123,8 @@ Routing_GR2MSemiDistr <- function(Model,
     cat('\f')
     message(paste0('Routing streamflows for ',nsub,' sub-basins'))
     message(paste0('Processing...',round(100*i/ntime,3),'%'))
-    # file.remove('Weights.tif')
-    # file.remove('FAcum.tif')
+    file.remove('Weights.tif')
+    file.remove('FAcum.tif')
 
     # Raster of weights
     if(ntime==1){
@@ -141,8 +141,7 @@ Routing_GR2MSemiDistr <- function(Model,
     rm(fac)
   }
   file.remove('Weights.tif')
-  # file.remove('FDir.tif')
-  # file.remove('FAcum.tif')
+
   if(Update==TRUE | ntime==1){
     qr <- round(unlist(ans),1)
     qr <- matrix(qr,ncol=length(qr))
