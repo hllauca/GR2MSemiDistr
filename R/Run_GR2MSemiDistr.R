@@ -1,13 +1,17 @@
-#' Run the GR2M model for each subbasins.
+#' Run the GR2M model for 'n' subbasins.
 #'
-#' @param Data        Database in airGR format (DatesR,P,E,Q).
-#' @param Subbasins   Subbasins shapefile.
+#' @param Data        Dataframe with model input's data in airGR format for 'n' subbasins
+#' (DatesR, P_1, P_2,..,P_n, E_1, E_2, ...E_n, Q). If Q is not available please provide only DatesR, P, and E.
+#' @param Subbasins   Subbasins shapefile with field of 'Area'(in km2),'Region' (letters), and 'COMID
+#' (numbers) in the attribute table (required).
 #' @param RunIni      Initial date for model simulation (in mm/yyyy format).
 #' @param RunEnd      Final date for model simulation (in mm/yyyy format).
 #' @param WarmUp      Number of months for warm-up. NULL as default.
-#' @param Parameters  Model parameters and correction factor of P and E.
+#' @param Parameters  Vector of model parameters and correction factor of P and E in the following
+#' order: X1, X2, fp and fpe. In the case of exist more than one 'Region'
+#' (e.g. regions A and B) please provide model parameters in the following
+#' order: X1_A, X1_B, X2_A, X2_B, Fp_a, Fp_B, Fpe_A, Fpe_B.
 #' @param IniState    Initial states variables. NULL as default.
-#' @param Regional    Boolean to simulate in a regional mode (more than one hydrological station). FALSE as default.
 #' @param Save        Boolean to save outputs as text files. FALSE as default.
 #' @param Update      Boolean to update previous outputs text files. FALSE as default.
 #' @return GR2M model outputs for each subbasin.
@@ -28,7 +32,6 @@ Run_GR2MSemiDistr <- function(Data,
                               WarmUp=NULL,
                               Parameters,
                               IniState=NULL,
-                              Regional=FALSE,
                               Save=FALSE,
                               Update=FALSE){
 
@@ -94,10 +97,7 @@ Run_GR2MSemiDistr <- function(Data,
   }
 
   # Number of days in a month (convert mm to m3/s)
-  nDays <- c()
-  for(i in 1:ntime){
-    nDays[i] <- numberOfDays(as.Date(Database$DatesR)[i])
-  }
+  nDays  <- sapply(as.Date(Database$DatesR), numberOfDays)
 
   # Run hydrological model of each subbasin
     # Show message
@@ -181,7 +181,9 @@ Run_GR2MSemiDistr <- function(Data,
     ru <- round(matrix(ResModel[[1]]$Qsim, ncol=1, nrow=ntime),1)
     qs <- round((area[1]*ru)/(86.4*nDays),1)
     qt <- qs
-    qo <- Database$Q
+    if(is.null(is.null(Database$Q))==FALSE){
+      qo <- Database$Q
+    }
     if(is.null(WarmUp)==FALSE){
       pr <- pr[-WarmUp:-1]
       ae <- ae[-WarmUp:-1]
@@ -189,7 +191,9 @@ Run_GR2MSemiDistr <- function(Data,
       ru <- ru[-WarmUp:-1]
       qs <- qs[-WarmUp:-1]
       qt <- qt[-WarmUp:-1]
-      qo <- Database$Q[-WarmUp:-1]
+      if(is.null(is.null(Database$Q))==FALSE){
+        qo <- Database$Q[-WarmUp:-1]
+      }
       Dates <- Dates[-WarmUp:-1]
     }
   }else{
@@ -213,7 +217,9 @@ Run_GR2MSemiDistr <- function(Data,
     ru <- round(do.call(cbind, RUlist),1)
     qs <- round(do.call(cbind, QSlist),1)
     qt <- round(apply(qs,1,FUN=sum),2)
-    qo <- Database$Q
+    if(is.null(is.null(Database$Q))==FALSE){
+      qo <- Database$Q
+    }
     if(is.null(WarmUp)==FALSE){
       pr <- pr[-WarmUp:-1,]
       ae <- ae[-WarmUp:-1,]
@@ -221,12 +227,14 @@ Run_GR2MSemiDistr <- function(Data,
       ru <- ru[-WarmUp:-1,]
       qs <- qs[-WarmUp:-1,]
       qt <- qt[-WarmUp:-1]
-      qo <- Database$Q[-WarmUp:-1]
+      if(is.null(is.null(Database$Q))==FALSE){
+        qo <- Database$Q[-WarmUp:-1]
+      }
       Dates <- Dates[-WarmUp:-1]
     }
   }
 
-  if(Regional==FALSE){
+  if(is.null(Database$Q)==FALSE){
     sink <- data.frame(sim=round(qt,3),obs=round(qo,3))
     rownames(sink) <- Dates
     Ans <- list(SINK=sink,
@@ -240,7 +248,7 @@ Run_GR2MSemiDistr <- function(Data,
                 EndState=EndState)
   }
 
-  if(Regional==TRUE){
+  if(is.null(Database$Q)==TRUE){
     Ans <- list(QS=qs,
                 RU=ru,
                 PR=pr,
