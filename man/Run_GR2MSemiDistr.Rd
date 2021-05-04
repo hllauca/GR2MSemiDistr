@@ -2,16 +2,17 @@
 % Please edit documentation in R/Run_GR2MSemiDistr.R
 \name{Run_GR2MSemiDistr}
 \alias{Run_GR2MSemiDistr}
-\title{Run the GR2M model for each subbasins.}
+\title{Run the GR2M model for 'n' subbasins.}
 \usage{
 Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
-  Parameters, IniState = NULL, Regional = FALSE, Save = FALSE,
-  Update = FALSE)
+  Parameters, IniState = NULL, Save = FALSE, Update = FALSE)
 }
 \arguments{
-\item{Data}{Database in airGR format (DatesR,P,E,Q).}
+\item{Data}{Dataframe with model input's data in airGR format for 'n' subbasins
+(DatesR, P_1, P_2,..,P_n, E_1, E_2, ...E_n, Q). If Q is not available please provide only DatesR, P, and E.}
 
-\item{Subbasins}{Subbasins shapefile.}
+\item{Subbasins}{Subbasins shapefile with field of 'Area'(in km2),'Region' (letters), and 'COMID
+(numbers) in the attribute table (required).}
 
 \item{RunIni}{Initial date for model simulation (in mm/yyyy format).}
 
@@ -19,11 +20,12 @@ Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
 
 \item{WarmUp}{Number of months for warm-up. NULL as default.}
 
-\item{Parameters}{Model parameters and correction factor of P and E.}
+\item{Parameters}{Vector of model parameters and correction factor of P and E in the following
+order: X1, X2, fp and fpe. In the case of exist more than one 'Region'
+(e.g. regions A and B) please provide model parameters in the following
+order: X1_A, X1_B, X2_A, X2_B, Fp_a, Fp_B, Fpe_A, Fpe_B.}
 
 \item{IniState}{Initial states variables. NULL as default.}
-
-\item{Regional}{Boolean to simulate in a regional mode (more than one hydrological station). FALSE as default.}
 
 \item{Save}{Boolean to save outputs as text files. FALSE as default.}
 
@@ -33,5 +35,5 @@ Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
 GR2M model outputs for each subbasin.
 }
 \description{
-Run the GR2M model for each subbasins.
+Run the GR2M model for 'n' subbasins.
 }
