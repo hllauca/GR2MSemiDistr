@@ -22,6 +22,7 @@
 #' @return COMID: Vector of identifier numbers for each subbasin.
 #' @return EndState: List of end model states of each subbasin.
 #' @return SINK: Basin outlet which contains qsim and qobs data time series in [m3/s].
+#' @references Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
 #' @export
 #' @examples
 #' # Run the GR2M model for each subbasin

@@ -59,3 +59,6 @@ optim <- Optim_GR2MSemiDistr(Data=data,
                              Optimization='KGE')
  best_param <- optim$Param
 }
+\references{
+Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
+}
