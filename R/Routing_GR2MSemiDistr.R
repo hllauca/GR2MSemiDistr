@@ -10,6 +10,7 @@
 #' @return QR: Routed discharge timeseries for all subbasins in [m3/s].
 #' @return Dates: Vector of dates of the simulation period.
 #' @return COMID: Vector of identifier numbers for each subbasin.
+#' @author Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
 #' @export
 #' @examples
 #' # Load data
