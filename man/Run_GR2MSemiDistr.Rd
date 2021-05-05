@@ -8,32 +8,65 @@ Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
   Parameters, IniState = NULL, Save = FALSE, Update = FALSE)
 }
 \arguments{
-\item{Data}{Dataframe with model input's data in airGR format for 'n' subbasins
+\item{Data}{Dataframe with model input's data in airGR format from \code{Create_Forcing_Inputs}.
 (DatesR, P_1, P_2,..,P_n, E_1, E_2, ...E_n, Q). If Q is not available please provide only DatesR, P, and E.}
 
-\item{Subbasins}{Subbasins shapefile with field of 'Area'(in km2),'Region' (letters), and 'COMID
-(numbers) in the attribute table (required).}
+\item{Subbasins}{Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).}
 
-\item{RunIni}{Initial date for model simulation (in mm/yyyy format).}
+\item{RunIni}{Initial date of the model simulation in 'mm/yyyy' format.}
 
-\item{RunEnd}{Final date for model simulation (in mm/yyyy format).}
+\item{RunEnd}{Ending date of the model simulation in 'mm/yyyy' format.}
 
 \item{WarmUp}{Number of months for warm-up. NULL as default.}
 
-\item{Parameters}{Vector of model parameters and correction factor of P and E in the following
-order: X1, X2, fp and fpe. In the case of exist more than one 'Region'
-(e.g. regions A and B) please provide model parameters in the following
-order: X1_A, X1_B, X2_A, X2_B, Fp_a, Fp_B, Fpe_A, Fpe_B.}
+\item{Parameters}{Vector of model parameters (X1 and X2) and correction factors of P (fp) and E (fpe)
+in the following order: c(X1, X2, fp, fpe). In the case of existing more than one 'Region'
+(e.g. regions A and B) please provide model parameters in the following order:
+c(X1_A, X1_B, X2_A, X2_B, Fp_a, Fp_B, Fpe_A, Fpe_B).}
 
 \item{IniState}{Initial states variables. NULL as default.}
 
-\item{Save}{Boolean to save outputs as text files. FALSE as default.}
+\item{Save}{Boolean to save results as a text file in the 'Outputs' location. FALSE as default.}
 
-\item{Update}{Boolean to update previous outputs text files. FALSE as default.}
+\item{Update}{Boolean for the updating mode where only the last month's values will be returned. FALSE as default.}
 }
 \value{
-GR2M model outputs for each subbasin.
+List of GR2M model outputs.
+
+PR: Precipitation timeseries for all subbasins in [mm/month].
+
+AE: Actual evapotranspiration timeseries for all subbasins in [mm/month].
+
+SM: Soil Moisture timeseries for all subbasins in [mm/month].
+
+RU: Runoff timeseries for all subbasins in [mm/month].
+
+QS: Discharge timeseries for all subbasins in [m3/s] (not routed).
+
+Dates: Vector of dates of the simulation period.
+
+COMID: Vector of identifier numbers for each subbasin.
+
+EndState: List of end model states of each subbasin.
+
+SINK: Basin outlet which contains qsim and qobs data time series in [m3/s].
 }
 \description{
 Run the GR2M model for 'n' subbasins.
+}
+\examples{
+# Run the GR2M model for each subbasin
+model <- Run_GR2MSemiDistr(Data=data,
+                           Subbasins=roi,
+                           RunIni='01/1981',
+                           RunEnd='12/2016',
+                           Parameters=c(10.976, 0.665, 1.186, 1.169))
+
+# Extract model results
+View(model$PR) # precipitation [mm/month]
+View(model$AE) # actual evapotranspiration [mm/month]
+View(model$SM) # soil moisture [mm/month]
+View(model$RU) # runoff in [mm/month]
+print(model$SINK$obs) # observed discharge in [m3/s] at basin outlet
+print(model$SINK$sim) # simulated discharge in [m3/s] at basin outlet
 }

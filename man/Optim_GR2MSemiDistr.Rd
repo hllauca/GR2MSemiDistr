@@ -9,31 +9,53 @@ Optim_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
   Optimization = "NSE", No.Optim = NULL)
 }
 \arguments{
-\item{Data}{File with input data in airGR format (DatesR,P,E,Q).}
+\item{Data}{Dataframe with model input's data in airGR format from \code{Create_Forcing_Inputs}.
+(DatesR, P_1, P_2,..,P_n, E_1, E_2, ...E_n, Q). If Q is not available please provide only DatesR, P, and E.}
 
-\item{Subbasins}{Subbasins shapefile.}
+\item{Subbasins}{Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).}
 
-\item{RunIni}{Initial date of model simulation (in mm/yyyy format).}
+\item{RunIni}{Initial date of the model simulation in 'mm/yyyy' format.}
 
-\item{RunEnd}{Final date of model simulation (in mm/yyyy format).}
+\item{RunEnd}{Ending date of the model simulation in 'mm/yyyy' format.}
 
-\item{WarmUp}{Number of months for warm-up. NULL as default.}
+\item{WarmUp}{Number of months for the warm-up period. NULL as default.}
 
-\item{Parameters}{GR2M model parameters and correction factor of P and E.}
+\item{Parameters}{Vector of initial model parameters (X1 and X2) and correction factors of P (fp) and E (fpe)
+in the following order: c(X1, X2, fp, fpe). In the case of existing more than one 'Region'
+(e.g. regions A and B) please provide model parameters in the following order:
+c(X1_A, X1_B, X2_A, X2_B, Fp_a, Fp_B, Fpe_A, Fpe_B).}
 
-\item{Parameters.Min}{Minimum values of GR2M model parameters and correction factor of P and E.}
+\item{Parameters.Min}{Vector of minimum values of GR2M model parameters and correction factors in the following order: c(X1_min, X2_min, fp_min, fpe_min).}
 
-\item{Parameters.Max}{Maximum values of GR2M model parameters and correction factor of P and E.}
+\item{Parameters.Max}{Vector of maximum values of GR2M model parameters and correction factors in the following order: c(X1_max, X2_max, fp_max, fpe_max).}
 
 \item{Max.Functions}{Maximum number of function evaluation for optimization. 5000 as default.}
 
-\item{Optimization}{Objective function (NSE, KGE, RMSE).}
+\item{Optimization}{Objective function for optimization (NSE, KGE, or RMSE).}
 
 \item{No.Optim}{Regions not to be optimized. NULL as default.}
 }
 \value{
-Optimal GR2M model parameters.
+List of optimal GR2M model parameters for each 'Region'.
+
+Param: Best set of GR2M model parameters (sorted by 'Region').
+
+Value: Final value of the objective function.
 }
 \description{
 Model parameter optimization with the SCE-UA algorithm.
+}
+\examples{
+# Optimize GR2M model parameters for a single 'Region' using the KGE metric
+optim <- Optim_GR2MSemiDistr(Data=data,
+                             Subbasins=roi,
+                             RunIni='01/1981',
+                             RunEnd='12/2002',
+                             WarmUp=36,
+                             Parameters=c(1000, 1, 1, 1),
+                             Parameters.Min=c(1, 0.01, 0.8, 0.8),
+                             Parameters.Max=c(2000, 2, 1.2, 1.2),
+                             Max.Functions=1000,
+                             Optimization='KGE')
+ best_param <- optim$Param
 }

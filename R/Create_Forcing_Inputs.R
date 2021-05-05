@@ -1,19 +1,34 @@
-#' Extract inputs data from gridded datasets and prepare data in airGR format
-#' @param Subbasins Subbasins shapefile.
-#' @param Precip  Netcdf file for precipitation (in mm/month).
-#' @param PotEvap Netcdf file for potential evapotranspiration (in mm/month).
-#' @param Qobs Observed streamflow (in m3/s). NULL as default.
-#' @param DateIni Initial date of the data (in mm/yyyy format).
-#' @param DateEnd Final date of the data (in mm/yyyy format).
-#' @param Save   Boolean to save database as textfile. FALSE as default.
-#' @param Update Boolean to extract the last values for model updating. FALSE as default.
-#' @param Resolution Resolution to resample gridded data. 0.01 as default.
-#' @param Buffer Multiplicative factor to buffer subbasins extents. 1.1 as default.
-#' @param Members Number of ensemble members for model forcasting. NULL as default.
-#' @param Horiz Number of months for model forcasting. NULL as default.
-
-#' @return Return a database in airGR format (DatesR,P,E,Q).
+#' Extract and prepare model's inputs data in the airGR format (DatesR, P and E) from gridded P and E monthly data.
+#' @param Subbasins Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).
+#' @param Precip  Raster brick of the precipitation data in [mm/month].
+#' @param PotEvap Raster brick of the evapotranspiration data in [mm/month].
+#' @param Qobs Observed streamflow data in [m3/s] at the basin outlet. Must have the same length as P and E data (including NA values). NULL as default.
+#' @param DateIni Initial date of the database in 'mm/yyyy' format.
+#' @param DateEnd Ending date of the database in 'mm/yyyy' format.
+#' @param Save   Boolean to save results as a text file in the 'Outputs' location. FALSE as default.
+#' @param Update Boolean for the updating mode where only the last month's values will be returned. FALSE as default.
+#' @param Resolution Resampling resolution for improving subbasins' data extraction. 0.01degrees as default.
+#' @param Buffer Factor for increase subbasins' limits extents. 1.1 as default.
+#' @param Members Número de miembros del conjunto modelo. Only for streamflow forecasting purposes. NULL por defecto.
+#' @param Horiz Number of months in the forecast' horizon. Only for streamflow forecasting purposes. NULL as default.
+#' @return Return a dataframe of model's inputs data in the airGR format (DatesR, P, E, Q).
 #' @export
+#' @examples
+#' # Load data
+#' require(GR2MSemiDistr)
+#' data(pisco_pr)
+#' data(pisco_pe)
+#' data(qobs)
+#' data(roi)
+#'
+#' # Create a database with model's inputs data
+#' data <- Create_Forcing_Inputs(Subbasins=roi,
+#'                               Precip=pisco_pr,
+#'                               PotEvap=pisco_pe,
+#'                               Qobs=qobs,
+#'                               DateIni='01/1981',
+#'                               DateEnd='12/2016')
+#' View(data)
 #' @import rgdal
 #' @import raster
 #' @import rgeos
@@ -57,7 +72,7 @@ Create_Forcing_Inputs <- function(Subbasins,
     message('Please wait...')
 
     # Read precipitation data
-    pr <- brick(Precip)
+    pr <- Precip
     if(Update==TRUE){
       pr <- pr[[nlayers(pr)]]
     }
@@ -93,7 +108,7 @@ Create_Forcing_Inputs <- function(Subbasins,
     message('Please wait...')
 
     # Read potential evapotranspiration data
-    pe <- brick(PotEvap)
+    pe <- PotEvap
     if(Update==TRUE){
       pe <- pe[[nlayers(pe)]]
     }

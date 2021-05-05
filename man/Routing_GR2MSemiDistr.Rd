@@ -8,22 +8,28 @@ Routing_GR2MSemiDistr(Model, Subbasins, Dem, AcumIni = NULL,
   AcumEnd = NULL, Save = FALSE, Update = FALSE)
 }
 \arguments{
-\item{Model}{Model results from Run_GR2MSemiDistr.}
+\item{Model}{List of model results from \code{Run_GR2MSemiDistr}.}
 
-\item{Subbasins}{Subbasins shapefile.}
+\item{Subbasins}{Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).}
 
-\item{Dem}{Raster DEM.}
+\item{Dem}{Digital elevation model raster for the extent of the basin.}
 
-\item{AcumIni}{Initial date for accumulation (in mm/yyyy format). NULL as default}
+\item{AcumIni}{Initial date of the model routing in 'mm/yyyy' format. NULL as default}
 
-\item{AcumEnd}{Final date for accumulation (in mm/yyyy format). NULL as default}
+\item{AcumEnd}{Ending date of the model routing in 'mm/yyyy' format. NULL as default}
 
-\item{Save}{Boolean to results as text file. FALSE as default.}
+\item{Save}{Boolean to save results as a text file in the 'Outputs' location. FALSE as default.}
 
-\item{Update}{Boolean to update a previous accumulation file. FALSE as default.}
+\item{Update}{Boolean for the updating mode where only the last month's values will be returned. FALSE as default.}
 }
 \value{
-Export and save an accumulation csv file.
+List of model routing outputs.
+
+QR: Routed discharge timeseries for all subbasins in [m3/s].
+
+Dates: Vector of dates of the simulation period.
+
+COMID: Vector of identifier numbers for each subbasin.
 }
 \description{
 Routing discharges for each subbasin.

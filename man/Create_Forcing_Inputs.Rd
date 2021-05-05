@@ -2,40 +2,57 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Extract inputs data from gridded datasets and prepare data in airGR format}
+\title{Extract and prepare model's inputs data in the airGR format (DatesR, P and E) from gridded P and E monthly data.}
 \usage{
 Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
   DateEnd, Save = FALSE, Update = FALSE, Resolution = 0.01,
   Buffer = 1.1, Members = NULL, Horiz = NULL)
 }
 \arguments{
-\item{Subbasins}{Subbasins shapefile.}
+\item{Subbasins}{Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).}
 
-\item{Precip}{Netcdf file for precipitation (in mm/month).}
+\item{Precip}{Raster brick of the precipitation data in [mm/month].}
 
-\item{PotEvap}{Netcdf file for potential evapotranspiration (in mm/month).}
+\item{PotEvap}{Raster brick of the evapotranspiration data in [mm/month].}
 
-\item{Qobs}{Observed streamflow (in m3/s). NULL as default.}
+\item{Qobs}{Observed streamflow data in [m3/s] at the basin outlet. Must have the same length as P and E data (including NA values). NULL as default.}
 
-\item{DateIni}{Initial date of the data (in mm/yyyy format).}
+\item{DateIni}{Initial date of the database in 'mm/yyyy' format.}
 
-\item{DateEnd}{Final date of the data (in mm/yyyy format).}
+\item{DateEnd}{Ending date of the database in 'mm/yyyy' format.}
 
-\item{Save}{Boolean to save database as textfile. FALSE as default.}
+\item{Save}{Boolean to save results as a text file in the 'Outputs' location. FALSE as default.}
 
-\item{Update}{Boolean to extract the last values for model updating. FALSE as default.}
+\item{Update}{Boolean for the updating mode where only the last month's values will be returned. FALSE as default.}
 
-\item{Resolution}{Resolution to resample gridded data. 0.01 as default.}
+\item{Resolution}{Resampling resolution for improving subbasins' data extraction. 0.01degrees as default.}
 
-\item{Buffer}{Multiplicative factor to buffer subbasins extents. 1.1 as default.}
+\item{Buffer}{Factor for increase subbasins' limits extents. 1.1 as default.}
 
-\item{Members}{Number of ensemble members for model forcasting. NULL as default.}
+\item{Members}{Número de miembros del conjunto modelo. Only for streamflow forecasting purposes. NULL por defecto.}
 
-\item{Horiz}{Number of months for model forcasting. NULL as default.}
+\item{Horiz}{Number of months in the forecast' horizon. Only for streamflow forecasting purposes. NULL as default.}
 }
 \value{
-Return a database in airGR format (DatesR,P,E,Q).
+Return a dataframe of model's inputs data in the airGR format (DatesR, P, E, Q).
 }
 \description{
-Extract inputs data from gridded datasets and prepare data in airGR format
+Extract and prepare model's inputs data in the airGR format (DatesR, P and E) from gridded P and E monthly data.
+}
+\examples{
+# Load data
+require(GR2MSemiDistr)
+data(pisco_pr)
+data(pisco_pe)
+data(qobs)
+data(roi)
+
+# Create a database with model's inputs data
+data <- Create_Forcing_Inputs(Subbasins=roi,
+                              Precip=pisco_pr,
+                              PotEvap=pisco_pe,
+                              Qobs=qobs,
+                              DateIni='01/1981',
+                              DateEnd='12/2016')
+View(data)
 }

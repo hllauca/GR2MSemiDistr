@@ -1,14 +1,29 @@
 #' Routing discharges for each subbasin.
-#'
-#' @param Model        Model results from Run_GR2MSemiDistr.
-#' @param Subbasins		 Subbasins shapefile.
-#' @param Dem          Raster DEM.
-#' @param AcumIni      Initial date for accumulation (in mm/yyyy format). NULL as default
-#' @param AcumEnd      Final date for accumulation (in mm/yyyy format). NULL as default
-#' @param Save         Boolean to results as text file. FALSE as default.
-#' @param Update       Boolean to update a previous accumulation file. FALSE as default.
-#' @return  Export and save an accumulation csv file.
+#' @param Model        List of model results from \code{Run_GR2MSemiDistr}.
+#' @param Subbasins		 Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).
+#' @param Dem          Digital elevation model raster for the extent of the basin.
+#' @param AcumIni      Initial date of the model routing in 'mm/yyyy' format. NULL as default
+#' @param AcumEnd      Ending date of the model routing in 'mm/yyyy' format. NULL as default
+#' @param Save         Boolean to save results as a text file in the 'Outputs' location. FALSE as default.
+#' @param Update       Boolean for the updating mode where only the last month's values will be returned. FALSE as default.
+#' @return List of model routing outputs.
+#' @return QR: Routed discharge timeseries for all subbasins in [m3/s].
+#' @return Dates: Vector of dates of the simulation period.
+#' @return COMID: Vector of identifier numbers for each subbasin.
 #' @export
+#' @examples
+#' # Load data
+#' require(GR2MSemiDistr)
+#' data(dem)
+#'
+#' # Routing discharges in the streamflow network
+#' rou <- Routing_GR2MSemiDistr(Model=model,
+#'                              Subbasins=roi,
+#'                              Dem=dem,
+#'                              AcumIni='01/1981',
+#'                              AcumEnd='12/2016')
+#' View(rou$QR)
+#' plot(rou$Dates, rou$QR[,1], type='l)
 #' @import  rgdal
 #' @import  raster
 #' @import  rgeos
@@ -99,20 +114,23 @@ Routing_GR2MSemiDistr <- function(Model,
   }
 
   # Extract cell position for each subbasin (centroid)
-  Weight <- raster(paste0('./Inputs/',Dem))
+  Weight <- Dem
   values(Weight) <- 0
   xycen <- gCentroidWithin(Subbasins)
   index <- extract(Weight, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
 
   # Pitremove DEM
+  dir.create('./Inputs', recursive=T, showWarnings=F)
   setwd('./Inputs')
-  system(paste0("mpiexec -n 8 pitremove -z ",Dem," -fel Dem.tif"))
+  writeRaster(Dem, file='dem.tif', overwrite=TRUE)
+  system("mpiexec -n 8 pitremove -z dem.tif -fel CONDEM.tif")
 
   # Flow direction
-  system("mpiexec -n 8 D8Flowdir -p FDir.tif -sd8 X.tif -fel Dem.tif",
+  system("mpiexec -n 8 D8Flowdir -p FlowDir.tif -sd8 X.tif -fel CONDEM.tif",
          show.output.on.console=F,invisible=F)
-  fdr <- raster("FDir.tif")
+  fdr <- raster("FlowDir.tif")
   file.remove('X.tif')
+  file.remove('dem.tif')
 
   # Flow acumulation
   roi_sf <- st_as_sf(Subbasins)
@@ -124,7 +142,7 @@ Routing_GR2MSemiDistr <- function(Model,
     message(paste0('Routing streamflows for ',nsub,' sub-basins'))
     message(paste0('Processing...',round(100*i/ntime,3),'%'))
     file.remove('Weights.tif')
-    file.remove('FAcum.tif')
+    file.remove('FlowAcum.tif')
 
     # Raster of weights
     if(ntime==1){
@@ -135,8 +153,8 @@ Routing_GR2MSemiDistr <- function(Model,
     writeRaster(Weight, filename='Weights.tif', overwrite=T)
 
     # Weighted Flow Accumulation
-    system("mpiexec -n 8 AreaD8 -p FDir.tif -wg Weights.tif -ad8 FAcum.tif")
-    fac      <- raster("FAcum.tif")
+    system("mpiexec -n 8 AreaD8 -p FlowDir.tif -wg Weights.tif -ad8 FlowAcum.tif")
+    fac      <- raster("FlowAcum.tif")
     ans[[i]] <- as.numeric(exact_extract(fac, roi_sf, progress=FALSE,
                                          function(values, coverage_fraction)
                                          max(values[coverage_fraction==1], na.rm=TRUE)))
