@@ -34,6 +34,19 @@ COMID: Vector of identifier numbers for each subbasin.
 \description{
 Routing discharges for each subbasin.
 }
+\examples{
+# Load data
+require(GR2MSemiDistr)
+data(dem)
+
+# Routing discharges in the streamflow network
+rou <- Routing_GR2MSemiDistr(Model=model,
+                             Subbasins=roi,
+                             Dem=dem,
+                             AcumIni='01/1981',
+                             AcumEnd='12/2016')
+View(rou$QR)
+}
 \author{
 Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
 }
