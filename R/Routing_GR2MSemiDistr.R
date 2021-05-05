@@ -24,7 +24,6 @@
 #'                              AcumIni='01/1981',
 #'                              AcumEnd='12/2016')
 #' View(rou$QR)
-#' plot(rou$Dates, rou$QR[,1], type='l)
 #' @import  rgdal
 #' @import  raster
 #' @import  rgeos
