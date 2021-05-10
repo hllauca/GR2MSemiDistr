@@ -10,7 +10,6 @@
 #' @param Resolution Resampling resolution for improving subbasins' data extraction. 0.01degrees as default.
 #' @param Buffer Factor for increase subbasins' limits extents. 1.1 as default.
 #' @param Members Número de miembros del conjunto modelo. Only for streamflow forecasting purposes. NULL por defecto.
-#' @param Horiz Number of months in the forecast' horizon. Only for streamflow forecasting purposes. NULL as default.
 #' @return Return a dataframe of model's inputs data in the airGR format (DatesR, P, E, Q).
 #' @references Cesar Aybar, Carlos Fernández, Adrian Huerta, Waldo Lavado, Fiorella Vega & Oscar Felipe-Obando (2020) Construction of a high-resolution gridded rainfall dataset for Peru from 1981 to the present day, Hydrological Sciences Journal, 65:5, 770-785, DOI: 10.1080/02626667.2019.1649411
 #' @references Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
@@ -48,8 +47,7 @@ Create_Forcing_Inputs <- function(Subbasins,
                                   Update=FALSE,
                                   Resolution=0.01,
                                   Buffer=1.1,
-                                  Members=NULL,
-                                  Horiz=NULL){
+                                  Members=NULL){
 
   # Load required packages
   require(rgdal)
@@ -151,7 +149,7 @@ Create_Forcing_Inputs <- function(Subbasins,
                        as.Date(End, "%d/%m/%Y"),
                        by='month')
     if(is.null(Members)==FALSE){
-      DatesMonths <- rep(DatesMonths, length=Horiz*Members)
+      DatesMonths <- rep(DatesMonths, each=Members)
     }
   }
 
