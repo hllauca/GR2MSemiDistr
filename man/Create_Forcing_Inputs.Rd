@@ -6,7 +6,7 @@
 \usage{
 Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
   DateEnd, Save = FALSE, Update = FALSE, Resolution = 0.01,
-  Buffer = 1.1, Members = NULL, Horiz = NULL)
+  Buffer = 1.1, Members = NULL)
 }
 \arguments{
 \item{Subbasins}{Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).}
@@ -30,8 +30,6 @@ Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
 \item{Buffer}{Factor for increase subbasins' limits extents. 1.1 as default.}
 
 \item{Members}{Número de miembros del conjunto modelo. Only for streamflow forecasting purposes. NULL por defecto.}
-
-\item{Horiz}{Number of months in the forecast' horizon. Only for streamflow forecasting purposes. NULL as default.}
 }
 \value{
 Return a dataframe of model's inputs data in the airGR format (DatesR, P, E, Q).
