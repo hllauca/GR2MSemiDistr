@@ -149,7 +149,7 @@ Create_Forcing_Inputs <- function(Subbasins,
                        as.Date(End, "%d/%m/%Y"),
                        by='month')
     if(is.null(Members)==FALSE){
-      DatesMonths <- rep(DatesMonths, each=Members)
+      DatesMonths <- rep(DatesMonths, times=Members)
     }
   }
 
