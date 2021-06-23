@@ -71,34 +71,37 @@ Create_Forcing_Inputs <- function(Subbasins,
     message('Calculating monthly mean-areal precipitation [mm]')
     message('Please wait...')
 
-    # Read precipitation data
-    pr <- Precip
-    if(Update==TRUE){
-      pr <- pr[[nlayers(pr)]]
+    if(is.null(Precip)==FALSE){
+      # Read precipitation data
+      pr <- Precip
+      if(Update==TRUE){
+        pr <- pr[[nlayers(pr)]]
+      }
+
+      # Buffer subbasins and resample raster
+      pr_buf      <- crop(pr, extent(roi)*Buffer)
+      pr_res      <- raster(extent(pr_buf[[1]]))
+      crs(pr_res) <- crs(pr_buf)
+      res(pr_res) <- Resolution
+
+      # Mean-areal precipitation for each subbasin
+      cl=makeCluster(detectCores()-1)
+      clusterEvalQ(cl,c(library(exactextractr), library(raster)))
+      clusterExport(cl, varlist=c("pr_buf","pr_res","roi"), envir=environment())
+      pr_mean <- parLapply(cl, 1:nlayers(pr_buf), function(z) {
+        res <- resample(pr_buf[[z]], pr_res, method='ngb')
+        ans <- as.numeric(exact_extract(res, roi, fun='mean'))
+        return(ans)
+      })
+      if(Update==TRUE){
+        pr_mean <- round(unlist(pr_mean),1)
+        pr_mean <- matrix(pr_mean, ncol=length(pr_mean))
+      }else{
+        pr_mean <- do.call(rbind, pr_mean)
+        pr_mean <- round(pr_mean,1)
+      }
     }
 
-    # Buffer subbasins and resample raster
-    pr_buf      <- crop(pr, extent(roi)*Buffer)
-    pr_res      <- raster(extent(pr_buf[[1]]))
-    crs(pr_res) <- crs(pr_buf)
-    res(pr_res) <- Resolution
-
-    # Mean-areal precipitation for each subbasin
-    cl=makeCluster(detectCores()-1)
-    clusterEvalQ(cl,c(library(exactextractr), library(raster)))
-    clusterExport(cl, varlist=c("pr_buf","pr_res","roi"), envir=environment())
-    pr_mean <- parLapply(cl, 1:nlayers(pr_buf), function(z) {
-      res <- resample(pr_buf[[z]], pr_res, method='ngb')
-      ans <- as.numeric(exact_extract(res, roi, fun='mean'))
-      return(ans)
-    })
-    if(Update==TRUE){
-      pr_mean <- round(unlist(pr_mean),1)
-      pr_mean <- matrix(pr_mean, ncol=length(pr_mean))
-    }else{
-      pr_mean <- do.call(rbind, pr_mean)
-      pr_mean <- round(pr_mean,1)
-    }
 
 
   # Extract monthly mean-areal potential evapotranspiration
@@ -107,34 +110,36 @@ Create_Forcing_Inputs <- function(Subbasins,
     message('Calcutaling monthly mean-areal pot. evapotranspiration [mm]')
     message('Please wait...')
 
-    # Read potential evapotranspiration data
-    pe <- PotEvap
-    if(Update==TRUE){
-      pe <- pe[[nlayers(pe)]]
-    }
+    if(is.null(PotEvap)==FALSE){
+      # Read potential evapotranspiration data
+      pe <- PotEvap
+      if(Update==TRUE){
+        pe <- pe[[nlayers(pe)]]
+      }
 
-    # Buffer subbasins and resample raster
-    pe_buf      <- crop(pe, extent(roi)*Buffer)
-    pe_res      <- raster(extent(pe_buf[[1]]))
-    crs(pe_res) <- crs(pe_buf)
-    res(pe_res) <- Resolution
+      # Buffer subbasins and resample raster
+      pe_buf      <- crop(pe, extent(roi)*Buffer)
+      pe_res      <- raster(extent(pe_buf[[1]]))
+      crs(pe_res) <- crs(pe_buf)
+      res(pe_res) <- Resolution
 
-    # Mean-areal evapotranspiration for each subbasin
-    cl=makeCluster(detectCores()-1)
-    clusterEvalQ(cl,c(library(exactextractr), library(raster)))
-    clusterExport(cl, varlist=c("pe_buf","pe_res","roi"), envir=environment())
-    pe_mean <- parLapply(cl, 1:nlayers(pe_buf), function(z) {
-      res <- resample(pe_buf[[z]], pe_res, method='ngb')
-      ans <- as.numeric(exact_extract(res, roi, fun='mean'))
-      return(ans)
-    })
-    stopCluster(cl) #Close the cluster
-    if(Update==TRUE){
-      pe_mean <- round(unlist(pe_mean),1)
-      pe_mean <- matrix(pe_mean,ncol=length(pe_mean))
-    }else{
-      pe_mean <- do.call(rbind, pe_mean)
-      pe_mean <- round(pe_mean,1)
+      # Mean-areal evapotranspiration for each subbasin
+      cl=makeCluster(detectCores()-1)
+      clusterEvalQ(cl,c(library(exactextractr), library(raster)))
+      clusterExport(cl, varlist=c("pe_buf","pe_res","roi"), envir=environment())
+      pe_mean <- parLapply(cl, 1:nlayers(pe_buf), function(z) {
+        res <- resample(pe_buf[[z]], pe_res, method='ngb')
+        ans <- as.numeric(exact_extract(res, roi, fun='mean'))
+        return(ans)
+      })
+      stopCluster(cl) #Close the cluster
+      if(Update==TRUE){
+        pe_mean <- round(unlist(pe_mean),1)
+        pe_mean <- matrix(pe_mean,ncol=length(pe_mean))
+      }else{
+        pe_mean <- do.call(rbind, pe_mean)
+        pe_mean <- round(pe_mean,1)
+      }
     }
 
 
@@ -155,13 +160,32 @@ Create_Forcing_Inputs <- function(Subbasins,
 
 
   # Prepare database in airGR format
-    if(is.null(Qobs)==TRUE){
-      Ans           <- data.frame(DatesMonths, round(pr_mean,1), round(pe_mean,1))
-      colnames(Ans) <- c('DatesR', paste0('P_',comid), paste0('E_',comid))
-    }else{
+    if(is.null(Qobs)==FALSE & is.null(Precip)==FALSE & is.null(PotEvap)==FALSE){
       qm_obs        <- Qobs[,2]
       Ans           <- data.frame(DatesMonths, round(pr_mean,1), round(pe_mean,1), round(qm_obs,3))
       colnames(Ans) <- c('DatesR', paste0('P_',comid), paste0('E_',comid), 'Q')
+    }
+    if(is.null(Qobs)==FALSE & is.null(Precip)==FALSE & is.null(PotEvap)==TRUE){
+      qm_obs        <- Qobs[,2]
+      Ans           <- data.frame(DatesMonths, round(pr_mean,1), round(qm_obs,3))
+      colnames(Ans) <- c('DatesR', paste0('P_',comid), 'Q')
+    }
+    if(is.null(Qobs)==FALSE & is.null(Precip)==TRUE & is.null(PotEvap)==FALSE){
+      qm_obs        <- Qobs[,2]
+      Ans           <- data.frame(DatesMonths, round(pe_mean,1), round(qm_obs,3))
+      colnames(Ans) <- c('DatesR', paste0('E_',comid), 'Q')
+    }
+    if(is.null(Qobs)==TRUE & is.null(Precip)==FALSE & is.null(PotEvap)==FALSE){
+      Ans           <- data.frame(DatesMonths, round(pr_mean,1), round(pe_mean,1))
+      colnames(Ans) <- c('DatesR', paste0('P_',comid), paste0('E_',comid))
+    }
+    if(is.null(Qobs)==TRUE & is.null(Precip)==FALSE & is.null(PotEvap)==TRUE){
+      Ans           <- data.frame(DatesMonths, round(pr_mean,1))
+      colnames(Ans) <- c('DatesR', paste0('P_',comid))
+    }
+    if(is.null(Qobs)==TRUE & is.null(Precip)==TRUE & is.null(PotEvap)==FALSE){
+      Ans           <- data.frame(DatesMonths, round(pe_mean,1))
+      colnames(Ans) <- c('DatesR', paste0('E_',comid))
     }
     if(Save==TRUE){
       dir.create('./Inputs')
