@@ -4,9 +4,19 @@
 \alias{Optim_GR2MSemiDistr}
 \title{Model parameter optimization with the SCE-UA algorithm.}
 \usage{
-Optim_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
-  Parameters, Parameters.Min, Parameters.Max, Max.Functions = 5000,
-  Optimization = "NSE", No.Optim = NULL)
+Optim_GR2MSemiDistr(
+  Data,
+  Subbasins,
+  RunIni,
+  RunEnd,
+  WarmUp = NULL,
+  Parameters,
+  Parameters.Min,
+  Parameters.Max,
+  Max.Functions = 5000,
+  Optimization = "NSE",
+  No.Optim = NULL
+)
 }
 \arguments{
 \item{Data}{Dataframe with model input's data in airGR format from \code{Create_Forcing_Inputs}.
