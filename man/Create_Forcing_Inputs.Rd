@@ -4,9 +4,19 @@
 \alias{Create_Forcing_Inputs}
 \title{Extract and prepare model's inputs data in the airGR format (DatesR, P and E) from gridded P and E monthly data.}
 \usage{
-Create_Forcing_Inputs(Subbasins, Precip, PotEvap, Qobs = NULL, DateIni,
-  DateEnd, Save = FALSE, Update = FALSE, Resolution = 0.01,
-  Buffer = 1.1, Members = NULL)
+Create_Forcing_Inputs(
+  Subbasins,
+  Precip,
+  PotEvap,
+  Qobs = NULL,
+  DateIni,
+  DateEnd,
+  Save = FALSE,
+  Update = FALSE,
+  Resolution = 0.01,
+  Buffer = 1.1,
+  Members = NULL
+)
 }
 \arguments{
 \item{Subbasins}{Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).}

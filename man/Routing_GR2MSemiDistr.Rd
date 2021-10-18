@@ -4,8 +4,15 @@
 \alias{Routing_GR2MSemiDistr}
 \title{Routing discharges for each subbasin.}
 \usage{
-Routing_GR2MSemiDistr(Model, Subbasins, Dem, AcumIni = NULL,
-  AcumEnd = NULL, Save = FALSE, Update = FALSE)
+Routing_GR2MSemiDistr(
+  Model,
+  Subbasins,
+  Dem,
+  AcumIni = NULL,
+  AcumEnd = NULL,
+  Save = FALSE,
+  Update = FALSE
+)
 }
 \arguments{
 \item{Model}{List of model results from \code{Run_GR2MSemiDistr}.}

@@ -4,8 +4,17 @@
 \alias{Run_GR2MSemiDistr}
 \title{Run the GR2M model for 'n' subbasins.}
 \usage{
-Run_GR2MSemiDistr(Data, Subbasins, RunIni, RunEnd, WarmUp = NULL,
-  Parameters, IniState = NULL, Save = FALSE, Update = FALSE)
+Run_GR2MSemiDistr(
+  Data,
+  Subbasins,
+  RunIni,
+  RunEnd,
+  WarmUp = NULL,
+  Parameters,
+  IniState = NULL,
+  Save = FALSE,
+  Update = FALSE
+)
 }
 \arguments{
 \item{Data}{Dataframe with model input's data in airGR format from \code{Create_Forcing_Inputs}.
