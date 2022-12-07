@@ -11,7 +11,7 @@ Create_Forcing_Inputs(
   Qobs = NULL,
   DateIni,
   DateEnd,
-  IniGrids,
+  IniGrids = "01/1981",
   Save = FALSE,
   Update = FALSE,
   Resolution = 0.01,
