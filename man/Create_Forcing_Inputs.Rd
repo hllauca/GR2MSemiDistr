@@ -11,6 +11,7 @@ Create_Forcing_Inputs(
   Qobs = NULL,
   DateIni,
   DateEnd,
+  IniGrids,
   Save = FALSE,
   Update = FALSE,
   Resolution = 0.01,
@@ -25,11 +26,13 @@ Create_Forcing_Inputs(
 
 \item{PotEvap}{Raster brick of the evapotranspiration data in [mm/month].}
 
-\item{Qobs}{Observed streamflow data in [m3/s] at the basin outlet. Must have the same length as P and E data (including NA values). NULL as default.}
+\item{Qobs}{Observed streamflow data in [m3/s] at the basin outlet. Must have the dates of the output dataset.}
 
-\item{DateIni}{Initial date of the database in 'mm/yyyy' format.}
+\item{DateIni}{Initial date of the output database in 'mm/yyyy' format.}
 
-\item{DateEnd}{Ending date of the database in 'mm/yyyy' format.}
+\item{DateEnd}{Ending date of the output database in 'mm/yyyy' format.}
+
+\item{IniGrids}{Initial date of the gridded data (P and PE) in 'mm/yyy' format.}
 
 \item{Save}{Boolean to save results as a text file in the 'Outputs' location. FALSE as default.}
 
@@ -61,7 +64,8 @@ data <- Create_Forcing_Inputs(Subbasins=roi,
                               PotEvap=pisco_pe,
                               Qobs=qobs,
                               DateIni='01/1981',
-                              DateEnd='12/2016')
+                              DateEnd='12/2016',
+                              IniGrids='01/1981')
 View(data)
 }
 \references{

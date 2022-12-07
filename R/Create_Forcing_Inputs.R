@@ -2,9 +2,10 @@
 #' @param Subbasins Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).
 #' @param Precip  Raster brick of the precipitation data in [mm/month].
 #' @param PotEvap Raster brick of the evapotranspiration data in [mm/month].
-#' @param Qobs Observed streamflow data in [m3/s] at the basin outlet. Must have the same length as P and E data (including NA values). NULL as default.
-#' @param DateIni Initial date of the database in 'mm/yyyy' format.
-#' @param DateEnd Ending date of the database in 'mm/yyyy' format.
+#' @param Qobs Observed streamflow data in [m3/s] at the basin outlet. Must have the dates of the output dataset.
+#' @param DateIni Initial date of the output database in 'mm/yyyy' format.
+#' @param DateEnd Ending date of the output database in 'mm/yyyy' format.
+#' @param IniGrids  Initial date of the gridded data (P and PE) in 'mm/yyy' format.
 #' @param Save   Boolean to save results as a text file in the 'Outputs' location. FALSE as default.
 #' @param Update Boolean for the updating mode where only the last month's values will be returned. FALSE as default.
 #' @param Resolution Resampling resolution for improving subbasins' data extraction. 0.01degrees as default.
@@ -28,7 +29,8 @@
 #'                               PotEvap=pisco_pe,
 #'                               Qobs=qobs,
 #'                               DateIni='01/1981',
-#'                               DateEnd='12/2016')
+#'                               DateEnd='12/2016',
+#'                               IniGrids='01/1981')
 #' View(data)
 #' @import rgdal
 #' @import raster
@@ -37,12 +39,14 @@
 #' @import parallel
 #' @import exactextractr
 #' @import sf
+#' @import lubridate
 Create_Forcing_Inputs <- function(Subbasins,
                                   Precip,
                                   PotEvap,
                                   Qobs=NULL,
                                   DateIni,
                                   DateEnd,
+                                  IniGrids,
                                   Save=FALSE,
                                   Update=FALSE,
                                   Resolution=0.01,
@@ -56,6 +60,7 @@ Create_Forcing_Inputs <- function(Subbasins,
   require(parallel)
   require(exactextractr)
   require(sf)
+  require(lubridate)
   require(tictoc)
   tic()
 
@@ -63,7 +68,6 @@ Create_Forcing_Inputs <- function(Subbasins,
   roi   <- st_as_sf(Subbasins)
   comid <- as.vector(roi$COMID)
   nsub  <- length(comid)
-
 
   # Extract monthly precipitation data for each subbasin
     # Show message
@@ -76,6 +80,15 @@ Create_Forcing_Inputs <- function(Subbasins,
       pr <- Precip
       if(Update==TRUE){
         pr <- pr[[nlayers(pr)]]
+      }else{
+        dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
+                     to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pr)-1),
+                     by='month')
+        Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
+        End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
+        ind   <- which(dates==Ini):which(dates==End)
+        dates <- dates[ind]
+        pr    <- pr[[ind]]
       }
 
       # Buffer subbasins and resample raster
@@ -102,8 +115,6 @@ Create_Forcing_Inputs <- function(Subbasins,
       }
     }
 
-
-
   # Extract monthly mean-areal potential evapotranspiration
     # Show message
     cat('\f')
@@ -115,6 +126,15 @@ Create_Forcing_Inputs <- function(Subbasins,
       pe <- PotEvap
       if(Update==TRUE){
         pe <- pe[[nlayers(pe)]]
+      }else{
+        dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
+                     to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pe)-1),
+                     by='month')
+        Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
+        End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
+        ind   <- which(dates==Ini):which(dates==End)
+        dates <- dates[ind]
+        pe    <- pe[[ind]]
       }
 
       # Buffer subbasins and resample raster
