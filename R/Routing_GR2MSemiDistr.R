@@ -24,15 +24,16 @@
 #'                              AcumIni='01/1981',
 #'                              AcumEnd='12/2016')
 #' View(rou$QR)
-#' @import  rgdal
-#' @import  raster
-#' @import  rgeos
-#' @import  foreach
-#' @import  tictoc
-#' @import  parallel
-#' @import  lubridate
-#' @import  exactextractr
-#' @import  sf
+#' @import rgdal
+#' @import raster
+#' @import rgeos
+#' @import foreach
+#' @import tictoc
+#' @import parallel
+#' @import lubridate
+#' @import exactextractr
+#' @import sf
+#' @import RTauDEM
 Routing_GR2MSemiDistr <- function(Model,
                                   Subbasins,
                                   Dem,
@@ -51,6 +52,7 @@ Routing_GR2MSemiDistr <- function(Model,
   require(lubridate)
   require(exactextractr)
   require(sf)
+  # require(traudem)
   tic()
   location <- getwd()
 
@@ -120,6 +122,7 @@ Routing_GR2MSemiDistr <- function(Model,
   index <- extract(Weight, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
 
   # Pitremove DEM
+  # condem <- taudem_pitremove('dem.tif')
   dir.create('./Inputs', recursive=T, showWarnings=F)
   setwd('./Inputs')
   writeRaster(Dem, file='dem.tif', overwrite=TRUE)

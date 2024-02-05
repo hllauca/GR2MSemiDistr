@@ -35,11 +35,11 @@
 #' @import rgdal
 #' @import raster
 #' @import rgeos
-#' @import tictoc
 #' @import parallel
 #' @import exactextractr
 #' @import sf
 #' @import lubridate
+#' @import tictoc
 Create_Forcing_Inputs <- function(Subbasins,
                                   Precip,
                                   PotEvap,
@@ -81,14 +81,16 @@ Create_Forcing_Inputs <- function(Subbasins,
       if(Update==TRUE){
         pr <- pr[[nlayers(pr)]]
       }else{
-        dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
-                     to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pr)-1),
-                     by='month')
-        Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
-        End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
-        ind   <- which(dates==Ini):which(dates==End)
-        dates <- dates[ind]
-        pr    <- pr[[ind]]
+        if(Members==1 | is.null(Members)==TRUE){
+          dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
+                       to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pr)-1),
+                       by='month')
+          Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
+          End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
+          ind   <- which(dates==Ini):which(dates==End)
+          dates <- dates[ind]
+          pr    <- pr[[ind]]
+        }
       }
 
       # Buffer subbasins and resample raster
@@ -127,14 +129,16 @@ Create_Forcing_Inputs <- function(Subbasins,
       if(Update==TRUE){
         pe <- pe[[nlayers(pe)]]
       }else{
-        dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
-                     to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pe)-1),
-                     by='month')
-        Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
-        End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
-        ind   <- which(dates==Ini):which(dates==End)
-        dates <- dates[ind]
-        pe    <- pe[[ind]]
+        if(Members==1 | is.null(Members)==TRUE){
+          dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
+                       to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pe)-1),
+                       by='month')
+          Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
+          End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
+          ind   <- which(dates==Ini):which(dates==End)
+          dates <- dates[ind]
+          pe    <- pe[[ind]]
+        }
       }
 
       # Buffer subbasins and resample raster
