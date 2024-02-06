@@ -33,7 +33,6 @@
 #' @import lubridate
 #' @import exactextractr
 #' @import sf
-#' @import RTauDEM
 Routing_GR2MSemiDistr <- function(Model,
                                   Subbasins,
                                   Dem,
@@ -52,7 +51,6 @@ Routing_GR2MSemiDistr <- function(Model,
   require(lubridate)
   require(exactextractr)
   require(sf)
-  # require(traudem)
   tic()
   location <- getwd()
 
