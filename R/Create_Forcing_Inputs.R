@@ -32,9 +32,8 @@
 #'                               DateEnd='12/2016',
 #'                               IniGrids='01/1981')
 #' View(data)
-#' @import rgdal
+#' @import terra
 #' @import raster
-#' @import rgeos
 #' @import parallel
 #' @import exactextractr
 #' @import sf
@@ -54,9 +53,8 @@ Create_Forcing_Inputs <- function(Subbasins,
                                   Members=NULL){
 
   # Load required packages
-  require(rgdal)
+  require(terra)
   require(raster)
-  require(rgeos)
   require(parallel)
   require(exactextractr)
   require(sf)
@@ -65,7 +63,7 @@ Create_Forcing_Inputs <- function(Subbasins,
   tic()
 
   # Load subbasin data
-  roi   <- st_as_sf(Subbasins)
+  roi   <- Subbasins
   comid <- as.vector(roi$COMID)
   nsub  <- length(comid)
 

@@ -39,9 +39,6 @@
 #' View(model$RU) # runoff in [mm/month]
 #' print(model$SINK$obs) # observed discharge in [m3/s] at basin outlet
 #' print(model$SINK$sim) # simulated discharge in [m3/s] at basin outlet
-#' @import  rgdal
-#' @import  raster
-#' @import  rgeos
 #' @import  rtop
 #' @import  hydroGOF
 #' @import  airGR
@@ -59,9 +56,6 @@ Run_GR2MSemiDistr <- function(Data,
                               Update=FALSE){
 
   # Load required packages
-  require(rgdal)
-  require(raster)
-  require(rgeos)
   require(rtop)
   require(hydroGOF)
   require(airGR)

@@ -24,15 +24,14 @@
 #'                              AcumIni='01/1981',
 #'                              AcumEnd='12/2016')
 #' View(rou$QR)
-#' @import rgdal
 #' @import raster
-#' @import rgeos
 #' @import foreach
 #' @import tictoc
 #' @import parallel
 #' @import lubridate
 #' @import exactextractr
 #' @import sf
+#' @import geos
 Routing_GR2MSemiDistr <- function(Model,
                                   Subbasins,
                                   Dem,
@@ -42,56 +41,17 @@ Routing_GR2MSemiDistr <- function(Model,
                                   Update=FALSE){
 
   # Require packages
-  require(rgdal)
   require(raster)
-  require(rgeos)
   require(foreach)
   require(tictoc)
   require(parallel)
   require(lubridate)
   require(exactextractr)
   require(sf)
+  require(geos)
   tic()
   location <- getwd()
 
-  # Auxiliary function (from https://stackoverflow.com/questions/44327994/calculate-centroid-within-inside-a-spatialpolygon)
-  gCentroidWithin <- function(pol) {
-    require(rgeos)
-
-    pol$.tmpID <- 1:length(pol)
-    # initially create centroid points with gCentroid
-    initialCents <- gCentroid(pol, byid = T)
-
-    # add data of the polygons to the centroids
-    centsDF <- SpatialPointsDataFrame(initialCents, pol@data)
-    centsDF$isCentroid <- TRUE
-
-    # check whether the centroids are actually INSIDE their polygon
-    centsInOwnPoly <- sapply(1:length(pol), function(x) {
-      gIntersects(pol[x,], centsDF[x, ])
-    })
-
-    if(all(centsInOwnPoly) == TRUE){
-      return(centsDF)
-    } else {
-      # substitue outside centroids with points INSIDE the polygon
-      newPoints <- SpatialPointsDataFrame(gPointOnSurface(pol[!centsInOwnPoly, ],
-                                                          byid = T),
-                                          pol@data[!centsInOwnPoly,])
-      newPoints$isCentroid <- FALSE
-      centsDF <- rbind(centsDF[centsInOwnPoly,], newPoints)
-
-      # order the points like their polygon counterpart based on `.tmpID`
-      centsDF <- centsDF[order(centsDF$.tmpID),]
-
-      # remove `.tmpID` column
-      centsDF@data <- centsDF@data[, - which(names(centsDF@data) == ".tmpID")]
-
-      cat(paste(length(pol), "polygons;", sum(centsInOwnPoly), "actual centroids;",
-                sum(!centsInOwnPoly), "Points corrected \n"))
-
-      return(centsDF)
-    }}
 
   # Subsetting data for routing
   if(is.null(AcumIni)==TRUE & is.null(AcumEnd)==TRUE | nrow(Model$QS)==1){
@@ -116,8 +76,9 @@ Routing_GR2MSemiDistr <- function(Model,
   # Extract cell position for each subbasin (centroid)
   Weight <- Dem
   values(Weight) <- 0
-  xycen <- gCentroidWithin(Subbasins)
-  index <- extract(Weight, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
+  roi_sf <- st_as_sf(Subbasins)
+  xycen  <- st_as_sf(geos_point_on_surface(sf_polygon))
+  index  <- extract(Weight, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
 
   # Pitremove DEM
   # condem <- taudem_pitremove('dem.tif')
@@ -134,7 +95,6 @@ Routing_GR2MSemiDistr <- function(Model,
   file.remove('dem.tif')
 
   # Flow acumulation
-  roi_sf <- st_as_sf(Subbasins)
   comid  <- as.vector(roi_sf$COMID)
   ans    <- list()
   for (i in 1:ntime){

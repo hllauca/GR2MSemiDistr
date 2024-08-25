@@ -32,9 +32,7 @@
 #'                              Max.Functions=1000,
 #'                              Optimization='KGE')
 #'  best_param <- optim$Param
-#' @import  rgdal
 #' @import  raster
-#' @import  rgeos
 #' @import  rtop
 #' @import  hydroGOF
 #' @import  airGR
@@ -54,9 +52,7 @@ Optim_GR2MSemiDistr <- function(Data,
 
 
   # Load packages
-  require(rgdal)
   require(raster)
-  require(rgeos)
   require(rtop)
   require(hydroGOF)
   require(airGR)
