@@ -9,7 +9,7 @@ Enjoy it!
 
 Requirements
 ============
-This package needs TauDEM v5.3 (https://hydrology.usu.edu/taudem/taudem5/) to be previously installed.
+This package needs TauDEM v5.3 to be previously installed.
 
 Windows users can also download TauDEM from: https://hydrology.usu.edu/taudem/taudem5/downloads.html
 
