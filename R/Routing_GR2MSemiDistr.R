@@ -77,7 +77,7 @@ Routing_GR2MSemiDistr <- function(Model,
   Weight <- Dem
   values(Weight) <- 0
   roi_sf <- st_as_sf(Subbasins)
-  xycen  <- st_as_sf(geos_point_on_surface(sf_polygon))
+  xycen  <- as(st_as_sf(geos_point_on_surface(roi_sf)),'Spatial')
   index  <- extract(Weight, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
 
   # Pitremove DEM
