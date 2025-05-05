@@ -63,6 +63,7 @@ Create_Forcing_Inputs <- function(Subbasins,
     pr <- Precip
     if(Update==TRUE){
       pr_mean <- round(t(exact_extract(pr, roi, 'mean', progress=FALSE)),1)[nlayers(pr),]
+      pr_mean <- as.data.frame(t(pr_mean))
     }else{
       if(Members==1 | is.null(Members)==TRUE){
           dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
@@ -79,7 +80,7 @@ Create_Forcing_Inputs <- function(Subbasins,
   }
 
 
-  # Extract monthly mean-areal potential evapotranspiration
+  # Extract monthly mean-areal evapotranspiration
   if(is.null(PotEvap)==FALSE){
     cat('\f')
     message('Calcutaling monthly mean-areal evapotranspiration [mm/month]')
@@ -87,6 +88,7 @@ Create_Forcing_Inputs <- function(Subbasins,
     pe <- PotEvap
     if(Update==TRUE){
       pe_mean <- round(t(exact_extract(pe, roi, 'mean', progress=FALSE)),1)[nlayers(pe),]
+      pe_mean <- as.data.frame(t(pe_mean))
     }else{
       if(Members==1 | is.null(Members)==TRUE){
         dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
