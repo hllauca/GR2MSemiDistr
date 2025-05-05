@@ -56,65 +56,57 @@ Create_Forcing_Inputs <- function(Subbasins,
   nsub  <- length(comid)
 
   # Extract monthly precipitation data for each subbasin
-    # Show message
+  if(is.null(Precip)==FALSE){
     cat('\f')
-    message('Calculating monthly mean-areal precipitation [mm]')
+    message('Calculating monthly mean-areal precipitation [mm/month]')
     message('Please wait...')
-    if(is.null(Precip)==FALSE){
-      # Read precipitation data
-      pr <- Precip
-      if(Update==TRUE){
-        pr <- pr[[nlayers(pr)]]
-      }else{
-          if(Members==1 | is.null(Members)==TRUE){
-            dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
-                         to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pr)-1),
-                         by='month')
-            Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
-            End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
-            ind   <- which(dates==Ini):which(dates==End)
-            dates <- dates[ind]
-            pr    <- pr[[ind]]
-          }
-        }
-      terra::gdalCache(16000)
-      pr_mean <- t(exact_extract(pr, roi, 'mean', progress=FALSE))
-      pr_mean <- round(pr_mean,1)
-    }
-
-
-  # Extract monthly mean-areal potential evapotranspiration
-    # Show message
-    cat('\f')
-    message('Calcutaling monthly mean-areal pot. evapotranspiration [mm]')
-    message('Please wait...')
-    if(is.null(PotEvap)==FALSE){
-      # Read potential evapotranspiration data
-      pe <- PotEvap
-      if(Update==TRUE){
-        pe <- pe[[nlayers(pe)]]
-      }else{
-        if(Members==1 | is.null(Members)==TRUE){
+    pr <- Precip
+    if(Update==TRUE){
+      pr_mean <- round(t(exact_extract(pr, roi, 'mean', progress=FALSE)),1)[nlayers(pr),]
+    }else{
+      if(Members==1 | is.null(Members)==TRUE){
           dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
-                       to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pe)-1),
+                       to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pr)-1),
                        by='month')
           Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
           End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
           ind   <- which(dates==Ini):which(dates==End)
           dates <- dates[ind]
-          pe    <- pe[[ind]]
+          pr    <- pr[[ind]]
         }
-      }
-      terra::gdalCache(16000)
-      pe_mean <- t(exact_extract(pe, roi, 'mean', progress=FALSE))
-      pe_mean <- round(pe_mean,1)
+      pr_mean <- round(t(exact_extract(pr, roi, 'mean', progress=FALSE)),1)
     }
+  }
+
+
+  # Extract monthly mean-areal potential evapotranspiration
+  if(is.null(PotEvap)==FALSE){
+    cat('\f')
+    message('Calcutaling monthly mean-areal evapotranspiration [mm/month]')
+    message('Please wait...')
+    pe <- PotEvap
+    if(Update==TRUE){
+      pe_mean <- round(t(exact_extract(pe, roi, 'mean', progress=FALSE)),1)[nlayers(pe),]
+    }else{
+      if(Members==1 | is.null(Members)==TRUE){
+        dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
+                     to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pe)-1),
+                     by='month')
+        Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
+        End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
+        ind   <- which(dates==Ini):which(dates==End)
+        dates <- dates[ind]
+        pe    <- pe[[ind]]
+      }
+      pe_mean <- round(t(exact_extract(pe, roi, 'mean', progress=FALSE)),1)
+    }
+  }
+
 
   # Create a vector of dates
   if(Update==TRUE){
     DatesMonths <- as.Date(paste0('01/',DateEnd), "%d/%m/%Y")
-  }
-  if(Update==FALSE){
+  }else{
     Ini <- paste0('01/',DateIni)
     End <- paste0('01/',DateEnd)
     DatesMonths <- seq(as.Date(Ini, "%d/%m/%Y"),
