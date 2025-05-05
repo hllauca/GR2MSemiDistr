@@ -31,6 +31,7 @@
 #'                               IniGrids='01/1981')
 #' View(data)
 #' @import exactextractr
+#' @import terra
 #' @import lubridate
 #' @import tictoc
 Create_Forcing_Inputs <- function(Subbasins,
@@ -46,6 +47,7 @@ Create_Forcing_Inputs <- function(Subbasins,
 
   # Load required packages
   library(exactextractr)
+  library(terra)
   library(lubridate)
   library(tictoc)
   tic()
@@ -62,12 +64,12 @@ Create_Forcing_Inputs <- function(Subbasins,
     message('Please wait...')
     pr <- Precip
     if(Update==TRUE){
-      pr_mean <- round(t(exact_extract(pr, roi, 'mean', progress=FALSE)),1)[nlayers(pr),]
+      pr_mean <- round(t(exact_extract(pr, roi, 'mean', progress=FALSE)),1)[nlyr(pr),]
       pr_mean <- as.data.frame(t(pr_mean))
     }else{
       if(Members==1 | is.null(Members)==TRUE){
           dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
-                       to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pr)-1),
+                       to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlyr(pr)-1),
                        by='month')
           Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
           End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')
@@ -87,12 +89,12 @@ Create_Forcing_Inputs <- function(Subbasins,
     message('Please wait...')
     pe <- PotEvap
     if(Update==TRUE){
-      pe_mean <- round(t(exact_extract(pe, roi, 'mean', progress=FALSE)),1)[nlayers(pe),]
+      pe_mean <- round(t(exact_extract(pe, roi, 'mean', progress=FALSE)),1)[nlyr(pe),]
       pe_mean <- as.data.frame(t(pe_mean))
     }else{
       if(Members==1 | is.null(Members)==TRUE){
         dates <- seq(from=as.Date(paste0('01/',IniGrids), '%d/%m/%Y'),
-                     to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlayers(pe)-1),
+                     to=as.Date(paste0('01/',IniGrids), '%d/%m/%Y') + months(nlyr(pe)-1),
                      by='month')
         Ini   <- as.Date(paste0('01/',DateIni),'%d/%m/%Y')
         End   <- as.Date(paste0('01/',DateEnd),'%d/%m/%Y')

@@ -14,7 +14,7 @@
 #' @export
 #' @examples
 #' # Load data
-#' require(GR2MSemiDistr)
+#' library(GR2MSemiDistr)
 #' data(dem)
 #'
 #' # Routing discharges in the streamflow network
@@ -24,8 +24,7 @@
 #'                              AcumIni='01/1981',
 #'                              AcumEnd='12/2016')
 #' View(rou$QR)
-#' @import raster
-#' @import foreach
+#' @import terra
 #' @import tictoc
 #' @import lubridate
 #' @import exactextractr
@@ -40,8 +39,7 @@ Routing_GR2MSemiDistr <- function(Model,
                                   Update=FALSE){
 
   # Require packages
-  library(raster)
-  library(foreach)
+  library(terra)
   library(tictoc)
   library(lubridate)
   library(exactextractr)
@@ -79,16 +77,15 @@ Routing_GR2MSemiDistr <- function(Model,
   index  <- extract(Weight, xycen, method='simple', cellnumbers=TRUE, df=TRUE)
 
   # Pitremove DEM
-  # condem <- taudem_pitremove('dem.tif')
   dir.create('./Inputs', recursive=T, showWarnings=F)
   setwd('./Inputs')
-  writeRaster(Dem, file='dem.tif', overwrite=TRUE)
+  writeRaster(Dem, filename='dem.tif', overwrite=TRUE)
   system("mpiexec -n 8 pitremove -z dem.tif -fel CONDEM.tif")
 
   # Flow direction
   system("mpiexec -n 8 D8Flowdir -p FlowDir.tif -sd8 X.tif -fel CONDEM.tif",
          show.output.on.console=F,invisible=F)
-  fdr <- raster("FlowDir.tif")
+  # fdr <- rast("FlowDir.tif")
   file.remove('X.tif')
   file.remove('dem.tif')
 
@@ -109,11 +106,11 @@ Routing_GR2MSemiDistr <- function(Model,
     } else{
       Weight[index$cells] <- QS[i,]
     }
-    writeRaster(Weight, filename='Weights.tif', overwrite=T)
+    writeRaster(Weight, filename='Weights.tif', overwrite=TRUE)
 
     # Weighted Flow Accumulation
     system("mpiexec -n 8 AreaD8 -p FlowDir.tif -wg Weights.tif -ad8 FlowAcum.tif")
-    fac      <- raster("FlowAcum.tif")
+    fac      <- rast("FlowAcum.tif")
     ans[[i]] <- as.numeric(exact_extract(fac, roi_sf, progress=FALSE,
                                          function(values, coverage_fraction)
                                          max(values[coverage_fraction==1], na.rm=TRUE)))

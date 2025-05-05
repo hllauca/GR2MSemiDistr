@@ -43,7 +43,7 @@ Routing discharges for each subbasin.
 }
 \examples{
 # Load data
-require(GR2MSemiDistr)
+library(GR2MSemiDistr)
 data(dem)
 
 # Routing discharges in the streamflow network

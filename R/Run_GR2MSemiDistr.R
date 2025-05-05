@@ -40,6 +40,7 @@
 #' print(model$SINK$obs) # observed discharge in [m3/s] at basin outlet
 #' print(model$SINK$sim) # simulated discharge in [m3/s] at basin outlet
 #' @import  rtop
+#' @import  sf
 #' @import  hydroGOF
 #' @import  airGR
 #' @import  tictoc
@@ -55,6 +56,7 @@ Run_GR2MSemiDistr <- function(Data,
                               Update=FALSE){
 
   # Load required packages
+  library(sf)
   library(rtop)
   library(hydroGOF)
   library(airGR)
