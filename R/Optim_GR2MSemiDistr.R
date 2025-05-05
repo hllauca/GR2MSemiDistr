@@ -36,7 +36,6 @@
 #' @import  hydroGOF
 #' @import  airGR
 #' @import  tictoc
-#' @import  parallel
 Optim_GR2MSemiDistr <- function(Data,
                                 Subbasins,
                                 RunIni,
@@ -55,7 +54,6 @@ Optim_GR2MSemiDistr <- function(Data,
   library(hydroGOF)
   library(airGR)
   library(tictoc)
-  library(parallel)
   tic()
 
   # Load subbasins data
@@ -140,15 +138,9 @@ Optim_GR2MSemiDistr <- function(Data,
                         Fpp=all.param[(2*nreg+1):(3*nreg)],
                         Fpet=all.param[(3*nreg+1):length(all.param)])
 
-    # Open cluster
-    cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR)))
-    clusterExport(cl,varlist=c("Param","region","nsub",
-                               "Database","time","Subset_Param",
-                               "Forcing_Subbasin"),envir=environment())
-
     # Run GR2M
-    ResModel <- parLapply(cl, 1:nsub, function(i) {
+    ResModel <-  list()
+     for(i in 1:nsub){
 
       # Parameters and factors to run the model
       ParamSub  <- Subset_Param(Param, region[i])
@@ -174,11 +166,9 @@ Optim_GR2MSemiDistr <- function(Data,
                                Param=ParamSub,
                                FUN_MOD=RunModel_GR2M)
 
-      return(OutputsModel)
-    })
+      ResModel[[i]] <- OutputsModel
+    }
 
-    # Close cluster
-    stopCluster(cl)
 
     # Model results
     if(nsub==1){

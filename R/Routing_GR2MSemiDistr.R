@@ -27,7 +27,6 @@
 #' @import raster
 #' @import foreach
 #' @import tictoc
-#' @import parallel
 #' @import lubridate
 #' @import exactextractr
 #' @import sf
@@ -44,7 +43,6 @@ Routing_GR2MSemiDistr <- function(Model,
   library(raster)
   library(foreach)
   library(tictoc)
-  library(parallel)
   library(lubridate)
   library(exactextractr)
   library(sf)

@@ -43,7 +43,6 @@
 #' @import  hydroGOF
 #' @import  airGR
 #' @import  tictoc
-#' @import  parallel
 #' @import  lubridate
 Run_GR2MSemiDistr <- function(Data,
                               Subbasins,
@@ -60,7 +59,6 @@ Run_GR2MSemiDistr <- function(Data,
   library(hydroGOF)
   library(airGR)
   library(tictoc)
-  library(parallel)
   library(lubridate)
   tic()
 
@@ -71,7 +69,8 @@ Run_GR2MSemiDistr <- function(Data,
   nsub   <- nrow(Subbasins@data)
 
   # Subsetting input data
-  Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'),"GMT", tryFormats=c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y"))
+  Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'),"GMT",
+                            tryFormats=c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y"))
   Ind_run     <- seq(which(format(Data$DatesR, format="%m/%Y")==RunIni),
                      which(format(Data$DatesR, format="%m/%Y")==RunEnd))
   Database    <- Data[Ind_run,]
@@ -105,7 +104,7 @@ Run_GR2MSemiDistr <- function(Data,
                                                 "%d-%m-%Y","%d/%m/%Y"))
     return(FixInputs)
   }
-  numberOfDays <- function(date) {
+  numberOfDays <- function(date){
     m <- format(date, format="%m")
     while (format(date, format="%m")==m) {
       date <- date + 1
@@ -117,22 +116,14 @@ Run_GR2MSemiDistr <- function(Data,
   nDays  <- sapply(as.Date(Database$DatesR), numberOfDays)
 
   # Run hydrological model of each subbasin
-    # Show message
     cat('\f')
     message(paste('Running GR2M model for', nsub, 'subbasins'))
     message('Please wait...')
-
-    # Open cluster
-    cl=makeCluster(detectCores()-1) # Detect and assign a cluster number
-    clusterEvalQ(cl,c(library(GR2MSemiDistr),library(airGR),library(lubridate))) # Load package to each node
-    clusterExport(cl,varlist=c("Param","region","nsub","Database",
-                               "ntime","IniState","Subset_Param",
-                               "Forcing_Subbasin"),envir=environment())
-
     # Run GR2M
-    ResModel <- parLapply(cl, 1:nsub, function(i) {
+    ResModel <- list()
+    for(i in 1:nsub){
 
-      # Parameters and factors to run the model
+      # parameters and factors
       ParamSub  <- Subset_Param(Param, region[i])
       FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
       if(ntime==1){
@@ -141,13 +132,13 @@ Run_GR2MSemiDistr <- function(Data,
         FixInputs <- rbind(FixInputs,NewStep)
       }
 
-      # Prepare model inputs
+      # model inputs
       InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
                                        DatesR=FixInputs$DatesR,
                                        Precip=FixInputs$P,
                                        PotEvap=FixInputs$E)
 
-      # Run GR2M model by an specific initial conditions
+      # initial conditions
       if(is.null(IniState)==TRUE){
 
         # Set-up running options
@@ -177,16 +168,16 @@ Run_GR2MSemiDistr <- function(Data,
                                        verbose=FALSE,
                                        warnings=FALSE)
       }
+
       # Run GR2M
       OutputsModel <- RunModel(InputsModel=InputsModel,
                                RunOptions=RunOptions,
                                Param=ParamSub,
                                FUN=RunModel_GR2M)
 
-      return(OutputsModel)
-    })
-    # Close cluster
-    stopCluster(cl)
+      ResModel[[i]] <- OutputsModel
+    }
+
 
 
   # Read model results
