@@ -32,7 +32,6 @@
 #'                              Max.Functions=1000,
 #'                              Optimization='KGE')
 #'  best_param <- optim$Param
-#' @import  raster
 #' @import  rtop
 #' @import  hydroGOF
 #' @import  airGR
@@ -52,12 +51,11 @@ Optim_GR2MSemiDistr <- function(Data,
 
 
   # Load packages
-  require(raster)
-  require(rtop)
-  require(hydroGOF)
-  require(airGR)
-  require(tictoc)
-  require(parallel)
+  library(rtop)
+  library(hydroGOF)
+  library(airGR)
+  library(tictoc)
+  library(parallel)
   tic()
 
   # Load subbasins data

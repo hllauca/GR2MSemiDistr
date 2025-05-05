@@ -56,12 +56,12 @@ Run_GR2MSemiDistr <- function(Data,
                               Update=FALSE){
 
   # Load required packages
-  require(rtop)
-  require(hydroGOF)
-  require(airGR)
-  require(tictoc)
-  require(parallel)
-  require(lubridate)
+  library(rtop)
+  library(hydroGOF)
+  library(airGR)
+  library(tictoc)
+  library(parallel)
+  library(lubridate)
   tic()
 
   # Load subbasins data

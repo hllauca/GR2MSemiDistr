@@ -14,8 +14,6 @@ Create_Forcing_Inputs(
   IniGrids = "01/1981",
   Save = FALSE,
   Update = FALSE,
-  Resolution = 0.01,
-  Buffer = 1.1,
   Members = NULL
 )
 }
@@ -38,10 +36,6 @@ Create_Forcing_Inputs(
 
 \item{Update}{Boolean for the updating mode where only the last month's values will be returned. FALSE as default.}
 
-\item{Resolution}{Resampling resolution for improving subbasins' data extraction. 0.01degrees as default.}
-
-\item{Buffer}{Factor for increase subbasins' limits extents. 1.1 as default.}
-
 \item{Members}{Número de miembros del conjunto modelo. Only for streamflow forecasting purposes. NULL por defecto.}
 }
 \value{
@@ -52,7 +46,7 @@ Extract and prepare model's inputs data in the airGR format (DatesR, P and E) fr
 }
 \examples{
 # Load data
-require(GR2MSemiDistr)
+library(GR2MSemiDistr)
 data(pisco_pr)
 data(pisco_pe)
 data(qobs)

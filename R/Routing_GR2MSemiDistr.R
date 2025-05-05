@@ -41,14 +41,14 @@ Routing_GR2MSemiDistr <- function(Model,
                                   Update=FALSE){
 
   # Require packages
-  require(raster)
-  require(foreach)
-  require(tictoc)
-  require(parallel)
-  require(lubridate)
-  require(exactextractr)
-  require(sf)
-  require(geos)
+  library(raster)
+  library(foreach)
+  library(tictoc)
+  library(parallel)
+  library(lubridate)
+  library(exactextractr)
+  library(sf)
+  library(geos)
   tic()
   location <- getwd()
 
