@@ -2,7 +2,7 @@
 % Please edit documentation in R/Create_Forcing_Inputs.R
 \name{Create_Forcing_Inputs}
 \alias{Create_Forcing_Inputs}
-\title{Extract and prepare model's inputs data in the airGR format (DatesR, P and E) from gridded P and E monthly data.}
+\title{Extract and prepare model input data in the airGR format (DatesR, P, E, and optionally Q) using gridded monthly precipitation and evapotranspiration.}
 \usage{
 Create_Forcing_Inputs(
   Subbasins,
@@ -18,52 +18,61 @@ Create_Forcing_Inputs(
 )
 }
 \arguments{
-\item{Subbasins}{Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).}
+\item{Subbasins}{A `SpatVector` object containing the subbasins' geometries. Must include the following attributes: `'COMID'` (unique identifier), `'Area'` (in km²), and `'Region'` (string code for the hydro-climatic region).}
 
-\item{Precip}{Raster brick of the precipitation data in [mm/month].}
+\item{Precip}{A `SpatRaster` object with monthly precipitation data in [mm/month].}
 
-\item{PotEvap}{Raster brick of the evapotranspiration data in [mm/month].}
+\item{PotEvap}{A `SpatRaster` object with monthly potential evapotranspiration data in [mm/month].}
 
-\item{Qobs}{Observed streamflow data in [m3/s] at the basin outlet. Must have the dates of the output dataset.}
+\item{Qobs}{Optional. A vector with observed streamflow in [m³/s] at the basin outlet.}
 
-\item{DateIni}{Initial date of the output database in 'mm/yyyy' format.}
+\item{DateIni}{Start date of the output time series in `'mm/yyyy'` format.}
 
-\item{DateEnd}{Ending date of the output database in 'mm/yyyy' format.}
+\item{DateEnd}{End date of the output time series in `'mm/yyyy'` format.}
 
-\item{IniGrids}{Initial date of the gridded data (P and PE) in 'mm/yyy' format.}
+\item{IniGrids}{Initial date of the gridded precipitation and evapotranspiration datasets in `'mm/yyyy'` format.}
 
-\item{Save}{Boolean to save results as a text file in the 'Outputs' location. FALSE as default.}
+\item{Save}{Logical. If TRUE, saves the resulting data frame to a `.txt` file in the `'./Inputs'` directory. Default is FALSE.}
 
-\item{Update}{Boolean for the updating mode where only the last month's values will be returned. FALSE as default.}
+\item{Update}{Logical. If TRUE, returns only the last month of data (useful for operational updates). Default is FALSE.}
 
-\item{Members}{Número de miembros del conjunto modelo. Only for streamflow forecasting purposes. NULL por defecto.}
+\item{Members}{Optional. Integer indicating the number of ensemble members for streamflow forecasting. If provided, the date vector will be repeated accordingly. Default is NULL.}
 }
 \value{
-Return a dataframe of model's inputs data in the airGR format (DatesR, P, E, Q).
+A data frame containing the model inputs in the airGR format, with columns:
+\describe{
+  \item{DatesR}{Monthly dates}
+  \item{P_x}{Mean precipitation for subbasin x, where x is the COMID}
+  \item{E_x}{Mean potential evapotranspiration for subbasin x, where x is the COMID}
+  \item{Q}{Observed streamflow [m³/s], if provided}
+}
 }
 \description{
-Extract and prepare model's inputs data in the airGR format (DatesR, P and E) from gridded P and E monthly data.
+This function extracts spatially averaged monthly precipitation and potential evapotranspiration values for each subbasin,
+and optionally includes observed streamflow data, to produce a formatted data frame compatible with the airGR hydrological modeling framework.
 }
 \examples{
-# Load data
 library(GR2MSemiDistr)
-data(pisco_pr)
-data(pisco_pe)
-data(qobs)
-data(roi)
+data(pisco_pr)  # Monthly precipitation SpatRaster
+data(pisco_pe)  # Monthly potential evapotranspiration SpatRaster
+data(qobs)      # Data frame with observed streamflow
+data(roi)       # Subbasins SpatVector
 
-# Create a database with model's inputs data
-data <- Create_Forcing_Inputs(Subbasins=roi,
-                              Precip=pisco_pr,
-                              PotEvap=pisco_pe,
-                              Qobs=qobs,
-                              DateIni='01/1981',
-                              DateEnd='12/2016',
-                              IniGrids='01/1981')
-View(data)
+# Create model input data
+data_inputs <- Create_Forcing_Inputs(
+  Subbasins = roi,
+  Precip = pisco_pr,
+  PotEvap = pisco_pe,
+  Qobs = qobs,
+  DateIni = '01/1981',
+  DateEnd = '12/2016',
+  IniGrids = '01/1981'
+)
+View(data_inputs)
+
 }
 \references{
-Cesar Aybar, Carlos Fernández, Adrian Huerta, Waldo Lavado, Fiorella Vega & Oscar Felipe-Obando (2020) Construction of a high-resolution gridded rainfall dataset for Peru from 1981 to the present day, Hydrological Sciences Journal, 65:5, 770-785, DOI: 10.1080/02626667.2019.1649411
+Aybar, C., Fernández, C., Huerta, A., Lavado, W., Vega, F., & Felipe-Obando, O. (2020). Construction of a high-resolution gridded rainfall dataset for Peru from 1981 to the present day. *Hydrological Sciences Journal*, 65(5), 770–785. https://doi.org/10.1080/02626667.2019.1649411
 
-Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
+Llauca, H., Lavado-Casimiro, W., Montesinos, C., Santini, W., & Rau, P. (2021). PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). *Water*, 13(8), 1048. https://doi.org/10.3390/w13081048
 }
