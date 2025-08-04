@@ -3,7 +3,7 @@
 #' This function extracts spatially averaged monthly precipitation and potential evapotranspiration values for each subbasin,
 #' and optionally includes observed streamflow data, to produce a formatted data frame compatible with the airGR hydrological modeling framework.
 #'
-#' @param Subbasins A `SpatVector` object containing the subbasins' geometries. Must include the following attributes: `'COMID'` (unique identifier), `'Area'` (in km²), and `'Region'` (string code for the hydro-climatic region).
+#' @param Subbasins A `SpatVector` object containing the subbasins' geometries. Must include the following attributes: `'COMID'` (unique identifier), and `'Region'` (string code for the hydro-climatic region).
 #' @param Precip A `SpatRaster` object with monthly precipitation data in [mm/month].
 #' @param PotEvap A `SpatRaster` object with monthly potential evapotranspiration data in [mm/month].
 #' @param Qobs Optional. A vector with observed streamflow in [m³/s] at the basin outlet.
@@ -24,7 +24,6 @@
 #'
 #' @references
 #' Aybar, C., Fernández, C., Huerta, A., Lavado, W., Vega, F., & Felipe-Obando, O. (2020). Construction of a high-resolution gridded rainfall dataset for Peru from 1981 to the present day. *Hydrological Sciences Journal*, 65(5), 770–785. https://doi.org/10.1080/02626667.2019.1649411
-#'
 #' Llauca, H., Lavado-Casimiro, W., Montesinos, C., Santini, W., & Rau, P. (2021). PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). *Water*, 13(8), 1048. https://doi.org/10.3390/w13081048
 #'
 #' @export
