@@ -52,7 +52,9 @@
 #' @import tictoc
 #' @import lubridate
 #' @importFrom terra expanse
-
+#'
+#' @export
+#'
 Run_GR2MSemiDistr <- function(Data,
                               Subbasins,
                               RunIni,
