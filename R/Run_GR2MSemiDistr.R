@@ -17,11 +17,12 @@
 #'
 #' @return A list with the following elements:
 #' \describe{
-#'   \item{PR}{Matrix of precipitation [mm/month] for each subbasin}
+#'   \item{PR}{Matrix of total precipitation [mm/month] for each subbasin}
 #'   \item{AE}{Matrix of actual evapotranspiration [mm/month] for each subbasin}
-#'   \item{SM}{Matrix of soil moisture [mm/month] for each subbasin}
+#'   \item{SM}{Matrix of production store level [mm/month] for each subbasin}
+#'   \item{SM}{Matrix of percolation [mm/month] for each subbasin}
 #'   \item{RU}{Matrix of runoff [mm/month] for each subbasin}
-#'   \item{QS}{Matrix of discharge [m3/s] (not routed) for each subbasin}
+#'   \item{QS}{Matrix of flow [m3/s] (not routed) for each subbasin}
 #'   \item{Dates}{Date vector for the simulation period}
 #'   \item{COMID}{Vector of subbasin COMIDs}
 #'   \item{EndState}{List of final state variables for each subbasin}
@@ -191,6 +192,7 @@ Run_GR2MSemiDistr <- function(Data,
       pr = round(res$Precip, 2),
       ae = round(res$AE, 2),
       sm = round(res$Prod, 2),
+      pc = round(res$Perc, 2),
       ru = round(res$Qsim, 2),
       qs = round((area * res$Qsim) / (86.4 * nDays), 2)
     )
@@ -200,6 +202,7 @@ Run_GR2MSemiDistr <- function(Data,
   pr <- do.call(cbind, lapply(outputs, `[[`, "pr"))
   ae <- do.call(cbind, lapply(outputs, `[[`, "ae"))
   sm <- do.call(cbind, lapply(outputs, `[[`, "sm"))
+  pc <- do.call(cbind, lapply(outputs, `[[`, "pc"))
   ru <- do.call(cbind, lapply(outputs, `[[`, "ru"))
   qs <- do.call(cbind, lapply(outputs, `[[`, "qs"))
   qt <- round(rowSums(qs), 2)
@@ -209,6 +212,7 @@ Run_GR2MSemiDistr <- function(Data,
     pr <- pr[indices, , drop = FALSE]
     ae <- ae[indices, , drop = FALSE]
     sm <- sm[indices, , drop = FALSE]
+    pc <- pc[indices, , drop = FALSE]
     ru <- ru[indices, , drop = FALSE]
     qs <- qs[indices, , drop = FALSE]
     qt <- qt[indices]
@@ -220,7 +224,7 @@ Run_GR2MSemiDistr <- function(Data,
     qo <- Database$Q
   }
 
-  Ans <- list(QS = qs, RU = ru, PR = pr, AE = ae, SM = sm, Dates = Dates, COMID = comid,
+  Ans <- list(Dates = Dates, COMID = comid, QS = qs, RU = ru, PR = pr, AE = ae, SM = sm, PC = pc,
               EndState = lapply(ResModel, `[[`, "StateEnd"))
 
   if (exists("qo")) {
@@ -233,7 +237,7 @@ Run_GR2MSemiDistr <- function(Data,
     if (Update) {
       new_month <- format(tail(Dates, 1), "%Y%m")
       old_month <- format(as.Date(paste0(new_month, "01"), "%Y%m%d") %m-% months(1), "%Y%m")
-      vars <- c("PR", "AE", "SM", "RU", "QS")
+      vars <- c("PR", "AE", "SM", "PC","RU", "QS")
       for (var in vars) {
         old_file <- paste0("./Outputs/", var, "_GR2MSemiDistr_", old_month, ".txt")
         if (file.exists(old_file)) file.remove(old_file)

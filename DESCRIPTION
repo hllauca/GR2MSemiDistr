@@ -1,26 +1,34 @@
 Package: GR2MSemiDistr
 Type: Package
-Title: A package for hydrological modeling with a semi-distribute GR2M model adaptation in large-sample studies and operational systems.
-Version: 4.4
+Title: Semi-Distributed GR2M Model for Large-Sample Hydrological Applications
+Version: 5.0
 Author: Harold Llauca <hllauca@senamhi.gob.pe>
 Maintainer: Harold Llauca <hllauca@senamhi.gob.pe>
-Description: This package run a semi-distributed GR2M model adaptation using the Weighted Flow Accumulation algorithm in TauDEM_537 (required)
+Description: Implements a semi-distributed adaptation of the GR2M monthly hydrological
+    model for large-sample and operational hydrological modeling. The model uses
+    regional parameters and subbasin-level forcing data to simulate water balance
+    components such as precipitation, evapotranspiration, runoff, and discharge.
+    It supports warm-up periods, initial states, output saving, and regional
+    parameter correction. The routing scheme is based on subbasin structure and
+    spatial relationships derived using TauDEM 5.3.7 (external dependency).
+    Designed for flexible integration in research, water resource assessments,
+    and operational hydrological systems in complex basins.
 License: GPL (>= 2)
 Encoding: UTF-8
 Depends:
-    R (>= 4.0),
+    R (>= 4.0)
 Imports:
-  airGR,
-  foreach,
-  hydroGOF,
-  raster,
-  terra,
-  geos,
-  rtop,
-  tictoc,
-  lubridate,
-  sf,
-  exactextractr,
-  parallel,
+    airGR,
+    foreach,
+    hydroGOF,
+    raster,
+    terra,
+    geos,
+    rtop,
+    tictoc,
+    lubridate,
+    sf,
+    exactextractr,
+    parallel
 LazyData: true
 RoxygenNote: 7.3.2

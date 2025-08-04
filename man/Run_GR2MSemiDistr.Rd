@@ -39,11 +39,12 @@ It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and optionally Q.}
 \value{
 A list with the following elements:
 \describe{
-  \item{PR}{Matrix of precipitation [mm/month] for each subbasin}
+  \item{PR}{Matrix of total precipitation [mm/month] for each subbasin}
   \item{AE}{Matrix of actual evapotranspiration [mm/month] for each subbasin}
-  \item{SM}{Matrix of soil moisture [mm/month] for each subbasin}
+  \item{SM}{Matrix of production store level [mm/month] for each subbasin}
+  \item{SM}{Matrix of percolation [mm/month] for each subbasin}
   \item{RU}{Matrix of runoff [mm/month] for each subbasin}
-  \item{QS}{Matrix of discharge [m3/s] (not routed) for each subbasin}
+  \item{QS}{Matrix of flow [m3/s] (not routed) for each subbasin}
   \item{Dates}{Date vector for the simulation period}
   \item{COMID}{Vector of subbasin COMIDs}
   \item{EndState}{List of final state variables for each subbasin}
