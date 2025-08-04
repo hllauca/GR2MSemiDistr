@@ -7,10 +7,10 @@
 #' @param Precip A `SpatRaster` object with monthly precipitation data in [mm/month].
 #' @param PotEvap A `SpatRaster` object with monthly potential evapotranspiration data in [mm/month].
 #' @param Qobs Optional. A vector with observed streamflow in [m³/s] at the basin outlet.
-#' @param DateIni Start date of the output time series in `'mm/yyyy'` format.
-#' @param DateEnd End date of the output time series in `'mm/yyyy'` format.
-#' @param IniGrids Initial date of the gridded precipitation and evapotranspiration datasets in `'mm/yyyy'` format.
-#' @param Save Logical. If TRUE, saves the resulting data frame to a `.txt` file in the `'./Inputs'` directory. Default is FALSE.
+#' @param DateIni Start date of the output time series in `mm/yyyy` format.
+#' @param DateEnd End date of the output time series in `mm/yyyy` format.
+#' @param IniGrids Initial date of the gridded precipitation and evapotranspiration datasets in `mm/yyyy` format.
+#' @param Save Logical. If TRUE, saves the resulting data frame to a `.txt` file in the `./Inputs` directory. Default is FALSE.
 #' @param Update Logical. If TRUE, returns only the last month of data (useful for operational updates). Default is FALSE.
 #' @param Members Optional. Integer indicating the number of ensemble members for streamflow forecasting. If provided, the date vector will be repeated accordingly. Default is NULL.
 #'
@@ -24,6 +24,7 @@
 #'
 #' @references
 #' Aybar, C., Fernández, C., Huerta, A., Lavado, W., Vega, F., & Felipe-Obando, O. (2020). Construction of a high-resolution gridded rainfall dataset for Peru from 1981 to the present day. *Hydrological Sciences Journal*, 65(5), 770–785. https://doi.org/10.1080/02626667.2019.1649411
+
 #' Llauca, H., Lavado-Casimiro, W., Montesinos, C., Santini, W., & Rau, P. (2021). PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). *Water*, 13(8), 1048. https://doi.org/10.3390/w13081048
 #'
 #' @export
@@ -182,4 +183,3 @@ Create_Forcing_Inputs <- function(Subbasins,
   toc()
   return(Ans)
 }
-

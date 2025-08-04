@@ -1,53 +1,50 @@
 #' Run the GR2M model for multiple subbasins.
 #'
-#' This function runs the GR2M monthly water balance model on a semi-distributed basis
-#' across multiple subbasins, applying region-specific parameters and correction factors
-#' to precipitation and potential evapotranspiration.
+#' This function runs the GR2M monthly water balance model in a semi-distributed manner,
+#' applying region-specific parameters and correction factors to precipitation and
+#' potential evapotranspiration data for each subbasin.
 #'
-#' @param Data Data frame of model inputs in airGR format created with \code{Create_Forcing_Inputs}.
-#' Columns should include DatesR, followed by P_1 to P_n, E_1 to E_n, and optionally Q.
-#' @param Subbasins A `SpatVector` object containing the subbasins' geometries. Must include the following attributes: `'COMID'` (unique identifier), and `'Region'` (string code for the hydro-climatic region).
-#' @param RunIni Initial simulation date in 'mm/yyyy' format.
-#' @param RunEnd Final simulation date in 'mm/yyyy' format.
-#' @param WarmUp Optional number of months to discard as warm-up. Default is NULL.
-#' @param Parameters Numeric vector of model parameters and correction factors.
-#' Format: c(X1_region1, ..., X1_regionN, X2_region1, ..., Fpp_regionN, Fpe_region1, ..., Fpe_regionN)
-#' @param IniState Optional list of initial state values for each subbasin. Default is NULL.
-#' @param Save Logical. If TRUE, outputs will be saved as text files in the 'Outputs/' folder.
-#' @param Update Logical. If TRUE and Save = TRUE, overwrites previous month's files before saving new ones.
+#' @param Data A data frame containing the model inputs in airGR format. This must include a column DatesR (formatted as date or string), followed by columns P_1 to P_n for precipitation, E_1 to E_n for evapotranspiration, and optionally Q for observed discharge.
+#' @param Subbasins A SpatVector object with the geometries of the subbasins. It must contain the attributes COMID (identifier) and Region (hydro-climatic region).
+#' @param RunIni Initial date of the simulation period in "mm/yyyy" format.
+#' @param RunEnd Final date of the simulation period in "mm/yyyy" format.
+#' @param Parameters A data frame with the model parameters and correction factors per region. It must contain the columns: Region, X1, X2, fp, and fe.
+#' @param WarmUp Optional. Number of initial months to discard from the outputs as warm-up. Default is NULL.
+#' @param IniState Optional list of initial model states per subbasin (used to resume simulations). Default is NULL.
+#' @param Save Logical. If TRUE, output files will be saved as .txt files in the ./Outputs folder. Default is FALSE.
+#' @param Update Logical. If TRUE and Save = TRUE, removes the output files from the previous month before saving the current ones. Useful for operational updating. Default is FALSE.
 #'
-#' @return A list with the following elements:
-#' \item{PR}{Matrix of precipitation [mm/month] per subbasin}
-#' \item{AE}{Matrix of actual evapotranspiration [mm/month] per subbasin}
-#' \item{SM}{Matrix of soil moisture [mm/month] per subbasin}
-#' \item{RU}{Matrix of runoff [mm/month] per subbasin}
-#' \item{QS}{Matrix of simulated discharge [m3/s] per subbasin (not routed)}
-#' \item{Dates}{Vector of dates used in the simulation}
-#' \item{COMID}{Vector of subbasin COMID identifiers}
-#' \item{EndState}{List of final model states for each subbasin}
-#' \item{SINK}{Optional. Data frame of simulated and observed streamflow at outlet, if Q is provided}
+#' @return A list containing the following elements:
+#' \describe{
+#'   \item{PR}{Matrix of precipitation [mm/month] per subbasin.}
+#'   \item{AE}{Matrix of actual evapotranspiration [mm/month] per subbasin.}
+#'   \item{SM}{Matrix of soil moisture [mm/month] per subbasin.}
+#'   \item{RU}{Matrix of runoff [mm/month] per subbasin.}
+#'   \item{QS}{Matrix of simulated discharge [m3/s] per subbasin (not routed).}
+#'   \item{Dates}{Vector of dates used in the simulation.}
+#'   \item{COMID}{Vector of subbasin COMID identifiers.}
+#'   \item{EndState}{List of final model states for each subbasin.}
+#'   \item{SINK}{Optional. Data frame with simulated and observed streamflow at outlet, if Q is provided.}
+#' }
 #'
 #' @references Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).
 #' PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water, 13(8), 1048.
 #' \doi{10.3390/w13081048}
 #'
-#' @export
-#'
 #' @examples
-#' # Load input forcing data and subbasins (see Create_Forcing_Inputs)
 #' model <- Run_GR2MSemiDistr(
 #'   Data = data,
 #'   Subbasins = roi,
 #'   RunIni = '01/1981',
 #'   RunEnd = '12/2016',
-#'   Parameters = c(10.976, 0.665, 1.186, 1.169)
+#'   Parameters = data.frame(
+#'     Region = c("R1"),
+#'     X1 = 10.5,
+#'     X2 = 1.2,
+#'     fp = 1.1,
+#'     fe = 0.95
+#'   )
 #' )
-#'
-#' # View model outputs
-#' View(model$PR)  # Precipitation [mm/month]
-#' View(model$QS)  # Simulated discharge [m3/s] per subbasin (not routed).
-#' print(model$SINK$SIM)  # Simulated outlet discharge
-#' print(model$SINK$OBS)  # Observed outlet discharge (if available)
 #'
 #' @import airGR
 #' @import tictoc
@@ -64,17 +61,14 @@ Run_GR2MSemiDistr <- function(Data,
                               Save = FALSE,
                               Update = FALSE) {
 
-  tic()
+  tictoc::tic()
 
   # === Validate Subbasins ===
   if (!inherits(Subbasins, "SpatVector")) {
     stop("Argument 'Subbasins' must be of class 'SpatVector'.")
   }
-  if (!"COMID" %in% names(Subbasins)) {
-    stop("The 'Subbasins' object must contain a field named 'COMID'.")
-  }
-  if (!"Region" %in% names(Subbasins)) {
-    stop("The 'Subbasins' object must contain a field named 'Region'.")
+  if (!all(c("COMID", "Region") %in% names(Subbasins))) {
+    stop("The 'Subbasins' object must contain fields 'COMID' and 'Region'.")
   }
   comid  <- as.vector(Subbasins$COMID)
   region <- Subbasins$Region
@@ -99,14 +93,22 @@ Run_GR2MSemiDistr <- function(Data,
   ntime    <- length(Dates)
   nDays    <- lubridate::days_in_month(Dates)
 
-  # === Organize parameters by region ===
+  # === Organize and validate parameters ===
   Zone  <- sort(unique(region))
   nreg  <- length(Zone)
-  Param <- data.frame(Region = Zone,
-                      X1 = Parameters[1:nreg],
-                      X2 = Parameters[(nreg + 1):(2 * nreg)],
-                      Fpp = Parameters[(2 * nreg + 1):(3 * nreg)],
-                      Fpe = Parameters[(3 * nreg + 1):length(Parameters)])
+
+  if (!is.data.frame(Parameters)) {
+    stop("Argument 'Parameters' must be a data frame.")
+  }
+  required_cols <- c("Region", "X1", "X2", "fp", "fe")
+  if (!all(required_cols %in% names(Parameters))) {
+    stop("The 'Parameters' data frame must contain the following columns: 'Region', 'X1', 'X2', 'fp', 'fe'.")
+  }
+
+  if (nreg != nrow(Parameters)) {
+    stop(paste0("The number of regions in 'Subbasins' (", nreg,
+                ") does not match the number of rows in 'Parameters' (", nrow(Parameters), ")."))
+  }
 
   # === Helper functions ===
   Subset_Param <- function(Param, Region) {
@@ -114,15 +116,12 @@ Run_GR2MSemiDistr <- function(Data,
       Param$X2[Param$Region == Region])
   }
 
-  Forcing_Subbasin <- function(Param, Region, Database, Nsub, ID) {
-    factor_pp  <- Param$Fpp[Param$Region == Region]
-    factor_pet <- Param$Fpe[Param$Region == Region]
-    Inputs     <- Database[, c(1, ID + 1, ID + 1 + Nsub)]
-    data.frame(
-      DatesR = as.POSIXct(Inputs[, 1], tz = "GMT"),
-      P = round(factor_pp * Inputs[, 2], 1),
-      E = round(factor_pet * Inputs[, 3], 1)
-    )
+  Forcing_Subbasin <- function(Param, Region, Database, ID, Nsub) {
+    factor_p <- Param$fp[Param$Region == Region]
+    factor_e <- Param$fe[Param$Region == Region]
+    data.frame(DatesR = as.POSIXct(Database[, 1], tz = "GMT"),
+               P = factor_p * Database[, 1 + ID],
+               E = factor_e * Database[, 1 + ID + Nsub])
   }
 
   # === Run GR2M model ===
@@ -130,25 +129,35 @@ Run_GR2MSemiDistr <- function(Data,
 
   ResModel <- vector("list", nsub)
   for (i in seq_len(nsub)) {
-    ParamSub  <- Subset_Param(Param, region[i])
-    FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
+    Param <- Subset_Param(Parameters, region[i])
+    Input <- Forcing_Subbasin(Parameters, region[i], Database, i, nsub)
+
+    if (anyNA(Input$P) || anyNA(Input$E)) {
+      stop(sprintf("Missing values (NA) detected in P or E for subbasin %s", comid[i]))
+    }
+    if (any(Input$P < 0)) {
+      stop(sprintf("Negative values detected in P for subbasin %s", comid[i]))
+    }
+    if (any(Input$E < 0)) {
+      stop(sprintf("Negative values detected in E for subbasin %s", comid[i]))
+    }
 
     if (ntime == 1) {
-      next_month <- as.POSIXct(lubridate::floor_date(FixInputs$DatesR + months(1), "month"))
-      FixInputs  <- rbind(FixInputs, data.frame(DatesR = next_month, P = 100, E = 100))
+      next_month <- lubridate::floor_date(Input$DatesR + months(1), "month")
+      Input <- rbind(Input, data.frame(DatesR = next_month, P = 100, E = 100))
     }
 
     InputsModel <- CreateInputsModel(FUN_MOD = RunModel_GR2M,
-                                     DatesR = FixInputs$DatesR,
-                                     Precip = FixInputs$P,
-                                     PotEvap = FixInputs$E)
+                                     DatesR = Input$DatesR,
+                                     Precip = Input$P,
+                                     PotEvap = Input$E)
 
-    if (is.null(IniState)) {
-      RunOptions <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
-                                     InputsModel = InputsModel,
-                                     IndPeriod_Run = 1:ntime,
-                                     verbose = FALSE,
-                                     warnings = FALSE)
+    RunOptions <- if (is.null(IniState)) {
+      CreateRunOptions(FUN_MOD = RunModel_GR2M,
+                       InputsModel = InputsModel,
+                       IndPeriod_Run = seq_len(ntime),
+                       verbose = FALSE,
+                       warnings = FALSE)
     } else {
       IniStates <- CreateIniStates(FUN_MOD = RunModel_GR2M,
                                    InputsModel = InputsModel,
@@ -158,28 +167,28 @@ Run_GR2MSemiDistr <- function(Data,
                                    UH1 = IniState[[i]]$UH$UH1,
                                    UH2 = IniState[[i]]$UH$UH2)
 
-      RunOptions <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
-                                     InputsModel = InputsModel,
-                                     IniStates = IniStates,
-                                     IndPeriod_Run = 1:ntime,
-                                     verbose = FALSE,
-                                     warnings = FALSE)
+      CreateRunOptions(FUN_MOD = RunModel_GR2M,
+                       InputsModel = InputsModel,
+                       IniStates = IniStates,
+                       IndPeriod_Run = seq_len(ntime),
+                       verbose = FALSE,
+                       warnings = FALSE)
     }
 
     ResModel[[i]] <- RunModel(InputsModel = InputsModel,
                               RunOptions = RunOptions,
-                              Param = ParamSub,
+                              Param = Param,
                               FUN = RunModel_GR2M)
   }
 
   # === Post-processing ===
   extract_outputs <- function(res, area, nDays) {
     list(
-      pr = round(res$Precip, 1),
-      ae = round(res$AE, 1),
-      sm = round(res$Prod, 1),
-      ru = round(res$Qsim, 1),
-      qs = round((area * res$Qsim) / (86.4 * nDays), 1)
+      pr = round(res$Precip, 2),
+      ae = round(res$AE, 2),
+      sm = round(res$Prod, 2),
+      ru = round(res$Qsim, 2),
+      qs = round((area * res$Qsim) / (86.4 * nDays), 2)
     )
   }
 
@@ -211,18 +220,18 @@ Run_GR2MSemiDistr <- function(Data,
               EndState = lapply(ResModel, `[[`, "StateEnd"))
 
   if (exists("qo")) {
-    Ans$SINK <- data.frame(sim = round(qt, 3), obs = round(qo, 3), row.names = Dates)
+    Ans$SINK <- data.frame(sim = round(qt, 2), obs = round(qo, 2), row.names = Dates)
   }
 
   if (Save) {
     dir.create("./Outputs", showWarnings = FALSE, recursive = TRUE)
 
     if (Update) {
-      last_month <- format(tail(Dates, 1), "%Y%m")
-      previous_month <- format(as.Date(paste0(last_month, "01"), "%Y%m%d") %m-% months(1), "%Y%m")
+      new_month <- format(tail(Dates, 1), "%Y%m")
+      old_month <- format(as.Date(paste0(new_month, "01"), "%Y%m%d") %m-% months(1), "%Y%m")
       vars <- c("PR", "AE", "SM", "RU", "QS")
       for (var in vars) {
-        old_file <- paste0("./Outputs/", var, "_GR2MSemiDistr_", previous_month, ".txt")
+        old_file <- paste0("./Outputs/", var, "_GR2MSemiDistr_", old_month, ".txt")
         if (file.exists(old_file)) file.remove(old_file)
       }
     }
@@ -238,10 +247,10 @@ Run_GR2MSemiDistr <- function(Data,
     save_outputs(ae, "ae")
     save_outputs(sm, "sm")
     save_outputs(ru, "ru")
-    save_outputs(ru, "qs")
+    save_outputs(qs, "qs")
   }
 
-  message("Done!")
+  message("Processing completed successfully in")
   tictoc::toc()
   return(Ans)
 }

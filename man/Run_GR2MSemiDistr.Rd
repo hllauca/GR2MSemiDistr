@@ -17,58 +17,57 @@ Run_GR2MSemiDistr(
 )
 }
 \arguments{
-\item{Data}{Data frame of model inputs in airGR format created with \code{Create_Forcing_Inputs}.
-Columns should include DatesR, followed by P_1 to P_n, E_1 to E_n, and optionally Q.}
+\item{Data}{A data frame containing the model inputs in airGR format. This must include a column DatesR (formatted as date or string), followed by columns P_1 to P_n for precipitation, E_1 to E_n for evapotranspiration, and optionally Q for observed discharge.}
 
-\item{Subbasins}{A `SpatVector` object containing the subbasins' geometries. Must include the following attributes: `'COMID'` (unique identifier), and `'Region'` (string code for the hydro-climatic region).}
+\item{Subbasins}{A SpatVector object with the geometries of the subbasins. It must contain the attributes COMID (identifier) and Region (hydro-climatic region).}
 
-\item{RunIni}{Initial simulation date in 'mm/yyyy' format.}
+\item{RunIni}{Initial date of the simulation period in "mm/yyyy" format.}
 
-\item{RunEnd}{Final simulation date in 'mm/yyyy' format.}
+\item{RunEnd}{Final date of the simulation period in "mm/yyyy" format.}
 
-\item{Parameters}{Numeric vector of model parameters and correction factors.
-Format: c(X1_region1, ..., X1_regionN, X2_region1, ..., Fpp_regionN, Fpe_region1, ..., Fpe_regionN)}
+\item{Parameters}{A data frame with the model parameters and correction factors per region. It must contain the columns: Region, X1, X2, fp, and fe.}
 
-\item{WarmUp}{Optional number of months to discard as warm-up. Default is NULL.}
+\item{WarmUp}{Optional. Number of initial months to discard from the outputs as warm-up. Default is NULL.}
 
-\item{IniState}{Optional list of initial state values for each subbasin. Default is NULL.}
+\item{IniState}{Optional list of initial model states per subbasin (used to resume simulations). Default is NULL.}
 
-\item{Save}{Logical. If TRUE, outputs will be saved as text files in the 'Outputs/' folder.}
+\item{Save}{Logical. If TRUE, output files will be saved as .txt files in the ./Outputs folder. Default is FALSE.}
 
-\item{Update}{Logical. If TRUE and Save = TRUE, overwrites previous month's files before saving new ones.}
+\item{Update}{Logical. If TRUE and Save = TRUE, removes the output files from the previous month before saving the current ones. Useful for operational updating. Default is FALSE.}
 }
 \value{
-A list with the following elements:
-\item{PR}{Matrix of precipitation [mm/month] per subbasin}
-\item{AE}{Matrix of actual evapotranspiration [mm/month] per subbasin}
-\item{SM}{Matrix of soil moisture [mm/month] per subbasin}
-\item{RU}{Matrix of runoff [mm/month] per subbasin}
-\item{QS}{Matrix of simulated discharge [m3/s] per subbasin (not routed)}
-\item{Dates}{Vector of dates used in the simulation}
-\item{COMID}{Vector of subbasin COMID identifiers}
-\item{EndState}{List of final model states for each subbasin}
-\item{SINK}{Optional. Data frame of simulated and observed streamflow at outlet, if Q is provided}
+A list containing the following elements:
+\describe{
+  \item{PR}{Matrix of precipitation [mm/month] per subbasin.}
+  \item{AE}{Matrix of actual evapotranspiration [mm/month] per subbasin.}
+  \item{SM}{Matrix of soil moisture [mm/month] per subbasin.}
+  \item{RU}{Matrix of runoff [mm/month] per subbasin.}
+  \item{QS}{Matrix of simulated discharge [m3/s] per subbasin (not routed).}
+  \item{Dates}{Vector of dates used in the simulation.}
+  \item{COMID}{Vector of subbasin COMID identifiers.}
+  \item{EndState}{List of final model states for each subbasin.}
+  \item{SINK}{Optional. Data frame with simulated and observed streamflow at outlet, if Q is provided.}
+}
 }
 \description{
-This function runs the GR2M monthly water balance model on a semi-distributed basis
-across multiple subbasins, applying region-specific parameters and correction factors
-to precipitation and potential evapotranspiration.
+This function runs the GR2M monthly water balance model in a semi-distributed manner,
+applying region-specific parameters and correction factors to precipitation and
+potential evapotranspiration data for each subbasin.
 }
 \examples{
-# Load input forcing data and subbasins (see Create_Forcing_Inputs)
 model <- Run_GR2MSemiDistr(
   Data = data,
   Subbasins = roi,
   RunIni = '01/1981',
   RunEnd = '12/2016',
-  Parameters = c(10.976, 0.665, 1.186, 1.169)
+  Parameters = data.frame(
+    Region = c("R1"),
+    X1 = 10.5,
+    X2 = 1.2,
+    fp = 1.1,
+    fe = 0.95
+  )
 )
-
-# View model outputs
-View(model$PR)  # Precipitation [mm/month]
-View(model$QS)  # Simulated discharge [m3/s] per subbasin (not routed).
-print(model$SINK$SIM)  # Simulated outlet discharge
-print(model$SINK$OBS)  # Observed outlet discharge (if available)
 
 }
 \references{

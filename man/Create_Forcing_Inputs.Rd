@@ -26,13 +26,13 @@ Create_Forcing_Inputs(
 
 \item{Qobs}{Optional. A vector with observed streamflow in [m³/s] at the basin outlet.}
 
-\item{DateIni}{Start date of the output time series in `'mm/yyyy'` format.}
+\item{DateIni}{Start date of the output time series in `mm/yyyy` format.}
 
-\item{DateEnd}{End date of the output time series in `'mm/yyyy'` format.}
+\item{DateEnd}{End date of the output time series in `mm/yyyy` format.}
 
-\item{IniGrids}{Initial date of the gridded precipitation and evapotranspiration datasets in `'mm/yyyy'` format.}
+\item{IniGrids}{Initial date of the gridded precipitation and evapotranspiration datasets in `mm/yyyy` format.}
 
-\item{Save}{Logical. If TRUE, saves the resulting data frame to a `.txt` file in the `'./Inputs'` directory. Default is FALSE.}
+\item{Save}{Logical. If TRUE, saves the resulting data frame to a `.txt` file in the `./Inputs` directory. Default is FALSE.}
 
 \item{Update}{Logical. If TRUE, returns only the last month of data (useful for operational updates). Default is FALSE.}
 
