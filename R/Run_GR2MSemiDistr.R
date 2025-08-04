@@ -47,8 +47,6 @@
 #'   )
 #' )
 #'
-#' # View precipitation output
-#' head(model$PR)
 #'
 #' @import airGR
 #' @import tictoc

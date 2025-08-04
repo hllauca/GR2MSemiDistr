@@ -71,8 +71,6 @@ model <- Run_GR2MSemiDistr(
   )
 )
 
-# View precipitation output
-head(model$PR)
 
 }
 \references{
