@@ -179,7 +179,7 @@ Create_Forcing_Inputs <- function(Subbasins,
     write.table(Ans, file = "./Inputs/Inputs_model.txt", row.names = FALSE)
   }
 
-  cat("Processing completed successfully.")
+  cat("Processing completed successfully in ")
   toc()
   return(Ans)
 }

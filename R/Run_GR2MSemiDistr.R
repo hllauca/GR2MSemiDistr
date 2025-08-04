@@ -1,50 +1,54 @@
-#' Run the GR2M model for multiple subbasins.
+#' Run the GR2M model for multiple subbasins
 #'
-#' This function runs the GR2M monthly water balance model in a semi-distributed manner,
-#' applying region-specific parameters and correction factors to precipitation and
-#' potential evapotranspiration data for each subbasin.
+#' This function executes the GR2M monthly water balance model across multiple subbasins
+#' using a semi-distributed approach. It applies region-specific parameters and correction
+#' factors for precipitation and evapotranspiration, and optionally saves the results as text files.
 #'
-#' @param Data A data frame containing the model inputs in airGR format. This must include a column DatesR (formatted as date or string), followed by columns P_1 to P_n for precipitation, E_1 to E_n for evapotranspiration, and optionally Q for observed discharge.
-#' @param Subbasins A SpatVector object with the geometries of the subbasins. It must contain the attributes COMID (identifier) and Region (hydro-climatic region).
-#' @param RunIni Initial date of the simulation period in "mm/yyyy" format.
-#' @param RunEnd Final date of the simulation period in "mm/yyyy" format.
-#' @param Parameters A data frame with the model parameters and correction factors per region. It must contain the columns: Region, X1, X2, fp, and fe.
-#' @param WarmUp Optional. Number of initial months to discard from the outputs as warm-up. Default is NULL.
-#' @param IniState Optional list of initial model states per subbasin (used to resume simulations). Default is NULL.
-#' @param Save Logical. If TRUE, output files will be saved as .txt files in the ./Outputs folder. Default is FALSE.
-#' @param Update Logical. If TRUE and Save = TRUE, removes the output files from the previous month before saving the current ones. Useful for operational updating. Default is FALSE.
+#' @param Data A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
+#' It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and optionally Q.
+#' @param Subbasins A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
+#' @param RunIni Simulation start date in the format "mm/yyyy".
+#' @param RunEnd Simulation end date in the format "mm/yyyy".
+#' @param Parameters A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.
+#' @param WarmUp Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.
+#' @param IniState Optional list of initial states for each subbasin. Default is NULL.
+#' @param Save Logical. If TRUE, output time series will be saved as text files in the "Outputs/" folder.
+#' @param Update Logical. If TRUE and Save = TRUE, it will remove previous month's output files before saving the current ones.
 #'
-#' @return A list containing the following elements:
+#' @return A list with the following elements:
 #' \describe{
-#'   \item{PR}{Matrix of precipitation [mm/month] per subbasin.}
-#'   \item{AE}{Matrix of actual evapotranspiration [mm/month] per subbasin.}
-#'   \item{SM}{Matrix of soil moisture [mm/month] per subbasin.}
-#'   \item{RU}{Matrix of runoff [mm/month] per subbasin.}
-#'   \item{QS}{Matrix of simulated discharge [m3/s] per subbasin (not routed).}
-#'   \item{Dates}{Vector of dates used in the simulation.}
-#'   \item{COMID}{Vector of subbasin COMID identifiers.}
-#'   \item{EndState}{List of final model states for each subbasin.}
-#'   \item{SINK}{Optional. Data frame with simulated and observed streamflow at outlet, if Q is provided.}
+#'   \item{PR}{Matrix of precipitation [mm/month] for each subbasin}
+#'   \item{AE}{Matrix of actual evapotranspiration [mm/month] for each subbasin}
+#'   \item{SM}{Matrix of soil moisture [mm/month] for each subbasin}
+#'   \item{RU}{Matrix of runoff [mm/month] for each subbasin}
+#'   \item{QS}{Matrix of discharge [m3/s] (not routed) for each subbasin}
+#'   \item{Dates}{Date vector for the simulation period}
+#'   \item{COMID}{Vector of subbasin COMIDs}
+#'   \item{EndState}{List of final state variables for each subbasin}
+#'   \item{SINK}{Optional. Data frame of simulated and observed outlet discharge, if observed Q is provided}
 #' }
 #'
 #' @references Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).
-#' PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water, 13(8), 1048.
-#' \doi{10.3390/w13081048}
+#' PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water, 13(8), 1048. \doi{10.3390/w13081048}
 #'
 #' @examples
+#' # Run the GR2M model
 #' model <- Run_GR2MSemiDistr(
 #'   Data = data,
 #'   Subbasins = roi,
-#'   RunIni = '01/1981',
-#'   RunEnd = '12/2016',
+#'   RunIni = "01/1981",
+#'   RunEnd = "12/2016",
 #'   Parameters = data.frame(
-#'     Region = c("R1"),
+#'     Region = c("A"),
 #'     X1 = 10.5,
-#'     X2 = 1.2,
+#'     X2 = 0.8,
 #'     fp = 1.1,
-#'     fe = 0.95
+#'     fe = 1.0
 #'   )
 #' )
+#'
+#' # View precipitation output
+#' head(model$PR)
 #'
 #' @import airGR
 #' @import tictoc
