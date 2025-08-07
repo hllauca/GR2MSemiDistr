@@ -1,247 +1,246 @@
-#' Model parameter optimization with the SCE-UA algorithm.
-#' @param Data        Dataframe with model input's data in airGR format from \code{Create_Forcing_Inputs}.
-#' (DatesR, P_1, P_2,..,P_n, E_1, E_2, ...E_n, Q). If Q is not available please provide only DatesR, P, and E.
-#' @param Subbasins   Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).
-#' @param RunIni      Initial date of the model simulation in 'mm/yyyy' format.
-#' @param RunEnd      Ending date of the model simulation in 'mm/yyyy' format.
-#' @param WarmUp      Number of months for the warm-up period. NULL as default.
-#' @param Parameters  Vector of initial model parameters (X1 and X2) and correction factors of P (fp) and E (fpe)
-#' in the following order: c(X1, X2, fp, fpe). In the case of existing more than one 'Region'
-#' (e.g. regions A and B) please provide model parameters in the following order:
-#' c(X1_A, X1_B, X2_A, X2_B, Fp_a, Fp_B, Fpe_A, Fpe_B).
-#' @param Parameters.Min  Vector of minimum values of GR2M model parameters and correction factors in the following order: c(X1_min, X2_min, fp_min, fpe_min).
-#' @param Parameters.Max  Vector of maximum values of GR2M model parameters and correction factors in the following order: c(X1_max, X2_max, fp_max, fpe_max).
-#' @param Max.Functions 	Maximum number of function evaluation for optimization. 5000 as default.
-#' @param Optimization    Objective function for optimization (NSE, KGE, or RMSE).
-#' @param No.Optim    Regions not to be optimized. NULL as default.
-#' @return  List of optimal GR2M model parameters for each 'Region'.
-#' @return  Param: Best set of GR2M model parameters (sorted by 'Region').
-#' @return  Value: Final value of the objective function.
-#' @references Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
-#' @export
+#' Parameter optimization for a semi-distributed GR2M model using the SCE-UA algorithm.
+#'
+#' Optimizes the GR2M monthly water balance model parameters (X1, X2, fp, fe) for multiple calibration regions
+#' using the SCE-UA algorithm. The model is run in a semi-distributed setup over multiple subbasins grouped
+#' by region. Users can select from various objective functions (e.g., NSE, KGE, RMSE, OF1–OF10), including
+#' composite metrics. Parameter bounds must be provided, and regions can be excluded from calibration.
+#'
+#' @param Data A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
+#' It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).
+#' @param Subbasins A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
+#' @param RunIni Simulation start date in the format "mm/yyyy".
+#' @param RunEnd Simulation end date in the format "mm/yyyy".
+#' @param Parameters A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.
+#' @param Parameters.Min Numeric vector of length 4, specifying lower bounds for optimization in the following order:
+#' c(X1, X2, fp, fe).
+#' @param Parameters.Max Numeric vector of length 4, specifying upper bounds for optimization in the same order as `Parameters.Min`.
+#' @param Max.Functions Integer. Maximum number of function evaluations in the optimization. Default is 1500.
+#' @param Optimization Character. Objective function to optimize. Available options include:
+#' \describe{
+#'   \item{"OF1"}{Kling-Gupta Efficiency (KGE).}
+#'   \item{"OF2"}{Nash-Sutcliffe Efficiency (NSE).}
+#'   \item{"OF3"}{NSE applied to log-transformed flows (log-NSE, Pushpalatha 2012).}
+#'   \item{"OF4"}{Root Mean Square Error (RMSE).}
+#'   \item{"OF5"}{Percent Bias (PBIAS).}
+#'   \item{"OF6"}{FDC Bias (FDC Bias), based on flow duration curves.}
+#'   \item{"OF7"}{Pearson correlation coefficient (r).}
+#'   \item{"OF8"}{Composite objective: w1 × KGE + w2 × NSE - w3 × RMSE.}
+#'   \item{"OF9"}{Composite objective: w1 × KGE + w2 × log-NSE - w3 × RMSE.}
+#'   \item{"OF10"}{Composite objective: w1 × KGE.km + w2 × KGE.lf - w3 × RMSE.}
+#' }
+#' @param No.Optim Character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).
+#' @param w1 Numeric. Weight for the first component in composite objective functions (OF8, OF9, OF10). Default is 0.6.
+#' @param w2 Numeric. Weight for the second component in composite objective functions. Default is 0.3.
+#' @param w3 Numeric. Weight for the third component in composite objective functions. Default is 0.2.
+#'
+#' @return A list with the following elements:
+#' \describe{
+#'   \item{Parameters}{Data frame of optimized parameters per region (columns: Region, X1, X2, fp, fe).}
+#'   \item{OF}{Final value of the selected objective function.}
+#' }
+#'
+#' @references
+#' Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).
+#' PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020).
+#' \emph{Water}, 13(8), 1048. \doi{10.3390/w13081048}
+#'
 #' @examples
-#' # Optimize GR2M model parameters for a single 'Region' using the KGE metric
-#' optim <- Optim_GR2MSemiDistr(Data=data,
-#'                              Subbasins=roi,
-#'                              RunIni='01/1981',
-#'                              RunEnd='12/2002',
-#'                              WarmUp=36,
-#'                              Parameters=c(1000, 1, 1, 1),
-#'                              Parameters.Min=c(1, 0.01, 0.8, 0.8),
-#'                              Parameters.Max=c(2000, 2, 1.2, 1.2),
-#'                              Max.Functions=1000,
-#'                              Optimization='KGE')
-#'  best_param <- optim$Param
-#' @import  rtop
-#' @import  hydroGOF
-#' @import  airGR
-#' @import  tictoc
+#' # Optimize parameters for two regions with KGE as objective function
+#' Parameters <- data.frame(Region = c("A", "B"),
+#'                          X1 = c(500, 600),
+#'                          X2 = c(1, 1),
+#'                          fp = c(1, 1),
+#'                          fe = c(1, 1))
+#'
+#' result <- Optim_GR2MSemiDistr(Data = data,
+#'                               Subbasins = shp,
+#'                               RunIni = "01/1981",
+#'                               RunEnd = "12/2005",
+#'                               WarmUp = 12,
+#'                               Parameters = Parameters,
+#'                               Parameters.Min = c(100, 0.1, 0.8, 0.8),
+#'                               Parameters.Max = c(2000, 10, 1.2, 1.2),
+#'                               Max.Functions = 1000,
+#'                               Optimization = "KGE")
+#'
+#' best_params <- result$Parameters
+#' final_score <- result$OF
+#'
+#' @import airGR
+#' @import rtop
+#' @import hydroGOF
+#' @import terra
+#' @import tictoc
+#' @import lubridate
+#'
+#' @export
+#'
 Optim_GR2MSemiDistr <- function(Data,
                                 Subbasins,
                                 RunIni,
                                 RunEnd,
-                                WarmUp=NULL,
                                 Parameters,
-                                Parameters.Min,
-                                Parameters.Max,
-                                Max.Functions=5000,
-                                Optimization='NSE',
-                                No.Optim=NULL){
+                                Parameters.Min = c(100, 0.1, 0.8, 0.8),
+                                Parameters.Max = 1500,
+                                Optimization = 'OF1',
+                                WarmUp = 36,
+                                No.Optim = NULL,
+                                w1 = 0.6,
+                                w2 = 0.3,
+                                w3 = 0.2) {
 
+  tictoc::tic()
 
-  # Load packages
-  library(rtop)
-  library(hydroGOF)
-  library(airGR)
-  library(tictoc)
-  tic()
-
-  # Load subbasins data
-  area    <- Subbasins@data$Area
-  region  <- Subbasins@data$Region
-  nsub    <- nrow(Subbasins@data)
-
-  # Input data
-  Data$DatesR <- as.POSIXct(paste0(Data$DatesR,' 00:00:00'),"GMT",
-                            tryFormats=c("%Y-%m-%d","%Y/%m/%d",
-                                         "%d-%m-%Y","%d/%m/%Y"))
-  Ind_run     <- seq(which(format(Data$DatesR, format="%m/%Y")==RunIni),
-                     which(format(Data$DatesR, format="%m/%Y")==RunEnd))
-  Database    <- Data[Ind_run,]
-  time        <- length(Ind_run)
-
-  # Define calibration regions and parameters ranges to optimize
-  if(is.null(No.Optim)==TRUE){
-    opt.param  <- Parameters
-    opt.region <- unique(region)
-  }else{
-    n.param    <- 1:length(Parameters)
-    v.param    <- as.vector(rep(sort(unique(region)),4))
-    id.nopt    <- v.param %in% No.Optim
-    nopt.param <- Parameters[id.nopt]
-    opt.param  <- Parameters[!id.nopt]
-    opt.region <- unique(region[!(region %in% No.Optim)])
+  # === Validate inputs ===
+  if (!inherits(Subbasins, "SpatVector")) {
+    stop("Argument 'Subbasins' must be of class 'SpatVector'.")
   }
-  opt.param.min <- rep(Parameters.Min, each=length(opt.region))
-  opt.param.max <- rep(Parameters.Max, each=length(opt.region))
+  if (!all(c("COMID", "Region") %in% names(Subbasins))) {
+    stop("The 'Subbasins' object must contain fields 'COMID' and 'Region'.")
+  }
+  comid  <- as.vector(Subbasins$COMID)
+  region <- Subbasins$Region
+  area   <- terra::expanse(Subbasins, unit = 'km')
+  nsub   <- length(comid)
 
-  # Useful functions
-  Subset_Param <- function(Param, Region){
-    ParamSub <- c(subset(Param$X1, Param$Region==Region),
-                  subset(Param$X2, Param$Region==Region))
-    return(ParamSub)
-  }
-  Forcing_Subbasin <- function(Param, Region, Database, Nsub, ID){
-    FactorPP  <- subset(Param$Fpp, Param$Region==Region)
-    FactorPET <- subset(Param$Fpet, Param$Region==Region)
-    Inputs    <- Database[,c(1,ID+1,ID+1+Nsub)]
-    FixInputs <- data.frame(DatesR=Inputs[,1],
-                            P=round(FactorPP*Inputs[,2],1),
-                            E=round(FactorPET*Inputs[,3],1))
-    FixInputs$DatesR <- as.POSIXct(FixInputs$DatesR, "GMT",
-                                   tryFormats=c("%Y-%m-%d","%Y/%m/%d",
-                                                "%d-%m-%Y", "%d/%m/%Y"))
-    return(FixInputs)
-  }
-  numberOfDays <- function(date) {
-    m <- format(date, format="%m")
-    while (format(date, format="%m")==m) {
-      date <- date + 1
-    }
-    return(as.integer(format(date-1,format="%d")))
+  # === Prepare time indices ===
+  Data$DatesR <- as.POSIXct(paste0(Data$DatesR, " 00:00:00"), tz = "GMT",
+                            tryFormats = c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"))
+
+  ind_start <- which(format(Data$DatesR, "%m/%Y") == RunIni)
+  ind_end   <- which(format(Data$DatesR, "%m/%Y") == RunEnd)
+  if (length(ind_start) == 0 || length(ind_end) == 0) {
+    stop("RunIni or RunEnd not found in 'Data$DatesR'. Use format 'mm/yyyy'.")
   }
 
-  # Number of days in a month (to convert mm to m3/s)
-  nDays <- c()
-  for(i in 1:time){
-    nDays[i] <- numberOfDays(as.Date(Database$DatesR)[i])
+  Database <- Data[ind_start:ind_end, ]
+  Dates    <- as.Date(Database$DatesR)
+  ntime    <- length(Dates)
+  nDays    <- lubridate::days_in_month(Dates)
+
+  # === Define calibration regions ===
+  all_regions <- sort(unique(region))
+  opt_regions <- if (is.null(No.Optim)) all_regions else setdiff(all_regions, No.Optim)
+  if (!all(opt_regions %in% Parameters$Region)) stop("Mismatch between optimized regions and parameters.")
+
+  opt.param     <- unlist(Parameters[Parameters$Region %in% opt_regions, c("X1", "X2", "fp", "fe")])
+  opt.param.min <- rep(Parameters.Min, each = length(opt_regions))
+  opt.param.max <- rep(Parameters.Max, each = length(opt_regions))
+
+  # === Helper functions ===
+  get_param <- function(param_vec, regions) {
+    n <- length(regions)
+    data.frame(Region = regions,
+               X1  = param_vec[1:n],
+               X2  = param_vec[(n + 1):(2 * n)],
+               fp  = param_vec[(2 * n + 1):(3 * n)],
+               fe  = param_vec[(3 * n + 1):(4 * n)])
   }
 
-  # Objective function
-  OFUN <- function(parameter_set){
+  forcing_input <- function(Param, Region, Database, i, nsub) {
+    fp <- Param$fp[Param$Region == Region]
+    fe <- Param$fe[Param$Region == Region]
+    data.frame(DatesR = Database[, 1],
+               P = round(fp * Database[, i + 1], 1),
+               E = round(fe * Database[, i + 1 + nsub], 1))
+  }
 
-    # Select model parameters to optimize
-    if(is.null(No.Optim)==TRUE){
-      all.param <- parameter_set
-    }else{
-      new.param <- rbind(cbind(n.param[!id.nopt], parameter_set),
-                         cbind(n.param[id.nopt], nopt.param))
-      all.param <- new.param[match(n.param, new.param[,1]), 2]
+  # === Objective function ===
+  OFUN <- function(par) {
+    Param <- get_param(par, opt_regions)
+    if (!is.null(No.Optim)) {
+      fixed <- Parameters[Parameters$Region %in% No.Optim, ]
+      Param <- rbind(Param, fixed[match(setdiff(all_regions, opt_regions), fixed$Region), ])
+      Param <- Param[match(all_regions, Param$Region), ]
     }
 
-    # GR2M model parameters
-    Zone  <- sort(unique(region))
-    nreg  <- length(Zone)
-    Param <- data.frame(Region=sort(unique(region)),
-                        X1=all.param[1:nreg],
-                        X2=all.param[(nreg+1):(2*nreg)],
-                        Fpp=all.param[(2*nreg+1):(3*nreg)],
-                        Fpet=all.param[(3*nreg+1):length(all.param)])
+    # Run model
+    QS <- matrix(NA, nrow = ntime, ncol = nsub)
+    for (i in seq_len(nsub)) {
+      reg_i   <- region[i]
+      param_i <- c(Param$X1[Param$Region == reg_i], Param$X2[Param$Region == reg_i])
+      input_i <- forcing_input(Param, reg_i, Database, i, nsub)
 
-    # Run GR2M
-    ResModel <-  list()
-     for(i in 1:nsub){
+      model_input <- CreateInputsModel(RunModel_GR2M,
+                                       DatesR = input_i$DatesR,
+                                       Precip = input_i$P,
+                                       PotEvap = input_i$E)
 
-      # Parameters and factors to run the model
-      ParamSub  <- Subset_Param(Param, region[i])
-      FixInputs <- Forcing_Subbasin(Param, region[i], Database, nsub, i)
+      run_opt <- CreateRunOptions(RunModel_GR2M,
+                                  InputsModel = model_input,
+                                  IndPeriod_Run = seq_len(ntime),
+                                  verbose = FALSE,
+                                  warnings = FALSE)
 
-      # Prepare model inputs
-      InputsModel <- CreateInputsModel(FUN_MOD=RunModel_GR2M,
-                                       DatesR=FixInputs$DatesR,
-                                       Precip=FixInputs$P,
-                                       PotEvap=FixInputs$E)
-
-      # Run GR2M model by an specific initial conditions
-      # Set-up running options
-      RunOptions <- CreateRunOptions(FUN_MOD=RunModel_GR2M,
-                                     InputsModel=InputsModel,
-                                     IndPeriod_Run=1:time,
-                                     verbose=FALSE,
-                                     warnings=FALSE)
-
-      # Run GR2M
-      OutputsModel <- RunModel(InputsModel=InputsModel,
-                               RunOptions=RunOptions,
-                               Param=ParamSub,
-                               FUN_MOD=RunModel_GR2M)
-
-      ResModel[[i]] <- OutputsModel
+      output <- RunModel(model_input, run_opt, param_i, RunModel_GR2M)
+      QS[, i] <- (area[i] * output$Qsim) / (86.4 * nDays)
     }
 
-
-    # Model results
-    if(nsub==1){
-      qs   <- (area[1]*ResModel[[1]]$Qsim)/(86.4*nDays)
-      sink <- qs
-    }else{
-      QSlist <- list()
-      for(w in 1:nsub){
-        QSlist[[w]] <- (area[w]*ResModel[[w]]$Qsim)/(86.4*nDays)
-      }
-      qs   <- do.call(cbind, QSlist)
-      sink <- round(apply(qs, 1, FUN=sum),2)
+    Qsim <- rowSums(QS, na.rm = TRUE)
+    Qobs <- Database$Q
+    if (!is.null(WarmUp)) {
+      Qsim <- Qsim[-seq_len(WarmUp)]
+      Qobs <- Qobs[-seq_len(WarmUp)]
     }
 
-    # Subset model results (exclude warm-up)
-    if(is.null(WarmUp)==TRUE){
-      Qobs  <- Database$Q
-      Qsim  <- sink
-    }else{
-      Qobs  <- Database$Q[-WarmUp:-1]
-      Qsim  <- sink[-WarmUp:-1]
-    }
+    df <- na.omit(data.frame(y = Qsim, x = Qobs))
 
+    # Calculate all metrics once
+    kge   <- 1 - KGE(df$y, df$x)
+    nse   <- 1 - NSE(df$y, df$x)
+    nselog<- 1 - NSE(df$y, df$x, fun = log, epsilon.type = "Pushpalatha2012")
+    rmse  <- rmse(df$y, df$x)
+    pbias <- abs(pbias(df$y, df$x))
+    pbiasfdc <- abs(pbiasfdc(df$y, df$x, plot = FALSE))
+    rpear <- 1 - rPearson(df$y, df$x)
+    kgekm <- 1 - KGEkm(df$y, df$x)
+    kgelf <- 1 - KGElf(df$y, df$x)
 
-    # Evaluation criteria
-    res.df   <- na.omit(data.frame(sim=Qsim, obs=Qobs))
-    optim.df <- data.frame(KGE=1-round(KGE(res.df$sim, res.df$obs),3),
-                           NSE=1-round(NSE(res.df$sim, res.df$obs),3),
-                           RMSE=round(rmse(res.df$sim, res.df$obs), 3))
+    criteria <- c(
+      OF1  = kge,
+      OF2  = nse,
+      OF3  = nselog,
+      OF4  = rmse,
+      OF5  = pbias,
+      OF6  = pbiasfdc,
+      OF7  = rpear,
+      OF8  = w1 * kge + w2 * nse + w3 * rmse,
+      OF9  = w1 * kge + w2 * nselog + w3 * rmse,
+      OF10 = w1 * kgekm + w2 * kgelf + w3 * rmse
+    )
+    return(criteria[Optimization])
+  }
 
-    # Return
-    OF <- as.numeric(optim.df[colnames(optim.df) %in% Optimization])
-    return(OF)
-  }# End
-
-
-  # Run optimization
-  # Show message
-  cat('\f')
-  message(paste('Optimizing', Optimization, 'with SCE-UA'))
-  message('Please wait...')
+  # === Run optimization ===
+  message(paste("Optimizing", Optimization, "using SCE-UA..."))
   Calibration <- sceua(OFUN,
-                       pars=opt.param,
-                       lower=opt.param.min,
-                       upper=opt.param.max,
-                       maxn=Max.Functions)
+                       pars = opt.param,
+                       lower = opt.param.min,
+                       upper = opt.param.max,
+                       maxn = Max.Functions)
 
-  # Extracting calibration results
-  if(Optimization=='RMSE'){
-    fo <- round(Calibration$value,3)
-  }else{
-    fo <- round(1-Calibration$value,3)
+  # === Organize output ===
+  final_params <- if (is.null(No.Optim)) {
+    get_param(Calibration$par, opt_regions)
+  } else {
+    fixed <- Parameters[Parameters$Region %in% No.Optim, ]
+    all_params <- get_param(Calibration$par, opt_regions)
+    full <- rbind(all_params, fixed)
+    full[match(all_regions, full$Region), ]
   }
-  if(is.null(No.Optim)==TRUE){
-    parameter <- round(Calibration$par,3)
-  }else{
-    order     <- rbind(cbind(n.param[!id.nopt], round(Calibration$par,3)),
-                       cbind(n.param[id.nopt], nopt.param))
-    parameter <- order[match(n.param, order[,1]), 2]
+
+  final_obj <- if (Optimization %in% c("OF4", "OF5", "OF6")) {
+    round(Calibration$value, 3)
+  } else {
+    round(1 - Calibration$value, 3)
   }
-  Ans <- list(Param=parameter, Value=fo)
 
-  # Print results
-  print("Optimization results:")
-  print("======================")
-  print(paste0(rep(c('X1=','X2=', 'fpr=', 'fpe='), each=length(Ans$Param)/4), Ans$Param))
-  print(paste0(Optimization,'=', Ans$Value))
+  message("Optimization complete.")
+  cat("\nFinal calibrated parameters per region:\n")
+  print(final_params)
+  cat(paste0("Objective Function (", Optimization, ") = ", final_obj, "\n"))
 
-  # Show message
-  message("Done!")
-  toc()
+  tictoc::toc()
 
-  # Output
-  return(Ans)
-
-} # End (not run)
+  return(list(Parameters = final_params, OF = final_obj))
+}

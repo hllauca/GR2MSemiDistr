@@ -48,7 +48,6 @@
 #'   )
 #' )
 #'
-#'
 #' @import airGR
 #' @import tictoc
 #' @import lubridate
@@ -92,8 +91,7 @@ Run_GR2MSemiDistr <- function(Data,
     stop("RunIni or RunEnd not found in Data$DatesR. Please check date format 'mm/yyyy'.")
   }
 
-  Ind_run  <- ind_start:ind_end
-  Database <- Data[Ind_run, ]
+  Database <- Data[ind_start:ind_end, ]
   Dates    <- as.Date(Database$DatesR)
   ntime    <- length(Dates)
   nDays    <- lubridate::days_in_month(Dates)

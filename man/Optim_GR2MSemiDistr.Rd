@@ -2,73 +2,103 @@
 % Please edit documentation in R/Optim_GR2MSemiDistr.R
 \name{Optim_GR2MSemiDistr}
 \alias{Optim_GR2MSemiDistr}
-\title{Model parameter optimization with the SCE-UA algorithm.}
+\title{Parameter optimization for a semi-distributed GR2M model using the SCE-UA algorithm.}
 \usage{
 Optim_GR2MSemiDistr(
   Data,
   Subbasins,
   RunIni,
   RunEnd,
-  WarmUp = NULL,
   Parameters,
-  Parameters.Min,
-  Parameters.Max,
-  Max.Functions = 5000,
-  Optimization = "NSE",
-  No.Optim = NULL
+  Parameters.Min = c(100, 0.1, 0.8, 0.8),
+  Parameters.Max = 1500,
+  Optimization = "OF1",
+  WarmUp = 36,
+  No.Optim = NULL,
+  w1 = 0.6,
+  w2 = 0.3,
+  w3 = 0.2
 )
 }
 \arguments{
-\item{Data}{Dataframe with model input's data in airGR format from \code{Create_Forcing_Inputs}.
-(DatesR, P_1, P_2,..,P_n, E_1, E_2, ...E_n, Q). If Q is not available please provide only DatesR, P, and E.}
+\item{Data}{A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
+It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).}
 
-\item{Subbasins}{Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).}
+\item{Subbasins}{A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).}
 
-\item{RunIni}{Initial date of the model simulation in 'mm/yyyy' format.}
+\item{RunIni}{Simulation start date in the format "mm/yyyy".}
 
-\item{RunEnd}{Ending date of the model simulation in 'mm/yyyy' format.}
+\item{RunEnd}{Simulation end date in the format "mm/yyyy".}
 
-\item{WarmUp}{Number of months for the warm-up period. NULL as default.}
+\item{Parameters}{A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.}
 
-\item{Parameters}{Vector of initial model parameters (X1 and X2) and correction factors of P (fp) and E (fpe)
-in the following order: c(X1, X2, fp, fpe). In the case of existing more than one 'Region'
-(e.g. regions A and B) please provide model parameters in the following order:
-c(X1_A, X1_B, X2_A, X2_B, Fp_a, Fp_B, Fpe_A, Fpe_B).}
+\item{Parameters.Min}{Numeric vector of length 4, specifying lower bounds for optimization in the following order:
+c(X1, X2, fp, fe).}
 
-\item{Parameters.Min}{Vector of minimum values of GR2M model parameters and correction factors in the following order: c(X1_min, X2_min, fp_min, fpe_min).}
+\item{Parameters.Max}{Numeric vector of length 4, specifying upper bounds for optimization in the same order as `Parameters.Min`.}
 
-\item{Parameters.Max}{Vector of maximum values of GR2M model parameters and correction factors in the following order: c(X1_max, X2_max, fp_max, fpe_max).}
+\item{Optimization}{Character. Objective function to optimize. Available options include:
+\describe{
+  \item{"OF1"}{Kling-Gupta Efficiency (KGE).}
+  \item{"OF2"}{Nash-Sutcliffe Efficiency (NSE).}
+  \item{"OF3"}{NSE applied to log-transformed flows (log-NSE, Pushpalatha 2012).}
+  \item{"OF4"}{Root Mean Square Error (RMSE).}
+  \item{"OF5"}{Percent Bias (PBIAS).}
+  \item{"OF6"}{FDC Bias (FDC Bias), based on flow duration curves.}
+  \item{"OF7"}{Pearson correlation coefficient (r).}
+  \item{"OF8"}{Composite objective: w1 × KGE + w2 × NSE - w3 × RMSE.}
+  \item{"OF9"}{Composite objective: w1 × KGE + w2 × log-NSE - w3 × RMSE.}
+  \item{"OF10"}{Composite objective: w1 × KGE.km + w2 × KGE.lf - w3 × RMSE.}
+}}
 
-\item{Max.Functions}{Maximum number of function evaluation for optimization. 5000 as default.}
+\item{No.Optim}{Character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).}
 
-\item{Optimization}{Objective function for optimization (NSE, KGE, or RMSE).}
+\item{w1}{Numeric. Weight for the first component in composite objective functions (OF8, OF9, OF10). Default is 0.6.}
 
-\item{No.Optim}{Regions not to be optimized. NULL as default.}
+\item{w2}{Numeric. Weight for the second component in composite objective functions. Default is 0.3.}
+
+\item{w3}{Numeric. Weight for the third component in composite objective functions. Default is 0.2.}
+
+\item{Max.Functions}{Integer. Maximum number of function evaluations in the optimization. Default is 1500.}
 }
 \value{
-List of optimal GR2M model parameters for each 'Region'.
-
-Param: Best set of GR2M model parameters (sorted by 'Region').
-
-Value: Final value of the objective function.
+A list with the following elements:
+\describe{
+  \item{Parameters}{Data frame of optimized parameters per region (columns: Region, X1, X2, fp, fe).}
+  \item{OF}{Final value of the selected objective function.}
+}
 }
 \description{
-Model parameter optimization with the SCE-UA algorithm.
+Optimizes the GR2M monthly water balance model parameters (X1, X2, fp, fe) for multiple calibration regions
+using the SCE-UA algorithm. The model is run in a semi-distributed setup over multiple subbasins grouped
+by region. Users can select from various objective functions (e.g., NSE, KGE, RMSE, OF1–OF10), including
+composite metrics. Parameter bounds must be provided, and regions can be excluded from calibration.
 }
 \examples{
-# Optimize GR2M model parameters for a single 'Region' using the KGE metric
-optim <- Optim_GR2MSemiDistr(Data=data,
-                             Subbasins=roi,
-                             RunIni='01/1981',
-                             RunEnd='12/2002',
-                             WarmUp=36,
-                             Parameters=c(1000, 1, 1, 1),
-                             Parameters.Min=c(1, 0.01, 0.8, 0.8),
-                             Parameters.Max=c(2000, 2, 1.2, 1.2),
-                             Max.Functions=1000,
-                             Optimization='KGE')
- best_param <- optim$Param
+# Optimize parameters for two regions with KGE as objective function
+Parameters <- data.frame(Region = c("A", "B"),
+                         X1 = c(500, 600),
+                         X2 = c(1, 1),
+                         fp = c(1, 1),
+                         fe = c(1, 1))
+
+result <- Optim_GR2MSemiDistr(Data = data,
+                              Subbasins = shp,
+                              RunIni = "01/1981",
+                              RunEnd = "12/2005",
+                              WarmUp = 12,
+                              Parameters = Parameters,
+                              Parameters.Min = c(100, 0.1, 0.8, 0.8),
+                              Parameters.Max = c(2000, 10, 1.2, 1.2),
+                              Max.Functions = 1000,
+                              Optimization = "KGE")
+
+best_params <- result$Parameters
+final_score <- result$OF
+
 }
 \references{
-Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
+Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).
+PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020).
+\emph{Water}, 13(8), 1048. \doi{10.3390/w13081048}
 }

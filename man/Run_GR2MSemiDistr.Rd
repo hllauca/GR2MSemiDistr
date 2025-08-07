@@ -72,7 +72,6 @@ model <- Run_GR2MSemiDistr(
   )
 )
 
-
 }
 \references{
 Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).
