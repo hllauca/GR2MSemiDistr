@@ -57,21 +57,72 @@ using a semi-distributed approach. It applies region-specific parameters and cor
 factors for precipitation and evapotranspiration, and optionally saves the results as text files.
 }
 \examples{
-# Run the GR2M model
-model <- Run_GR2MSemiDistr(
-  Data = data,
-  Subbasins = roi,
-  RunIni = "01/1981",
-  RunEnd = "12/2016",
-  Parameters = data.frame(
-    Region = c("A"),
-    X1 = 10.5,
-    X2 = 0.8,
-    fp = 1.1,
-    fe = 1.0
-  )
+library(GR2MSemiDistr)
+
+# Load example data
+data(cat)
+
+# Define region parameters
+param_df <- data.frame(
+  Region = unique(cat$Region),
+  X1 = 350,
+  X2 = 1.2,
+  fp = 1.0,
+  fe = 1.0
 )
 
+# Run the semi-distributed GR2M model
+model <- Run_GR2MSemiDistr(
+  Data = inputs,
+  Subbasins = cat,
+  RunIni = "01/1981",
+  RunEnd = "12/2016",
+  Parameters = param_df,
+  Save = FALSE
+)
+
+# Select COMID of the subbasin to plot
+target_comid <- model$COMID[1]  # Change index as needed
+idx <- which(model$COMID == target_comid)
+dates <- as.Date(model$Dates)
+
+# Plot model outputs for selected subbasin
+par(mfrow = c(3, 2), mar = c(4, 4, 3, 1))
+
+plot(dates, model$PR[, idx], type = "l", col = "blue",
+     main = paste("Precipitation (PR) - COMID", target_comid),
+     xlab = "Date", ylab = "mm")
+
+plot(dates, model$AE[, idx], type = "l", col = "orange",
+     main = paste("Actual Evapotranspiration (AE) - COMID", target_comid),
+     xlab = "Date", ylab = "mm")
+
+plot(dates, model$SM[, idx], type = "l", col = "green4",
+     main = paste("Production Store (SM) - COMID", target_comid),
+     xlab = "Date", ylab = "mm")
+
+plot(dates, model$PC[, idx], type = "l", col = "purple",
+     main = paste("Percolation (PC) - COMID", target_comid),
+     xlab = "Date", ylab = "mm")
+
+plot(dates, model$RU[, idx], type = "l", col = "darkred",
+     main = paste("Runoff (RU) - COMID", target_comid),
+     xlab = "Date", ylab = "mm")
+
+plot(dates, model$QS[, idx], type = "l", col = "blue",
+     main = paste("Simulated Discharge (QS) - COMID", target_comid),
+     xlab = "Date", ylab = "m³/s")
+
+# Optional: compare simulated vs observed outlet discharge
+if (!is.null(model$SINK)) {
+  par(mfrow = c(1, 1))
+  plot(dates, model$SINK$sim, type = "l", col = "blue", lwd = 2,
+       xlab = "Date", ylab = "Discharge [m³/s]",
+       main = "Simulated vs Observed Discharge (Outlet)")
+  lines(dates, model$SINK$obs, col = "darkgreen", lwd = 2, lty = 2)
+  legend("topright", legend = c("Simulated", "Observed"),
+         col = c("blue", "darkgreen"), lty = c(1, 2), lwd = 2, bty = "n")
+}
 }
 \references{
 Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).

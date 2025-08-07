@@ -45,27 +45,58 @@
 #' \emph{Water}, 13(8), 1048. \doi{10.3390/w13081048}
 #'
 #' @examples
-#' # Optimize parameters for two regions with KGE as objective function
-#' Parameters <- data.frame(Region = c("A", "B"),
-#'                          X1 = c(500, 600),
-#'                          X2 = c(1, 1),
-#'                          fp = c(1, 1),
-#'                          fe = c(1, 1))
+#' library(GR2MSemiDistr)
 #'
-#' result <- Optim_GR2MSemiDistr(Data = data,
-#'                               Subbasins = shp,
-#'                               RunIni = "01/1981",
-#'                               RunEnd = "12/2005",
-#'                               WarmUp = 12,
-#'                               Parameters = Parameters,
-#'                               Parameters.Min = c(100, 0.1, 0.8, 0.8),
-#'                               Parameters.Max = c(2000, 10, 1.2, 1.2),
-#'                               Max.Functions = 1000,
-#'                               Optimization = "KGE")
+#' # Load preprocessed input data
+#' data(cat)     # Subbasins (SpatVector with COMID and Region)
 #'
+#' # Define initial parameters for each region
+#' param_init <- data.frame(
+#'   Region = unique(cat$Region),
+#'   X1 = rep(500, length(unique(cat$Region))),
+#'   X2 = rep(1.5, length(unique(cat$Region))),
+#'   fp = rep(1.0, length(unique(cat$Region))),
+#'   fe = rep(1.0, length(unique(cat$Region)))
+#' )
+#'
+#' # Optimize parameters using the KGE criterion (OF1)
+#' result <- Optim_GR2MSemiDistr(
+#'   Data = inputs,
+#'   Subbasins = cat,
+#'   RunIni = "01/1981",
+#'   RunEnd = "12/2005",
+#'   Parameters = param_init,
+#'   Parameters.Min = c(100, 0.1, 0.8, 0.8),
+#'   Parameters.Max = c(2000, 10, 1.2, 1.2),
+#'   WarmUp = 12,
+#'   Max.Functions = 1000,
+#'   Optimization = "OF1"  # KGE
+#' )
+#'
+#' # Extract results
 #' best_params <- result$Parameters
 #' final_score <- result$OF
 #'
+#' # Plot observed vs simulated discharge at the outlet
+#' model <- Run_GR2MSemiDistr(
+#'   Data = inputs,
+#'   Subbasins = cat,
+#'   RunIni = "01/1981",
+#'   RunEnd = "12/2005",
+#'   Parameters = best_params,
+#'   WarmUp = 12
+#' )
+#'
+#' if (!is.null(model$SINK)) {
+#'   dates <- as.Date(model$Dates)
+#'   plot(dates, model$SINK$sim, type = "l", col = "blue", lwd = 2,
+#'        xlab = "Date", ylab = "Discharge [m³/s]",
+#'        main = "Simulated vs Observed Discharge (Outlet)")
+#'   lines(dates, model$SINK$obs, col = "darkgreen", lwd = 2, lty = 2)
+#'   legend("topright", legend = c("Simulated", "Observed"),
+#'          col = c("blue", "darkgreen"), lty = c(1, 2), lwd = 2, bty = "n")
+#' }
+
 #' @import airGR
 #' @import rtop
 #' @import hydroGOF

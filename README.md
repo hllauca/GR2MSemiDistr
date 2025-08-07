@@ -1,32 +1,32 @@
-'GR2MSemiDistr' package
-========================
-This experimental R package was developed for semi-distributed GR2M hydrological modeling in large-sample studies using a Weighted Flow Accumulation algorithm for routing discharges (Llauca et al., 2021).
+# GR2MSemiDistr
 
-For any issue or suggestion please contact Harold LLauca (hllauca@senamhi.gob.pe).
+**GR2MSemiDistr** is an R package for implementing a **semi-distributed monthly water balance model (GR2M)** with spatial subbasin discretization and routing using a **Weighted Flow Accumulation (WFA)** approach. Designed for **large-sample hydrological applications**, it supports spatial parameter regionalization, operational updating, and robust routing based on D8 flow directions.
 
-Enjoy it!
+This package was developed as part of hydrological research and operational water resource modeling in Peru, as described in Llauca et al. (2021).
 
+> For any issues, bug reports, or suggestions, please contact: **Harold Llauca** (hllauca@senamhi.gob.pe)
 
-Requirements
-============
-This package needs TauDEM v5.3 to be previously installed.
+---
 
-Windows users can also download TauDEM from: https://hydrology.usu.edu/taudem/taudem5/downloads.html
+## Features
 
+- GR2M water balance modeling in a semi-distributed configuration  
+- Regional parameter definition and correction factors  
+- Support for long-term and operational streamflow simulation  
+- Integration with gridded PISCO precipitation and evapotranspiration datasets  
+- Routing of discharges via WFA algorithm using DEM and D8 flow directions  
+- Fully compatible with the `airGR` and `terra` ecosystems  
 
-Instructions
-============
-In order to use this package please take a look at the following instructions.
+---
 
+## Installation
+
+```r
+# Install devtools if not already installed
 install.packages("devtools")
 
+# Install GR2MSemiDistr from GitHub
 devtools::install_github("hllauca/GR2MSemiDistr")
 
+# Load the package
 library(GR2MSemiDistr)
-
-
-How to cite this package
-=========================
-Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
-
-

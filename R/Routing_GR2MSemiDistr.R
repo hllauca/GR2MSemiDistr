@@ -34,19 +34,30 @@
 #' PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water, 13(8), 1048. \doi{10.3390/w13081048}
 #'
 #' @examples
-#' \dontrun{
-#' data(dem)
-#' routing <- Routing_GR2MSemiDistr_Network(
+#' library(GR2MSemiDistr)
+#'
+#' # Load required data
+#' data(model)  # Output from Run_GR2MSemiDistr
+#' data(cat)    # Subbasin polygons (SpatVector)
+#' data(dem)    # Digital elevation model (SpatRaster)
+#'
+#' # Run routing using DEM and WhiteboxTools
+#' routed <- Routing_GR2MSemiDistr(
 #'   Model = model,
-#'   Subbasins = roi,
+#'   Subbasins = cat,
 #'   Dem = dem,
 #'   RouIni = "01/1981",
 #'   RouEnd = "12/2016",
-#'   Save = TRUE
-#' )
-#' plot(routing$QR[,1], type = "l")  # routed discharge of first subbasin
-#' }
+#'   Save = FALSE
+#'  )
 #'
+#' # Select COMID of the subbasin to plot
+#' idx <- which(model$COMID == model$COMID[1]) # Change index as needed
+#' dates <- as.Date(model$Dates)
+#'
+#' plot(dates, routed$QR[, idx], type = "l", col = "darkblue", lwd = 2,
+#'      xlab = "Date", ylab = "Discharge [m³/s]",
+#'      main = paste("Routed Discharge - Subbasin", routed$COMID[idx]))
 #' @import terra
 #' @import whitebox
 #' @import sf

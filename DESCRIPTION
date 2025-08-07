@@ -8,27 +8,28 @@ Description: Implements a semi-distributed adaptation of the GR2M monthly hydrol
     model for large-sample and operational hydrological modeling. The model uses
     regional parameters and subbasin-level forcing data to simulate water balance
     components such as precipitation, evapotranspiration, runoff, and discharge.
-    It supports warm-up periods, initial states, output saving, and regional
-    parameter correction. The routing scheme is based on subbasin structure and
-    spatial relationships derived using TauDEM 5.3.7 (external dependency).
-    Designed for flexible integration in research, water resource assessments,
-    and operational hydrological systems in complex basins.
+    It supports warm-up periods, initial states, output saving, regional
+    parameter correction, and performance evaluation through various objective
+    functions. The routing scheme is based on subbasin structure and spatial
+    relationships derived from a DEM using WhiteboxTools. Designed for flexible
+    integration in research, water resource assessments, and operational hydrological
+    systems in complex basins.
 License: GPL (>= 2)
 Encoding: UTF-8
 Depends:
     R (>= 4.0)
 Imports:
     airGR,
-    foreach,
     hydroGOF,
-    raster,
+    Matrix,
     terra,
-    geos,
-    rtop,
-    tictoc,
     lubridate,
+    tictoc,
     sf,
-    exactextractr,
-    parallel
-LazyData: true
+    rtop,
+    whitebox,
+    exactextractr
 RoxygenNote: 7.3.2
+URL: https://github.com/hllauca/GR2MSemiDistr
+BugReports: https://github.com/hllauca/GR2MSemiDistr/issues
+

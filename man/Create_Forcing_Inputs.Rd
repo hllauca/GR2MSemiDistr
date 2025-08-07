@@ -53,23 +53,53 @@ and optionally includes observed streamflow data, to produce a formatted data fr
 }
 \examples{
 library(GR2MSemiDistr)
-data(pisco_pr)  # Monthly precipitation SpatRaster
-data(pisco_pe)  # Monthly potential evapotranspiration SpatRaster
-data(qobs)      # Data frame with observed streamflow
-data(roi)       # Subbasins SpatVector
 
-# Create model input data
-data_inputs <- Create_Forcing_Inputs(
-  Subbasins = roi,
+# Load example data
+data(cat)        # Subbasin geometries (SpatVector)
+data(pisco_pr)   # Monthly precipitation raster [mm/month]
+data(pisco_pe)   # Monthly potential evapotranspiration raster [mm/month]
+data(qobs)       # Observed streamflow [m³/s]
+
+# Define simulation period and grid start date
+start_date <- "01/1981"
+end_date   <- "12/2016"
+ini_grids  <- "01/1981"
+
+# Create input data for the model
+model_inputs <- Create_Forcing_Inputs(
+  Subbasins = cat,
   Precip = pisco_pr,
   PotEvap = pisco_pe,
   Qobs = qobs,
-  DateIni = '01/1981',
-  DateEnd = '12/2016',
-  IniGrids = '01/1981'
+  DateIni = start_date,
+  DateEnd = end_date,
+  IniGrids = ini_grids,
+  Save = FALSE
 )
-View(data_inputs)
 
+# Create figures to visualize the inputs
+dates <- as.Date(model_inputs$DatesR)
+
+# Plot average precipitation across subbasins
+P_vars <- grep("^P_", names(model_inputs), value = TRUE)
+avg_P <- rowMeans(model_inputs[, P_vars], na.rm = TRUE)
+plot(dates, avg_P, type = "l", col = "blue", lwd = 1.5,
+     ylab = "Precipitation [mm/month]", xlab = "Date",
+     main = "Mean Precipitation across Subbasins")
+
+# Plot average potential evapotranspiration across subbasins
+E_vars <- grep("^E_", names(model_inputs), value = TRUE)
+avg_E <- rowMeans(model_inputs[, E_vars], na.rm = TRUE)
+plot(dates, avg_E, type = "l", col = "orange", lwd = 1.5,
+     ylab = "PET [mm/month]", xlab = "Date",
+     main = "Mean Potential Evapotranspiration across Subbasins")
+
+# Plot observed streamflow at outlet (if available)
+if ("Q" \%in\% names(model_inputs)) {
+  plot(dates, model_inputs$Q, type = "l", col = "darkgreen", lwd = 1.5,
+       ylab = "Observed Streamflow [m³/s]", xlab = "Date",
+       main = "Observed Streamflow at Outlet")
+}
 }
 \references{
 Aybar C, Fernández C, Huerta A, Lavado W, Vega F, Felipe-Obando O. (2020).
