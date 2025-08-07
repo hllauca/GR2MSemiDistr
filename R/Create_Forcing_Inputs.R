@@ -23,10 +23,6 @@
 #' }
 #'
 #' @references
-#' Aybar C, Fernández C, Huerta A, Lavado W, Vega F, Felipe-Obando O. (2020).
-#' Construction of a high-resolution gridded rainfall dataset for Peru from 1981 to the present day.
-#' Hydrological Sciences Journal, 65(5), 770–785. \doi{10.1080/02626667.2019.1649411}
-#'
 #' Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).
 #' PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020).
 #' Water, 13(8), 1048. \doi{10.3390/w13081048}
@@ -35,6 +31,7 @@
 #' library(GR2MSemiDistr)
 #'
 #' # Load example data
+#'
 #' data(cat)        # Subbasin geometries (SpatVector)
 #' data(pisco_pr)   # Monthly precipitation raster [mm/month]
 #' data(pisco_pe)   # Monthly potential evapotranspiration raster [mm/month]
