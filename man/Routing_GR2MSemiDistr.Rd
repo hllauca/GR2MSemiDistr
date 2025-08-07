@@ -2,58 +2,77 @@
 % Please edit documentation in R/Routing_GR2MSemiDistr.R
 \name{Routing_GR2MSemiDistr}
 \alias{Routing_GR2MSemiDistr}
-\title{Routing discharges for each subbasin.}
+\title{Routing of simulated discharges for each subbasin using a weighted flow accumulation approach.}
 \usage{
 Routing_GR2MSemiDistr(
   Model,
   Subbasins,
   Dem,
-  AcumIni = NULL,
-  AcumEnd = NULL,
+  RouIni = NULL,
+  RouEnd = NULL,
+  TransferMatrixFile = NULL,
+  res = 250,
   Save = FALSE,
   Update = FALSE
 )
 }
 \arguments{
-\item{Model}{List of model results from \code{Run_GR2MSemiDistr}.}
+\item{Model}{List containing model results, typically from 'Run_GR2MSemiDistr'. Must include:
+\describe{
+  \item{QS}{Matrix of simulated streamflows [m³/s], one column per subbasin.}
+  \item{Dates}{Vector of dates corresponding to the rows of QS.}
+}}
 
-\item{Subbasins}{Subbasins' shapefile. Must contain the following attributes: 'Area' (in km2), 'Region' (in letters), and 'COMID' (identifier number).}
+\item{Subbasins}{A 'SpatVector' object with the subbasin boundaries. Must include attributes:
+\describe{
+  \item{COMID}{Integer ID of each subbasin.}
+  \item{Region}{Region code or name.}
+}}
 
-\item{Dem}{Digital elevation model raster for the extent of the basin.}
+\item{Dem}{A 'SpatRaster' representing the digital elevation model. Required unless 'TransferMatrixFile' is used.}
 
-\item{AcumIni}{Initial date of the model routing in 'mm/yyyy' format. NULL as default}
+\item{RouIni}{Character. Start date for routing in "mm/YYYY" format. If NULL, uses the start of the simulation.}
 
-\item{AcumEnd}{Ending date of the model routing in 'mm/yyyy' format. NULL as default}
+\item{RouEnd}{Character. End date for routing in "mm/YYYY" format. If NULL, uses the end of the simulation.}
 
-\item{Save}{Boolean to save results as a text file in the 'Outputs' location. FALSE as default.}
+\item{TransferMatrixFile}{Optional file path (.rds) to a precomputed transfer matrix. If provided, 'Dem' and WhiteboxTools are not used.}
 
-\item{Update}{Boolean for the updating mode where only the last month's values will be returned. FALSE as default.}
+\item{res}{Numeric. Desired spatial resolution in meters for resampling the DEM (default is 250). Converted to degrees if needed.}
+
+\item{Save}{Logical. If TRUE, writes the routed discharges (QR) to a tabular .txt file in the './Outputs' directory. Default is FALSE.}
+
+\item{Update}{Logical. If TRUE, deletes previous month's output and replaces it with the latest. Useful for incremental runs. Default is FALSE.}
 }
 \value{
-List of model routing outputs.
-
-QR: Routed discharge timeseries for all subbasins in [m3/s].
-
-Dates: Vector of dates of the simulation period.
-
-COMID: Vector of identifier numbers for each subbasin.
+A list with the following elements:
+\describe{
+  \item{QR}{Matrix of routed streamflows [m³/s] per subbasin and time step.}
+  \item{Dates}{Vector of routing time steps.}
+  \item{COMID}{Vector of subbasin COMIDs (column names of QR).}
+  \item{TransferMatrix}{Sparse matrix used for flow routing (rows = outlets, columns = sources).}
+}
 }
 \description{
-Routing discharges for each subbasin.
+This function routes monthly simulated streamflows from a semi-distributed GR2M model using a flow accumulation approach based on D8 flow directions.
+The routing network is derived from a digital elevation model (DEM) via WhiteboxTools, or optionally from a precomputed transfer matrix.
+Each subbasin contributes its outflow as a weight that is accumulated along the flow direction grid to downstream subbasins.
 }
 \examples{
-# Load data
-library(GR2MSemiDistr)
+\dontrun{
 data(dem)
-
-# Routing discharges in the streamflow network
-rou <- Routing_GR2MSemiDistr(Model=model,
-                             Subbasins=roi,
-                             Dem=dem,
-                             AcumIni='01/1981',
-                             AcumEnd='12/2016')
-View(rou$QR)
+routing <- Routing_GR2MSemiDistr_Network(
+  Model = model,
+  Subbasins = roi,
+  Dem = dem,
+  RouIni = "01/1981",
+  RouEnd = "12/2016",
+  Save = TRUE
+)
+plot(routing$QR[,1], type = "l")  # routed discharge of first subbasin
 }
-\author{
-Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water. 2021; 13(8):1048. https://doi.org/10.3390/w13081048
+
+}
+\references{
+Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).
+PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water, 13(8), 1048. \doi{10.3390/w13081048}
 }

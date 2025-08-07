@@ -6,9 +6,9 @@
 #'
 #' @param Data A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
 #' It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and optionally Q.
-#' @param Subbasins A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
-#' @param RunIni Simulation start date in the format "mm/yyyy".
-#' @param RunEnd Simulation end date in the format "mm/yyyy".
+#' @param Subbasins A SpatVector object containing the geometries of subbasins. It must include attributes 'COMID' (unique subbasin ID) and 'Region' (region name/code).
+#' @param RunIni Simulation start date in the format 'mm/yyyy'.
+#' @param RunEnd Simulation end date in the format 'mm/yyyy'.
 #' @param Parameters A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.
 #' @param WarmUp Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.
 #' @param IniState Optional list of initial states for each subbasin. Default is NULL.
@@ -256,7 +256,7 @@ Run_GR2MSemiDistr <- function(Data,
     save_outputs(qs, "qs")
   }
 
-  message("Processing completed successfully in")
+  message("Processing completed successfully in...")
   tictoc::toc()
   return(Ans)
 }

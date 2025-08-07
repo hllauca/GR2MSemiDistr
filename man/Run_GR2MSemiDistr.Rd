@@ -20,11 +20,11 @@ Run_GR2MSemiDistr(
 \item{Data}{A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
 It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and optionally Q.}
 
-\item{Subbasins}{A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).}
+\item{Subbasins}{A SpatVector object containing the geometries of subbasins. It must include attributes 'COMID' (unique subbasin ID) and 'Region' (region name/code).}
 
-\item{RunIni}{Simulation start date in the format "mm/yyyy".}
+\item{RunIni}{Simulation start date in the format 'mm/yyyy'.}
 
-\item{RunEnd}{Simulation end date in the format "mm/yyyy".}
+\item{RunEnd}{Simulation end date in the format 'mm/yyyy'.}
 
 \item{Parameters}{A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.}
 

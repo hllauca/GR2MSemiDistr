@@ -3,14 +3,14 @@
 #' This function extracts spatially averaged monthly precipitation and potential evapotranspiration values for each subbasin,
 #' and optionally includes observed streamflow data, to produce a formatted data frame compatible with the airGR hydrological modeling framework.
 #'
-#' @param Subbasins A `SpatVector` object containing the subbasins' geometries. Must include the following attributes: `'COMID'` (unique identifier), and `'Region'` (string code for the hydro-climatic region).
-#' @param Precip A `SpatRaster` object with monthly precipitation data in [mm/month].
-#' @param PotEvap A `SpatRaster` object with monthly potential evapotranspiration data in [mm/month].
+#' @param Subbasins A SpatVector object containing the subbasins' geometries. Must include the following attributes: 'COMID' (unique identifier), and 'Region' (string code for the hydro-climatic region).
+#' @param Precip A SpatRaster object with monthly precipitation data in [mm/month].
+#' @param PotEvap A SpatRaster object with monthly potential evapotranspiration data in [mm/month].
 #' @param Qobs Optional. A vector with observed streamflow in [m³/s] at the basin outlet.
-#' @param DateIni Start date of the output time series in `mm/yyyy` format.
-#' @param DateEnd End date of the output time series in `mm/yyyy` format.
-#' @param IniGrids Initial date of the gridded precipitation and evapotranspiration datasets in `mm/yyyy` format.
-#' @param Save Logical. If TRUE, saves the resulting data frame to a `.txt` file in the `./Inputs` directory. Default is FALSE.
+#' @param DateIni Start date of the output time series in 'mm/yyyy' format.
+#' @param DateEnd End date of the output time series in 'mm/yyyy' format.
+#' @param IniGrids Initial date of the gridded precipitation and evapotranspiration datasets in mm/yyyy format.
+#' @param Save Logical. If TRUE, saves the resulting data frame to a .txt file in the './Inputs' directory. Default is FALSE.
 #' @param Update Logical. If TRUE, returns only the last month of data (useful for operational updates). Default is FALSE.
 #' @param Members Optional. Integer indicating the number of ensemble members for streamflow forecasting. If provided, the date vector will be repeated accordingly. Default is NULL.
 #'
@@ -183,7 +183,7 @@ Create_Forcing_Inputs <- function(Subbasins,
     write.table(Ans, file = "./Inputs/Inputs_model.txt", row.names = FALSE)
   }
 
-  cat("Processing completed successfully in ")
+  cat("Processing completed successfully in... ")
   toc()
   return(Ans)
 }

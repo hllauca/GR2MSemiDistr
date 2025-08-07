@@ -71,7 +71,7 @@ A list with the following elements:
 \description{
 Optimizes the GR2M monthly water balance model parameters (X1, X2, fp, fe) for multiple calibration regions
 using the SCE-UA algorithm. The model is run in a semi-distributed setup over multiple subbasins grouped
-by region. Users can select from various objective functions (e.g., NSE, KGE, RMSE, OF1–OF10), including
+by region. Users can select from various objective functions (e.g., NSE, KGE, RMSE, and linear combinations), including
 composite metrics. Parameter bounds must be provided, and regions can be excluded from calibration.
 }
 \examples{
