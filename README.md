@@ -13,7 +13,7 @@ This package was developed as part of hydrological research and operational wate
 - GR2M water balance modeling in a semi-distributed configuration  
 - Regional parameter definition and correction factors  
 - Support for long-term and operational streamflow simulation  
-- Integration with gridded PISCO precipitation and evapotranspiration datasets  
+- Integration with gridded precipitation and evapotranspiration datasets  
 - Routing of discharges via WFA algorithm using DEM and D8 flow directions  
 - Fully compatible with the `airGR` and `terra` ecosystems  
 
