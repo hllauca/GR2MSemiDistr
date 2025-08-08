@@ -69,8 +69,8 @@ ini_grids  <- "01/1981"
 # Create input data for the model
 model_inputs <- Create_Forcing_Inputs(
   Subbasins = cat,
-  Precip = pisco_pr,
-  PotEvap = pisco_pe,
+  Precip = grid_pr,
+  PotEvap = grid_pe,
   Qobs = qobs,
   DateIni = start_date,
   DateEnd = end_date,
