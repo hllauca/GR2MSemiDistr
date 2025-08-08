@@ -71,26 +71,9 @@ Routing_GR2MSemiDistr <- function(Model,
   tictoc::tic()
 
   # === Ensure WhiteboxTools is installed and available ===
-  if (is.null(TransferMatrixFile)) {
-    tryCatch({
-      # Check if WhiteboxTools executable is available
-      if (!whitebox::wbt_check_install()) {
-        message("WhiteboxTools is not installed. Attempting automatic installation...")
-        whitebox::install_whitebox()
-      }
-
-      # Initialize WhiteboxTools (loads executable path)
-      whitebox::wbt_init()
-
-      # Re-check after initialization
-      if (!whitebox::wbt_check_install()) {
-        stop("WhiteboxTools could not be properly initialized after installation.")
-      }
-    }, error = function(e) {
-      stop("WhiteboxTools is required for routing but could not be installed automatically.\n",
-           "Error: ", e$message, "\n",
-           "Please run `whitebox::install_whitebox()` manually and ensure `whitebox_tools.exe` is accessible.")
-    })
+  if (!file.exists(whitebox::wbt_exe_path())) {
+    message("Installing WhiteboxTools...")
+    whitebox::install_whitebox()
   }
 
   # === Validate inputs ===
