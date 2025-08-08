@@ -75,6 +75,8 @@ Routing_GR2MSemiDistr <- function(Model,
     message("Installing WhiteboxTools...")
     whitebox::install_whitebox()
   }
+  # Force initialization after installation to avoid NULL pointer errors
+  whitebox::wbt_init()
 
   # === Validate inputs ===
   if (!inherits(Subbasins, "SpatVector")) {
