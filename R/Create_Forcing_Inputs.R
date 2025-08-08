@@ -199,7 +199,8 @@ Create_Forcing_Inputs <- function(Subbasins,
 
   if (!is.null(Qobs)) {
     Flow <- round(Qobs, 3)
-    data_list <- c(data_list, Q = Flow)
+    colnames(Q) <- 'Q'
+    data_list <- c(data_list, as.data.frame(Flow))
   }
 
   Ans <- as.data.frame(data_list)
