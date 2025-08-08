@@ -35,26 +35,22 @@
 #' @examples
 #' library(GR2MSemiDistr)
 #'
-#' # Load example data
-#' data(cat)
-#'
 #' # Define region parameters
 #' param_df <- data.frame(
 #'   Region = unique(cat$Region),
-#'   X1 = 350,
-#'   X2 = 1.2,
-#'   fp = 1.0,
-#'   fe = 1.0
+#'   X1 = 2000,
+#'   X2 = 1.8,
+#'   fp = 0.8,
+#'   fe = 0.8
 #' )
 #'
 #' # Run the semi-distributed GR2M model
 #' model <- Run_GR2MSemiDistr(
-#'   Data = inputs,
+#'   Data = model_inputs,
 #'   Subbasins = cat,
 #'   RunIni = "01/1981",
 #'   RunEnd = "12/2016",
 #'   Parameters = param_df,
-#'   Save = FALSE
 #' )
 #'
 #' # Select COMID of the subbasin to plot
@@ -67,23 +63,23 @@
 #'
 #' plot(dates, model$PR[, idx], type = "l", col = "blue",
 #'      main = paste("Precipitation (PR) - COMID", target_comid),
-#'      xlab = "Date", ylab = "mm")
+#'      xlab = "Date", ylab = "mm/month")
 #'
 #' plot(dates, model$AE[, idx], type = "l", col = "orange",
 #'      main = paste("Actual Evapotranspiration (AE) - COMID", target_comid),
-#'      xlab = "Date", ylab = "mm")
+#'      xlab = "Date", ylab = "mm/month")
 #'
 #' plot(dates, model$SM[, idx], type = "l", col = "green4",
 #'      main = paste("Production Store (SM) - COMID", target_comid),
-#'      xlab = "Date", ylab = "mm")
+#'      xlab = "Date", ylab = "mm/month")
 #'
 #' plot(dates, model$PC[, idx], type = "l", col = "purple",
 #'      main = paste("Percolation (PC) - COMID", target_comid),
-#'      xlab = "Date", ylab = "mm")
+#'      xlab = "Date", ylab = "mm/month")
 #'
 #' plot(dates, model$RU[, idx], type = "l", col = "darkred",
 #'      main = paste("Runoff (RU) - COMID", target_comid),
-#'      xlab = "Date", ylab = "mm")
+#'      xlab = "Date", ylab = "mm/month")
 #'
 #' plot(dates, model$QS[, idx], type = "l", col = "blue",
 #'      main = paste("Simulated Discharge (QS) - COMID", target_comid),

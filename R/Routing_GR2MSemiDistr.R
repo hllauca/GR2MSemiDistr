@@ -36,11 +36,6 @@
 #' @examples
 #' library(GR2MSemiDistr)
 #'
-#' # Load required data
-#' data(model)  # Output from Run_GR2MSemiDistr
-#' data(cat)    # Subbasin polygons (SpatVector)
-#' data(dem)    # Digital elevation model (SpatRaster)
-#'
 #' # Run routing using DEM and WhiteboxTools
 #' routed <- Routing_GR2MSemiDistr(
 #'   Model = model,
@@ -48,7 +43,6 @@
 #'   Dem = dem,
 #'   RouIni = "01/1981",
 #'   RouEnd = "12/2016",
-#'   Save = FALSE
 #'  )
 #'
 #' # Select COMID of the subbasin to plot
@@ -145,7 +139,7 @@ Routing_GR2MSemiDistr <- function(Model,
     terra::writeRaster(Dem, "dem_tmp.tif", overwrite = TRUE)
     terra::writeRaster(comid_rast, "comid_tmp.tif", overwrite = TRUE)
 
-    whitebox::wbt_filled_dem("dem_tmp.tif", "dem_filled.tif")
+    whitebox::wbt_fill_depressions("dem_tmp.tif", "dem_filled.tif")
     whitebox::wbt_d8_pointer("dem_filled.tif", "flow_dir.tif")
 
     flow_dir_rast <- terra::rast("flow_dir.tif")

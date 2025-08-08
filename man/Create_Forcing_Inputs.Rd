@@ -78,7 +78,6 @@ model_inputs <- Create_Forcing_Inputs(
   DateIni = start_date,
   DateEnd = end_date,
   IniGrids = ini_grids,
-  Save = FALSE
 )
 
 # Create figures to visualize the inputs

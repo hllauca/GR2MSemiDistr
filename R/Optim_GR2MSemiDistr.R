@@ -47,9 +47,6 @@
 #' @examples
 #' library(GR2MSemiDistr)
 #'
-#' # Load preprocessed input data
-#' data(cat)     # Subbasins (SpatVector with COMID and Region)
-#'
 #' # Define initial parameters for each region
 #' param_init <- data.frame(
 #'   Region = unique(cat$Region),
@@ -61,15 +58,11 @@
 #'
 #' # Optimize parameters using the KGE criterion (OF1)
 #' result <- Optim_GR2MSemiDistr(
-#'   Data = inputs,
+#'   Data = model_inputs,
 #'   Subbasins = cat,
 #'   RunIni = "01/1981",
 #'   RunEnd = "12/2005",
 #'   Parameters = param_init,
-#'   Parameters.Min = c(100, 0.1, 0.8, 0.8),
-#'   Parameters.Max = c(2000, 10, 1.2, 1.2),
-#'   WarmUp = 12,
-#'   Max.Functions = 1000,
 #'   Optimization = "OF1"  # KGE
 #' )
 #'
@@ -79,12 +72,11 @@
 #'
 #' # Plot observed vs simulated discharge at the outlet
 #' model <- Run_GR2MSemiDistr(
-#'   Data = inputs,
+#'   Data = model_inputs,
 #'   Subbasins = cat,
 #'   RunIni = "01/1981",
 #'   RunEnd = "12/2005",
 #'   Parameters = best_params,
-#'   WarmUp = 12
 #' )
 #'
 #' if (!is.null(model$SINK)) {

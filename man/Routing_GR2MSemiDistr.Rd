@@ -60,11 +60,6 @@ Each subbasin contributes its outflow as a weight that is accumulated along the 
 \examples{
 library(GR2MSemiDistr)
 
-# Load required data
-data(model)  # Output from Run_GR2MSemiDistr
-data(cat)    # Subbasin polygons (SpatVector)
-data(dem)    # Digital elevation model (SpatRaster)
-
 # Run routing using DEM and WhiteboxTools
 routed <- Routing_GR2MSemiDistr(
   Model = model,
@@ -72,7 +67,6 @@ routed <- Routing_GR2MSemiDistr(
   Dem = dem,
   RouIni = "01/1981",
   RouEnd = "12/2016",
-  Save = FALSE
  )
 
 # Select COMID of the subbasin to plot
