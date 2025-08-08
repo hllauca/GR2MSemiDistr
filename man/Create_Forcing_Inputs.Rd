@@ -54,16 +54,6 @@ and optionally includes observed streamflow data, to produce a formatted data fr
 \examples{
 library(GR2MSemiDistr)
 
-# Load example data
-
-data <- GR2MSemiDistr::Load_example_data()
-names(data)
-cat     <- data$cat
-dem     <- data$dem
-qobs    <- data$qobs
-grid_pr <- data$grid_pr
-grid_pe <- data$grid_pe
-
 # Define simulation period and grid start date
 start_date <- "01/1981"
 end_date   <- "12/2016"

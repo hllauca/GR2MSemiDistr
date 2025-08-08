@@ -4,9 +4,15 @@
 #'
 #' @return A list with objects: `cat`, `dem`, `grid_pr`, `grid_pe`, `qobs`
 #' @examples
+#' # Load example data
+#'
 #' data <- GR2MSemiDistr::Load_example_data()
 #' names(data)
-#' plot(data$grid_pr[[1]])
+#' cat     <- data$cat
+#' dem     <- data$dem
+#' qobs    <- data$qobs
+#' grid_pr <- data$grid_pr
+#' grid_pe <- data$grid_pe
 #'
 #' @export
 Load_example_data <- function() {
@@ -18,3 +24,5 @@ Load_example_data <- function() {
     qobs     = read.table(system.file("extdata/qobs.txt", package = "GR2MSemiDistr"), header = FALSE)
   )
 }
+
+

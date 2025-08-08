@@ -111,13 +111,12 @@ model <- Run_GR2MSemiDistr(
 )
 
 if (!is.null(model$SINK)) {
-  dates <- as.Date(model$Dates)
-  plot(dates, model$SINK$sim, type = "l", col = "blue", lwd = 2,
+  par(mfrow = c(1, 1))
+  plot(dates, model$SINK$sim, type = "l", col = "blue",
        xlab = "Date", ylab = "Discharge [m³/s]",
-       main = "Simulated vs Observed Discharge (Outlet)")
-  lines(dates, model$SINK$obs, col = "darkgreen", lwd = 2, lty = 2)
+  lines(dates, model$SINK$obs, col = "red", type='o')
   legend("topright", legend = c("Simulated", "Observed"),
-         col = c("blue", "darkgreen"), lty = c(1, 2), lwd = 2, bty = "n")
+         col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
 }
 }
 \references{

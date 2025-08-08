@@ -70,6 +70,20 @@ Routing_GR2MSemiDistr <- function(Model,
                                   Update = FALSE) {
   tictoc::tic()
 
+  # === Ensure WhiteboxTools is installed and available ===
+  if (is.null(TransferMatrixFile)) {
+    tryCatch({
+      if (!whitebox::wbt_check_install()) {
+        message("WhiteboxTools not found. Installing now...")
+        whitebox::install_whitebox()
+        whitebox::wbt_init()
+      }
+    }, error = function(e) {
+      stop("WhiteboxTools is required for routing but could not be installed automatically.\n",
+           "You can try running `whitebox::install_whitebox()` manually.")
+    })
+  }
+
   # === Validate inputs ===
   if (!inherits(Subbasins, "SpatVector")) {
     stop("Argument 'Subbasins' must be of class 'SpatVector'.")
