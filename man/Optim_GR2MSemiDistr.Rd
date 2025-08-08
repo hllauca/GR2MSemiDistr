@@ -11,8 +11,9 @@ Optim_GR2MSemiDistr(
   RunEnd,
   Parameters,
   Parameters.Min = c(100, 0.1, 0.8, 0.8),
-  Parameters.Max = 1500,
+  Parameters.Max = c(2000, 10, 1.2, 1.2),
   Optimization = "OF1",
+  Max.Functions = 1000,
   WarmUp = 36,
   No.Optim = NULL,
   w1 = 0.6,
@@ -51,6 +52,8 @@ c(X1, X2, fp, fe).}
   \item{"OF10"}{Composite objective: w1 × KGE.km + w2 × KGE.lf - w3 × RMSE.}
 }}
 
+\item{Max.Functions}{Integer. Maximum number of function evaluations in the optimization. Default is 1500.}
+
 \item{No.Optim}{Character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).}
 
 \item{w1}{Numeric. Weight for the first component in composite objective functions (OF8, OF9, OF10). Default is 0.6.}
@@ -58,8 +61,6 @@ c(X1, X2, fp, fe).}
 \item{w2}{Numeric. Weight for the second component in composite objective functions. Default is 0.3.}
 
 \item{w3}{Numeric. Weight for the third component in composite objective functions. Default is 0.2.}
-
-\item{Max.Functions}{Integer. Maximum number of function evaluations in the optimization. Default is 1500.}
 }
 \value{
 A list with the following elements:
