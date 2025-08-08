@@ -11,7 +11,7 @@ Routing_GR2MSemiDistr(
   RouIni = NULL,
   RouEnd = NULL,
   TransferMatrixFile = NULL,
-  res = 250,
+  res = 500,
   Save = FALSE,
   Update = FALSE
 )
@@ -37,7 +37,7 @@ Routing_GR2MSemiDistr(
 
 \item{TransferMatrixFile}{Optional file path (.rds) to a precomputed transfer matrix. If provided, 'Dem' and WhiteboxTools are not used.}
 
-\item{res}{Numeric. Desired spatial resolution in meters for resampling the DEM (default is 250). Converted to degrees if needed.}
+\item{res}{Numeric. Desired spatial resolution in meters for resampling the DEM (default is 500). Converted to degrees if needed.}
 
 \item{Save}{Logical. If TRUE, writes the routed discharges (QR) to a tabular .txt file in the './Outputs' directory. Default is FALSE.}
 

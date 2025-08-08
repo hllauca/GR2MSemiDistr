@@ -18,7 +18,7 @@
 #' @param RouIni Character. Start date for routing in "mm/YYYY" format. If NULL, uses the start of the simulation.
 #' @param RouEnd Character. End date for routing in "mm/YYYY" format. If NULL, uses the end of the simulation.
 #' @param TransferMatrixFile Optional file path (.rds) to a precomputed transfer matrix. If provided, 'Dem' and WhiteboxTools are not used.
-#' @param res Numeric. Desired spatial resolution in meters for resampling the DEM (default is 250). Converted to degrees if needed.
+#' @param res Numeric. Desired spatial resolution in meters for resampling the DEM (default is 500). Converted to degrees if needed.
 #' @param Save Logical. If TRUE, writes the routed discharges (QR) to a tabular .txt file in the './Outputs' directory. Default is FALSE.
 #' @param Update Logical. If TRUE, deletes previous month's output and replaces it with the latest. Useful for incremental runs. Default is FALSE.
 #'
@@ -65,7 +65,7 @@ Routing_GR2MSemiDistr <- function(Model,
                                   RouIni = NULL,
                                   RouEnd = NULL,
                                   TransferMatrixFile = NULL,
-                                  res = 250,
+                                  res = 500,
                                   Save = FALSE,
                                   Update = FALSE) {
   tictoc::tic()
@@ -73,14 +73,23 @@ Routing_GR2MSemiDistr <- function(Model,
   # === Ensure WhiteboxTools is installed and available ===
   if (is.null(TransferMatrixFile)) {
     tryCatch({
+      # Check if WhiteboxTools executable is available
       if (!whitebox::wbt_check_install()) {
-        message("WhiteboxTools not found. Installing now...")
+        message("WhiteboxTools is not installed. Attempting automatic installation...")
         whitebox::install_whitebox()
-        whitebox::wbt_init()
+      }
+
+      # Initialize WhiteboxTools (loads executable path)
+      whitebox::wbt_init()
+
+      # Re-check after initialization
+      if (!whitebox::wbt_check_install()) {
+        stop("WhiteboxTools could not be properly initialized after installation.")
       }
     }, error = function(e) {
       stop("WhiteboxTools is required for routing but could not be installed automatically.\n",
-           "You can try running `whitebox::install_whitebox()` manually.")
+           "Error: ", e$message, "\n",
+           "Please run `whitebox::install_whitebox()` manually and ensure `whitebox_tools.exe` is accessible.")
     })
   }
 
