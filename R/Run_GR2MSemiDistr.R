@@ -121,57 +121,72 @@ Run_GR2MSemiDistr <- function(Data,
   if (!all(c("COMID", "Region") %in% names(Subbasins))) {
     stop("The 'Subbasins' object must contain fields 'COMID' and 'Region'.")
   }
-  comid  <- as.vector(Subbasins$COMID)
+  comid  <- as.character(Subbasins$COMID)   # ensure character
   region <- Subbasins$Region
-  area   <- terra::expanse(Subbasins, unit = 'km')
+  area   <- terra::expanse(Subbasins, unit = "km")
   nsub   <- length(comid)
 
-  # === Prepare time indices ===
-  Data$DatesR <- as.POSIXct(paste0(Data$DatesR, ' 00:00:00'),
-                            tz = "GMT",
-                            tryFormats = c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"))
+  # === Dates: accept Data$Date or Data$DatesR, parse robustly ===
+  date_col <- if ("Date" %in% names(Data)) "Date" else if ("DatesR" %in% names(Data)) "DatesR" else NULL
+  if (is.null(date_col)) stop("Data must contain a 'Date' or 'DatesR' column.")
 
-  ind_start <- which(format(Data$DatesR, "%m/%Y") == RunIni)
-  ind_end   <- which(format(Data$DatesR, "%m/%Y") == RunEnd)
+  Data[[date_col]] <- as.POSIXct(
+    paste0(Data[[date_col]], " 00:00:00"),
+    tz = "UTC",
+    tryFormats = c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y","%Y-%m","%m/%Y")
+  )
+  if (any(is.na(Data[[date_col]]))) stop("Unrecognized date format in Data date column.")
 
+  # Indices for run window (mm/YYYY)
+  ind_start <- which(format(Data[[date_col]], "%m/%Y") == RunIni)
+  ind_end   <- which(format(Data[[date_col]], "%m/%Y") == RunEnd)
   if (length(ind_start) == 0 || length(ind_end) == 0) {
-    stop("RunIni or RunEnd not found in Data$DatesR. Please check date format 'mm/yyyy'.")
+    stop("RunIni or RunEnd not found in Data (expected 'mm/YYYY').")
   }
+  if (max(ind_end) < min(ind_start)) stop("RunEnd precedes RunIni.")
 
-  Database <- Data[ind_start:ind_end, ]
-  Dates    <- as.Date(Database$DatesR)
+  Database <- Data[min(ind_start):max(ind_end), , drop = FALSE]
+  Dates    <- as.Date(Database[[date_col]])
   ntime    <- length(Dates)
   nDays    <- lubridate::days_in_month(Dates)
 
-  # === Organize and validate parameters ===
-  Zone  <- sort(unique(region))
-  nreg  <- length(Zone)
-
-  if (!is.data.frame(Parameters)) {
-    stop("Argument 'Parameters' must be a data frame.")
-  }
-  required_cols <- c("Region", "X1", "X2", "fp", "fe")
+  # === Validate Parameters ↔ Regions ===
+  if (!is.data.frame(Parameters)) stop("Argument 'Parameters' must be a data frame.")
+  required_cols <- c("Region","X1","X2","fp","fe")
   if (!all(required_cols %in% names(Parameters))) {
-    stop("The 'Parameters' data frame must contain the following columns: 'Region', 'X1', 'X2', 'fp', 'fe'.")
+    stop("Parameters must contain columns: 'Region','X1','X2','fp','fe'.")
+  }
+  regs_needed <- sort(unique(region))
+  regs_have   <- sort(unique(Parameters$Region))
+  if (!identical(regs_needed, regs_have)) {
+    stop(sprintf("Region mismatch. Needed: %s | Provided: %s",
+                 paste(regs_needed, collapse=","), paste(regs_have, collapse=",")))
   }
 
-  if (nreg != nrow(Parameters)) {
-    stop(paste0("The number of regions in 'Subbasins' (", nreg,
-                ") does not match the number of rows in 'Parameters' (", nrow(Parameters), ")."))
+  # === Check Data columns and map by name (not by position) ===
+  p_names <- paste0("P_", comid)
+  e_names <- paste0("E_", comid)
+  missing_p <- setdiff(p_names, names(Database))
+  missing_e <- setdiff(e_names, names(Database))
+  if (length(missing_p) || length(missing_e)) {
+    stop(sprintf("Data is missing required columns. Missing P: [%s]; Missing E: [%s]",
+                 paste(missing_p, collapse=", "), paste(missing_e, collapse=", ")))
   }
 
-  # === Helper functions ===
-  Subset_Param <- function(Param, Region) {
-    c(Param$X1[Param$Region == Region],
-      Param$X2[Param$Region == Region])
+  # === Helpers ===
+  Subset_Param <- function(Param, RegionID) {
+    c(Param$X1[Param$Region == RegionID],
+      Param$X2[Param$Region == RegionID])
   }
 
-  Forcing_Subbasin <- function(Param, Region, Database, ID, Nsub) {
-    factor_p <- Param$fp[Param$Region == Region]
-    factor_e <- Param$fe[Param$Region == Region]
-    data.frame(DatesR = as.POSIXct(Database[, 1], tz = "GMT"),
-               P = factor_p * Database[, 1 + ID],
-               E = factor_e * Database[, 1 + ID + Nsub])
+  Forcing_Subbasin <- function(Param, RegionID, Database, comid_i) {
+    factor_p <- Param$fp[Param$Region == RegionID]
+    factor_e <- Param$fe[Param$Region == RegionID]
+    data.frame(
+      DatesR = as.POSIXct(Dates, tz = "UTC"),
+      P = factor_p * Database[[paste0("P_", comid_i)]],
+      E = factor_e * Database[[paste0("E_", comid_i)]]
+    )
   }
 
   # === Run GR2M model ===
@@ -179,67 +194,64 @@ Run_GR2MSemiDistr <- function(Data,
 
   ResModel <- vector("list", nsub)
   for (i in seq_len(nsub)) {
+    if (i %% max(1, floor(nsub/10)) == 0) {
+      message(sprintf("  • Progress: %d/%d subbasins...", i, nsub))
+    }
     Param <- Subset_Param(Parameters, region[i])
-    Input <- Forcing_Subbasin(Parameters, region[i], Database, i, nsub)
+    Input <- Forcing_Subbasin(Parameters, region[i], Database, comid[i])
 
     if (anyNA(Input$P) || anyNA(Input$E)) {
-      stop(sprintf("Missing values (NA) detected in P or E for subbasin %s", comid[i]))
+      stop(sprintf("NA values detected in P or E for subbasin %s", comid[i]))
     }
-    if (any(Input$P < 0)) {
-      stop(sprintf("Negative values detected in P for subbasin %s", comid[i]))
-    }
-    if (any(Input$E < 0)) {
-      stop(sprintf("Negative values detected in E for subbasin %s", comid[i]))
-    }
+    if (any(Input$P < 0)) stop(sprintf("Negative P in subbasin %s", comid[i]))
+    if (any(Input$E < 0)) stop(sprintf("Negative E in subbasin %s", comid[i]))
 
+    # Edge case: single month → add a dummy next month (keeps lubridate)
     if (ntime == 1) {
-      next_month <- lubridate::floor_date(Input$DatesR + months(1), "month")
+      next_month <- lubridate::floor_date(Input$DatesR[1] + lubridate::months(1), "month")
       Input <- rbind(Input, data.frame(DatesR = next_month, P = 100, E = 100))
     }
 
-    InputsModel <- CreateInputsModel(FUN_MOD = RunModel_GR2M,
-                                     DatesR = Input$DatesR,
-                                     Precip = Input$P,
-                                     PotEvap = Input$E)
+    InputsModel <- CreateInputsModel(FUN_MOD  = RunModel_GR2M,
+                                     DatesR   = Input$DatesR,
+                                     Precip   = Input$P,
+                                     PotEvap  = Input$E)
 
-    RunOptions <- if (is.null(IniState)) {
-      CreateRunOptions(FUN_MOD = RunModel_GR2M,
-                       InputsModel = InputsModel,
-                       IndPeriod_Run = seq_len(ntime),
-                       verbose = FALSE,
-                       warnings = FALSE)
+    if (is.null(IniState)) {
+      RunOptions <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
+                                     InputsModel = InputsModel,
+                                     IndPeriod_Run = seq_len(ntime),
+                                     verbose = FALSE, warnings = FALSE)
     } else {
-      IniStates <- CreateIniStates(FUN_MOD = RunModel_GR2M,
+      IniStates <- CreateIniStates(FUN_MOD   = RunModel_GR2M,
                                    InputsModel = InputsModel,
                                    ProdStore = IniState[[i]]$Store$Prod,
                                    RoutStore = IniState[[i]]$Store$Rout,
-                                   ExpStore = IniState[[i]]$Store$Exp,
+                                   ExpStore  = IniState[[i]]$Store$Exp,
                                    UH1 = IniState[[i]]$UH$UH1,
                                    UH2 = IniState[[i]]$UH$UH2)
-
-      CreateRunOptions(FUN_MOD = RunModel_GR2M,
-                       InputsModel = InputsModel,
-                       IniStates = IniStates,
-                       IndPeriod_Run = seq_len(ntime),
-                       verbose = FALSE,
-                       warnings = FALSE)
+      RunOptions <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
+                                     InputsModel = InputsModel,
+                                     IniStates = IniStates,
+                                     IndPeriod_Run = seq_len(ntime),
+                                     verbose = FALSE, warnings = FALSE)
     }
 
     ResModel[[i]] <- RunModel(InputsModel = InputsModel,
-                              RunOptions = RunOptions,
-                              Param = Param,
-                              FUN = RunModel_GR2M)
+                              RunOptions  = RunOptions,
+                              Param       = Subset_Param(Parameters, region[i]),
+                              FUN         = RunModel_GR2M)
   }
 
   # === Post-processing ===
-  extract_outputs <- function(res, area, nDays) {
+  extract_outputs <- function(res, area_km2, nDays_vec) {
     list(
       pr = round(res$Precip, 2),
       ae = round(res$AE, 2),
       sm = round(res$Prod, 2),
       pc = round(res$Perc, 2),
       ru = round(res$Qsim, 2),
-      qs = round((area * res$Qsim) / (86.4 * nDays), 2)
+      qs = round((area_km2 * res$Qsim) / (86.4 * nDays_vec), 2)  # m3/s to mm? (convention preserved)
     )
   }
 
@@ -250,20 +262,24 @@ Run_GR2MSemiDistr <- function(Data,
   pc <- do.call(cbind, lapply(outputs, `[[`, "pc"))
   ru <- do.call(cbind, lapply(outputs, `[[`, "ru"))
   qs <- do.call(cbind, lapply(outputs, `[[`, "qs"))
+  colnames(pr) <- colnames(ae) <- colnames(sm) <- colnames(pc) <- colnames(ru) <- colnames(qs) <- comid
   qt <- round(rowSums(qs), 2)
 
-  if (!is.null(WarmUp)) {
-    indices <- -(seq_len(WarmUp))
-    pr <- pr[indices, , drop = FALSE]
-    ae <- ae[indices, , drop = FALSE]
-    sm <- sm[indices, , drop = FALSE]
-    pc <- pc[indices, , drop = FALSE]
-    ru <- ru[indices, , drop = FALSE]
-    qs <- qs[indices, , drop = FALSE]
-    qt <- qt[indices]
-    Dates <- Dates[indices]
+  # Warm-up trimming (optional)
+  if (!is.null(WarmUp) && WarmUp > 0) {
+    idx <- seq_len(WarmUp)
+    if (length(idx) >= nrow(qs)) stop("WarmUp is greater than or equal to series length.")
+    keep <- setdiff(seq_len(nrow(qs)), idx)
+    pr <- pr[keep, , drop = FALSE]
+    ae <- ae[keep, , drop = FALSE]
+    sm <- sm[keep, , drop = FALSE]
+    pc <- pc[keep, , drop = FALSE]
+    ru <- ru[keep, , drop = FALSE]
+    qs <- qs[keep, , drop = FALSE]
+    qt <- qt[keep]
+    Dates <- Dates[keep]
     if ("Q" %in% names(Database)) {
-      qo <- Database$Q[indices]
+      qo <- Database$Q[keep]
     }
   } else if ("Q" %in% names(Database)) {
     qo <- Database$Q
@@ -276,31 +292,33 @@ Run_GR2MSemiDistr <- function(Data,
     Ans$SINK <- data.frame(sim = round(qt, 2), obs = round(qo, 2), row.names = Dates)
   }
 
+  # === Save outputs (tab-separated; keep lubridate for month math) ===
   if (Save) {
     dir.create("./Outputs", showWarnings = FALSE, recursive = TRUE)
 
+    yyyymm_new <- format(tail(Dates, 1), "%Y%m")
+    prev_month <- lubridate::floor_date(tail(Dates, 1), "month") %m-% lubridate::months(1)
+    yyyymm_old <- format(prev_month, "%Y%m")
+
     if (Update) {
-      new_month <- format(tail(Dates, 1), "%Y%m")
-      old_month <- format(as.Date(paste0(new_month, "01"), "%Y%m%d") %m-% months(1), "%Y%m")
-      vars <- c("PR", "AE", "SM", "PC","RU", "QS")
-      for (var in vars) {
-        old_file <- paste0("./Outputs/", var, "_GR2MSemiDistr_", old_month, ".txt")
+      for (tag in c("PR","AE","SM","PC","RU","QS")) {
+        old_file <- sprintf("./Outputs/%s_GR2MSemiDistr_%s.txt", tag, yyyymm_old)
         if (file.exists(old_file)) file.remove(old_file)
       }
     }
 
-    save_outputs <- function(var, name) {
+    save_outputs <- function(var, tag) {
       df <- as.data.frame(var)
-      colnames(df) <- paste0(toupper(name), "_", comid)
-      rownames(df) <- Dates
-      file <- paste0("./Outputs/", toupper(name), "_GR2MSemiDistr_", format(tail(Dates, 1), "%Y%m"), ".txt")
-      write.table(df, file = file)
+      colnames(df) <- paste0(tag, "_", comid)
+      rownames(df) <- format(Dates, "%Y-%m-01")
+      file <- sprintf("./Outputs/%s_GR2MSemiDistr_%s.txt", tag, yyyymm_new)
+      write.table(df, file = file, sep = "\t", quote = FALSE)
     }
-    save_outputs(pr, "pr")
-    save_outputs(ae, "ae")
-    save_outputs(sm, "sm")
-    save_outputs(ru, "ru")
-    save_outputs(qs, "qs")
+    save_outputs(pr, "PR")
+    save_outputs(ae, "AE")
+    save_outputs(sm, "SM")
+    save_outputs(ru, "RU")
+    save_outputs(qs, "QS")
   }
 
   message("Processing completed successfully in...")

@@ -68,14 +68,14 @@ Routing_GR2MSemiDistr <- function(Model,
                                   res = 500,
                                   Save = FALSE,
                                   Update = FALSE) {
+
   tictoc::tic()
 
-  # === Ensure WhiteboxTools is installed and available ===
+  # === Ensure WhiteboxTools binary ===
   if (!file.exists(whitebox::wbt_exe_path())) {
     message("Installing WhiteboxTools...")
     whitebox::install_whitebox()
   }
-  # Force initialization after installation to avoid NULL pointer errors
   whitebox::wbt_init()
 
   # === Validate inputs ===
@@ -87,137 +87,166 @@ Routing_GR2MSemiDistr <- function(Model,
   }
   if (!is.null(Dem)) {
     if (!inherits(Dem, "SpatRaster")) stop("Argument 'Dem' must be of class 'SpatRaster'.")
-    if (!terra::crs(Dem) == terra::crs(Subbasins)) stop("CRS of 'Dem' and 'Subbasins' must match.")
+    if (!terra::same.crs(Dem, Subbasins)) stop("CRS of 'Dem' and 'Subbasins' must match.")
   }
-  if (!is.null(RouIni) && !grepl("^(0[1-9]|1[0-2])/\\d{4}$", RouIni)) stop("RouIni must be in 'mm/YYYY' format.")
-  if (!is.null(RouEnd) && !grepl("^(0[1-9]|1[0-2])/\\d{4}$", RouEnd)) stop("RouEnd must be in 'mm/YYYY' format.")
-  if (!is.null(TransferMatrixFile) && !grepl("\\.rds$", TransferMatrixFile)) stop("TransferMatrixFile must be an .rds file.")
+  if (!is.null(RouIni) && !grepl("^(0[1-9]|1[0-2])/\\d{4}$", RouIni)) stop("RouIni must be 'mm/YYYY'.")
+  if (!is.null(RouEnd) && !grepl("^(0[1-9]|1[0-2])/\\d{4}$", RouEnd)) stop("RouEnd must be 'mm/YYYY'.")
+  if (!is.null(TransferMatrixFile) && !grepl("\\.rds$", TransferMatrixFile)) stop("TransferMatrixFile must be .rds")
 
-  # === Remove temporary files on exit or error ===
-  on.exit({
-    if (is.null(TransferMatrixFile)) {
-      unlink(c("dem_tmp.tif", "dem_filled.tif", "comid_tmp.tif", "flow_dir.tif"), force = TRUE)
-    }
-  }, add = TRUE)
-
-  # === Input preparation ===
-  comid <- Subbasins$COMID
+  # === IDs & sizes ===
+  comid <- as.character(Subbasins$COMID)
   nsub  <- length(comid)
 
-  # === Subset QS from model ===
+  # === Subset QS by dates (if requested) ===
   if ((is.null(RouIni) && is.null(RouEnd)) || nrow(Model$QS) == 1) {
-    Dates <- Model$Dates
+    Dates <- as.Date(Model$Dates)
     QS    <- as.matrix(Model$QS)
   } else {
-    Dates <- seq(as.Date(paste0('01/', RouIni), format = '%d/%m/%Y'),
-                 as.Date(paste0('01/', RouEnd), format = '%d/%m/%Y'), by = 'months')
-    Ind   <- seq(which(format(as.Date(Model$Dates), '%d/%m/%Y') == paste0('01/', RouIni)),
-                 which(format(as.Date(Model$Dates), '%d/%m/%Y') == paste0('01/', RouEnd)))
-    QS <- as.matrix(Model$QS[Ind, ])
+    all_dates <- as.Date(Model$Dates)
+    d0 <- as.Date(paste0("01/", RouIni), format = "%d/%m/%Y")
+    d1 <- as.Date(paste0("01/", RouEnd),  format = "%d/%m/%Y")
+    i0 <- match(d0, all_dates); i1 <- match(d1, all_dates)
+    if (any(is.na(c(i0,i1)))) stop("RouIni/RouEnd not found in Model$Dates.")
+    Dates <- seq(d0, d1, by = "month")
+    QS    <- as.matrix(Model$QS[i0:i1, , drop = FALSE])
   }
 
-  # === Reuse transfer matrix if available ===
+  # Ensure QS columns align with COMID order if names exist
+  if (!is.null(colnames(QS))) {
+    miss <- setdiff(comid, colnames(QS))
+    if (length(miss)) stop("QS columns missing COMID(s): ", paste(miss, collapse=", "))
+    QS <- QS[, comid, drop = FALSE]
+  } else {
+    # assume QS already in Subbasins order
+    colnames(QS) <- comid
+  }
+
+  # === Try to reuse transfer matrix ===
   if (!is.null(TransferMatrixFile) && file.exists(TransferMatrixFile)) {
     transfer_matrix <- readRDS(TransferMatrixFile)
+    # basic checks
+    if (!inherits(transfer_matrix, "dgCMatrix")) stop("TransferMatrixFile must be a sparse matrix (dgCMatrix).")
+    if (!identical(rownames(transfer_matrix), comid) ||
+        !identical(colnames(transfer_matrix), comid)) {
+      stop("Transfer matrix dimnames must match Subbasins COMID order.")
+    }
     QR <- QS %*% transfer_matrix
-    QR <- round(QR, 1)
   } else {
-    if (is.null(Dem)) stop("You must provide a raster object 'Dem' if 'TransferMatrixFile' is not provided.")
+    if (is.null(Dem)) stop("Provide 'Dem' when 'TransferMatrixFile' is not provided.")
 
-    # Resample using approximate conversion to degrees if in lon/lat
+    # === DEM resampling ===
     if (terra::is.lonlat(Dem)) {
-      message("DEM is in geographic coordinates (degrees). Converting res from meters to degrees for resampling...")
-      lat_mean <- mean(terra::ymin(Dem), terra::ymax(Dem))
-      res_deg <- res / (111320 * cos(lat_mean * pi / 180))
-      target_rast <- terra::rast(ext(Dem), resolution = res_deg, crs = crs(Dem))
+      message("DEM is lon/lat. Converting target resolution from meters to degrees for resampling...")
+      lat_mean <- mean(c(terra::ymin(Dem), terra::ymax(Dem)))
+      res_deg  <- res / (111320 * cos(lat_mean * pi / 180))
+      target_rast <- terra::rast(terra::ext(Dem), resolution = res_deg, crs = terra::crs(Dem))
       Dem <- terra::resample(Dem, target_rast, method = "bilinear")
     } else {
-      res_dem <- terra::res(Dem)
-      if (any(abs(res_dem - res) > 1e-6)) {
-        message("Resampling DEM to ", res, " m resolution...")
-        target_rast <- terra::rast(ext(Dem), resolution = res, crs = crs(Dem))
+      res_dem <- terra::res(Dem) # c(xres, yres)
+      if (any(abs(res_dem - c(res, res)) > 1e-6)) {
+        message("Resampling DEM to ", res, " m...")
+        target_rast <- terra::rast(terra::ext(Dem), resolution = res, crs = terra::crs(Dem))
         Dem <- terra::resample(Dem, target_rast, method = "bilinear")
       } else {
         message("DEM already at desired resolution: skipping resampling.")
       }
     }
 
-    comid_rast <- terra::rasterize(Subbasins, Dem, field = "COMID", touches = FALSE)
+    # === Rasterize COMID over DEM grid ===
+    comid_rast <- terra::rasterize(Subbasins, Dem, field = "COMID", touches = TRUE)
 
-    terra::writeRaster(Dem, "dem_tmp.tif", overwrite = TRUE)
-    terra::writeRaster(comid_rast, "comid_tmp.tif", overwrite = TRUE)
+    # === Temp files ===
+    dem_tmp  <- tempfile(fileext = ".tif")
+    dem_fill <- tempfile(fileext = ".tif")
+    com_tmp  <- tempfile(fileext = ".tif")
+    fdir_tif <- tempfile(fileext = ".tif")
 
-    whitebox::wbt_fill_depressions("dem_tmp.tif", "dem_filled.tif")
-    whitebox::wbt_d8_pointer("dem_filled.tif", "flow_dir.tif")
+    # cleanup
+    on.exit({
+      unlink(c(dem_tmp, dem_fill, com_tmp, fdir_tif), force = TRUE)
+    }, add = TRUE)
 
-    flow_dir_rast <- terra::rast("flow_dir.tif")
-    comid_rast    <- terra::rast("comid_tmp.tif")
-    comid_vals    <- sort(na.omit(unique(terra::values(comid_rast))))
+    terra::writeRaster(Dem, dem_tmp, overwrite = TRUE)
+    terra::writeRaster(comid_rast, com_tmp, overwrite = TRUE)
 
-    transfer_matrix <- sparseMatrix(i = integer(0), j = integer(0),
-                                    dims = c(nsub, nsub),
-                                    dimnames = list(as.character(comid_vals), as.character(comid_vals)))
+    whitebox::wbt_fill_depressions(dem_tmp, dem_fill)
+    whitebox::wbt_d8_pointer(dem_fill, fdir_tif)
+
+    flow_dir_rast <- terra::rast(fdir_tif)
+    comid_rast    <- terra::rast(com_tmp)
+
+    # === Build transfer matrix (column-normalized WFA) ===
+    transfer_matrix <- Matrix::sparseMatrix(
+      i = integer(0), j = integer(0),
+      dims = c(nsub, nsub),
+      dimnames = list(comid, comid)
+    )
 
     d8_map <- list(
       `1` = c(0, 1), `2` = c(1, 1), `4` = c(1, 0), `8` = c(1, -1),
       `16` = c(0, -1), `32` = c(-1, -1), `64` = c(-1, 0), `128` = c(-1, 1)
     )
 
-    nrows <- nrow(flow_dir_rast)
-    ncols <- ncol(flow_dir_rast)
+    nrows <- terra::nrow(flow_dir_rast)
+    ncols <- terra::ncol(flow_dir_rast)
+    ncell_tot <- terra::ncell(comid_rast)
 
-    for (i in seq_len(ncell(comid_rast))) {
-      current_comid <- comid_rast[i]
+    for (cell_id in seq_len(ncell_tot)) {
+      current_comid <- comid_rast[cell_id]
       if (is.na(current_comid)) next
+      flow_dir <- flow_dir_rast[cell_id]
+      key <- as.character(flow_dir)
+      if (is.na(flow_dir) || !(key %in% names(d8_map))) next
 
-      flow_dir <- flow_dir_rast[i]
-      if (is.na(flow_dir) || !(as.character(flow_dir) %in% names(d8_map))) next
+      rc <- terra::rowColFromCell(flow_dir_rast, cell_id)
+      off <- d8_map[[key]]
+      r2 <- rc[1] + off[1]; c2 <- rc[2] + off[2]
+      if (r2 < 1 || r2 > nrows || c2 < 1 || c2 > ncols) next
 
-      rowcol <- rowColFromCell(flow_dir_rast, i)
-      offset <- d8_map[[as.character(flow_dir)]]
-      dest_row <- rowcol[1] + offset[1]
-      dest_col <- rowcol[2] + offset[2]
-
-      if (dest_row < 1 || dest_row > nrows || dest_col < 1 || dest_col > ncols) next
-
-      dest_cell <- cellFromRowCol(flow_dir_rast, dest_row, dest_col)
+      dest_cell  <- terra::cellFromRowCol(flow_dir_rast, r2, c2)
       next_comid <- comid_rast[dest_cell]
 
       if (!is.na(next_comid) && next_comid != current_comid) {
-        transfer_matrix[as.character(next_comid), as.character(current_comid)] <- 1
+        # Use Subbasins-defined COMID order
+        i_name <- as.character(next_comid)
+        j_name <- as.character(current_comid)
+        if (i_name %in% comid && j_name %in% comid) {
+          transfer_matrix[i_name, j_name] <- 1
+        }
       }
     }
 
-    col_sums <- colSums(transfer_matrix)
+    # Normalize columns (split flow equally among multiple downstreams)
+    col_sums <- Matrix::colSums(transfer_matrix)
     col_sums[col_sums == 0] <- 1
-    transfer_matrix <- transfer_matrix %*% Diagonal(x = 1 / col_sums)
+    transfer_matrix <- transfer_matrix %*% Matrix::Diagonal(x = as.numeric(1 / col_sums))
 
     if (!is.null(TransferMatrixFile)) {
       saveRDS(transfer_matrix, TransferMatrixFile)
     }
 
     QR <- QS %*% transfer_matrix
-    QR <- round(QR, 1)
   }
 
+  # === Optional save ===
   if (Save) {
     dir.create("./Outputs", showWarnings = FALSE, recursive = TRUE)
 
+    yyyymm_new <- format(tail(Dates, 1), "%Y%m")
     if (Update) {
-      new_month <- format(tail(Dates, 1), "%Y%m")
-      old_month <- format(as.Date(paste0("01", new_month), "%d%Y%m") %m-% months(1), "%Y%m")
-      old_file <- paste0("./Outputs/QR_GR2MSemiDistr_", old_month, ".txt")
+      prev_month <- lubridate::floor_date(tail(Dates, 1), "month") %m-% lubridate::months(1)
+      old_file <- sprintf("./Outputs/QR_GR2MSemiDistr_%s.txt", format(prev_month, "%Y%m"))
       if (file.exists(old_file)) file.remove(old_file)
     }
 
-    df <- as.data.frame(QR)
+    df <- as.data.frame(round(QR, 1))
     colnames(df) <- paste0("QR_", comid)
-    rownames(df) <- Dates
-    out_file <- paste0("./Outputs/QR_GR2MSemiDistr_", format(tail(Dates, 1), "%Y%m"), ".txt")
-    write.table(df, file = out_file)
+    rownames(df) <- format(Dates, "%Y-%m-01")
+    out_file <- sprintf("./Outputs/QR_GR2MSemiDistr_%s.txt", yyyymm_new)
+    write.table(df, file = out_file, sep = "\t", quote = FALSE)
   }
 
   message("Processing completed successfully in...")
   tictoc::toc()
-  return(list(QR = QR, Dates = Dates, COMID = colnames(QR), TransferMatrix = transfer_matrix))
+  list(QR = QR, Dates = Dates, COMID = comid, TransferMatrix = transfer_matrix)
 }

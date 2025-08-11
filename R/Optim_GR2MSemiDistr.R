@@ -111,89 +111,129 @@ Optim_GR2MSemiDistr <- function(Data,
                                 w1 = 0.6,
                                 w2 = 0.3,
                                 w3 = 0.2) {
-
   tictoc::tic()
 
-  # === Validate inputs ===
-  if (!inherits(Subbasins, "SpatVector")) {
-    stop("Argument 'Subbasins' must be of class 'SpatVector'.")
-  }
+  # === Basic checks ===
+  if (!inherits(Subbasins, "SpatVector")) stop("Subbasins must be a 'SpatVector'.")
   if (!all(c("COMID", "Region") %in% names(Subbasins))) {
-    stop("The 'Subbasins' object must contain fields 'COMID' and 'Region'.")
+    stop("Subbasins must contain fields 'COMID' and 'Region'.")
   }
-  comid  <- as.vector(Subbasins$COMID)
+  comid  <- as.character(Subbasins$COMID)   # ensure character
   region <- Subbasins$Region
   area   <- terra::expanse(Subbasins, unit = 'km')
   nsub   <- length(comid)
 
-  # === Prepare time indices ===
-  Data$DatesR <- as.POSIXct(paste0(Data$DatesR, " 00:00:00"), tz = "GMT",
-                            tryFormats = c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y"))
+  # === Dates: accept Data$Date or Data$DatesR ===
+  date_col <- if ("Date" %in% names(Data)) "Date" else if ("DatesR" %in% names(Data)) "DatesR" else NULL
+  if (is.null(date_col)) stop("Data must include a 'Date' or 'DatesR' column.")
+  Data[[date_col]] <- as.POSIXct(
+    paste0(Data[[date_col]], " 00:00:00"),
+    tz = "UTC",
+    tryFormats = c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y","%Y-%m","%m/%Y")
+  )
+  if (any(is.na(Data[[date_col]]))) stop("Unrecognized date format in Data.")
 
-  ind_start <- which(format(Data$DatesR, "%m/%Y") == RunIni)
-  ind_end   <- which(format(Data$DatesR, "%m/%Y") == RunEnd)
-  if (length(ind_start) == 0 || length(ind_end) == 0) {
-    stop("RunIni or RunEnd not found in 'Data$DatesR'. Use format 'mm/yyyy'.")
-  }
+  # Indices for run window (mm/YYYY)
+  ind_start <- which(format(Data[[date_col]], "%m/%Y") == RunIni)
+  ind_end   <- which(format(Data[[date_col]], "%m/%Y") == RunEnd)
+  if (!length(ind_start) || !length(ind_end)) stop("RunIni or RunEnd not found (mm/YYYY).")
+  if (max(ind_end) < min(ind_start)) stop("RunEnd precedes RunIni.")
 
-  Database <- Data[ind_start:ind_end, ]
-  Dates    <- as.Date(Database$DatesR)
+  Database <- Data[min(ind_start):max(ind_end), , drop = FALSE]
+  if (!("Q" %in% names(Database))) stop("Data must include observed flow column 'Q' for calibration.")
+  Dates    <- as.Date(Database[[date_col]])
   ntime    <- length(Dates)
   nDays    <- lubridate::days_in_month(Dates)
 
-  # === Define calibration regions ===
+  # === Regions ↔ Parameters ===
+  if (!is.data.frame(Parameters)) stop("Parameters must be a data frame.")
+  req_cols <- c("Region","X1","X2","fp","fe")
+  if (!all(req_cols %in% names(Parameters))) {
+    stop("Parameters must contain columns: Region, X1, X2, fp, fe.")
+  }
   all_regions <- sort(unique(region))
+  regs_have   <- sort(unique(Parameters$Region))
+  if (!identical(all_regions, regs_have)) {
+    stop(sprintf("Region mismatch. Needed: %s | Provided: %s",
+                 paste(all_regions, collapse=","), paste(regs_have, collapse=",")))
+  }
+
+  # Regions to optimize
+  if (!is.null(No.Optim) && any(!(No.Optim %in% all_regions))) {
+    stop("No.Optim contains regions not present in Subbasins.")
+  }
   opt_regions <- if (is.null(No.Optim)) all_regions else setdiff(all_regions, No.Optim)
-  if (!all(opt_regions %in% Parameters$Region)) stop("Mismatch between optimized regions and parameters.")
+  if (!length(opt_regions)) stop("No regions left to optimize (check No.Optim).")
 
-  opt.param     <- unlist(Parameters[Parameters$Region %in% opt_regions, c("X1", "X2", "fp", "fe")])
-  opt.param.min <- rep(Parameters.Min, each = length(opt_regions))
-  opt.param.max <- rep(Parameters.Max, each = length(opt_regions))
+  # === Data columns by name ===
+  p_names <- paste0("P_", comid)
+  e_names <- paste0("E_", comid)
+  miss_p <- setdiff(p_names, names(Database))
+  miss_e <- setdiff(e_names, names(Database))
+  if (length(miss_p) || length(miss_e)) {
+    stop(sprintf("Missing columns in Data. P: [%s]; E: [%s]",
+                 paste(miss_p, collapse=","), paste(miss_e, collapse=",")))
+  }
 
-  # === Helper functions ===
+  # === Bounds length sanity ===
+  if (!(length(Parameters.Min) == 4 && length(Parameters.Max) == 4)) {
+    stop("Parameters.Min/Max must be length 4 (X1, X2, fp, fe).")
+  }
+
+  # Starting vector and bounds for opt regions (X1,X2,fp,fe) per region
+  opt.param     <- unlist(Parameters[Parameters$Region %in% opt_regions, c("X1","X2","fp","fe")], use.names = FALSE)
+  opt.param.min <- rep(Parameters.Min, times = length(opt_regions))
+  opt.param.max <- rep(Parameters.Max, times = length(opt_regions))
+  stopifnot(length(opt.param) == length(opt.param.min),
+            length(opt.param) == length(opt.param.max))
+
+  # === Helpers ===
   get_param <- function(param_vec, regions) {
     n <- length(regions)
     data.frame(Region = regions,
-               X1  = param_vec[1:n],
-               X2  = param_vec[(n + 1):(2 * n)],
-               fp  = param_vec[(2 * n + 1):(3 * n)],
-               fe  = param_vec[(3 * n + 1):(4 * n)])
+               X1 = param_vec[1:n],
+               X2 = param_vec[(n + 1):(2 * n)],
+               fp = param_vec[(2 * n + 1):(3 * n)],
+               fe = param_vec[(3 * n + 1):(4 * n)],
+               row.names = NULL)
   }
 
-  forcing_input <- function(Param, Region, Database, i, nsub) {
-    fp <- Param$fp[Param$Region == Region]
-    fe <- Param$fe[Param$Region == Region]
-    data.frame(DatesR = Database[, 1],
-               P = round(fp * Database[, i + 1], 1),
-               E = round(fe * Database[, i + 1 + nsub], 1))
+  forcing_input <- function(Param, RegionID, Database, comid_i) {
+    fp <- Param$fp[Param$Region == RegionID]
+    fe <- Param$fe[Param$Region == RegionID]
+    data.frame(DatesR = as.POSIXct(Dates, tz = "UTC"),
+               P = fp * Database[[paste0("P_", comid_i)]],
+               E = fe * Database[[paste0("E_", comid_i)]])
   }
 
   # === Objective function ===
   OFUN <- function(par) {
     Param <- get_param(par, opt_regions)
+    # Merge fixed (No.Optim) if any
     if (!is.null(No.Optim)) {
       fixed <- Parameters[Parameters$Region %in% No.Optim, ]
-      Param <- rbind(Param, fixed[match(setdiff(all_regions, opt_regions), fixed$Region), ])
+      Param <- rbind(Param, fixed[, c("Region","X1","X2","fp","fe")])
+      Param <- Param[match(all_regions, Param$Region), ]
+    } else {
       Param <- Param[match(all_regions, Param$Region), ]
     }
 
-    # Run model
-    QS <- matrix(NA, nrow = ntime, ncol = nsub)
+    # Run GR2M for each subbasin
+    QS <- matrix(NA_real_, nrow = ntime, ncol = nsub)
     for (i in seq_len(nsub)) {
       reg_i   <- region[i]
       param_i <- c(Param$X1[Param$Region == reg_i], Param$X2[Param$Region == reg_i])
-      input_i <- forcing_input(Param, reg_i, Database, i, nsub)
+      input_i <- forcing_input(Param, reg_i, Database, comid[i])
 
-      model_input <- CreateInputsModel(RunModel_GR2M,
-                                       DatesR = input_i$DatesR,
-                                       Precip = input_i$P,
+      model_input <- CreateInputsModel(FUN_MOD = RunModel_GR2M,
+                                       DatesR  = input_i$DatesR,
+                                       Precip  = input_i$P,
                                        PotEvap = input_i$E)
 
-      run_opt <- CreateRunOptions(RunModel_GR2M,
-                                  InputsModel = model_input,
+      run_opt <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
+                                  InputsModel  = model_input,
                                   IndPeriod_Run = seq_len(ntime),
-                                  verbose = FALSE,
-                                  warnings = FALSE)
+                                  verbose = FALSE, warnings = FALSE)
 
       output <- RunModel(model_input, run_opt, param_i, RunModel_GR2M)
       QS[, i] <- (area[i] * output$Qsim) / (86.4 * nDays)
@@ -201,69 +241,76 @@ Optim_GR2MSemiDistr <- function(Data,
 
     Qsim <- rowSums(QS, na.rm = TRUE)
     Qobs <- Database$Q
-    if (!is.null(WarmUp)) {
+    if (!is.null(WarmUp) && WarmUp > 0) {
+      if (WarmUp >= length(Qsim)) return(Inf) # penalize invalid warmup
       Qsim <- Qsim[-seq_len(WarmUp)]
       Qobs <- Qobs[-seq_len(WarmUp)]
     }
 
-    df <- na.omit(data.frame(y = Qsim, x = Qobs))
+    # Remove any NA pairs
+    ok <- is.finite(Qsim) & is.finite(Qobs)
+    if (!any(ok)) return(Inf)
+    y <- Qsim[ok]; x <- Qobs[ok]
 
-    # Calculate all metrics once
-    kge   <- 1 - KGE(df$y, df$x)
-    nse   <- 1 - NSE(df$y, df$x)
-    nselog<- 1 - NSE(df$y, df$x, fun = log, epsilon.type = "Pushpalatha2012")
-    rmse  <- rmse(df$y, df$x)
-    pbias <- abs(pbias(df$y, df$x))
-    pbiasfdc <- abs(pbiasfdc(df$y, df$x, plot = FALSE))
-    rpear <- 1 - rPearson(df$y, df$x)
-    kgekm <- 1 - KGEkm(df$y, df$x)
-    kgelf <- 1 - KGElf(df$y, df$x)
+    # Metrics (assuming hydroGOF-like API)
+    kge     <- 1 - KGE(y, x)
+    nse     <- 1 - NSE(y, x)
+    nselog  <- 1 - NSE(y, x, fun = log, epsilon.type = "Pushpalatha2012")
+    rmse_v  <- rmse(y, x)
+    pbias_v <- abs(pbias(y, x))
+    pbiasfdc_v <- abs(pbiasfdc(y, x, plot = FALSE))
+    rpear_v <- 1 - rPearson(y, x)
+    kgekm_v <- 1 - KGEkm(y, x)
+    kgelf_v <- 1 - KGElf(y, x)
 
     criteria <- c(
       OF1  = kge,
       OF2  = nse,
       OF3  = nselog,
-      OF4  = rmse,
-      OF5  = pbias,
-      OF6  = pbiasfdc,
-      OF7  = rpear,
-      OF8  = w1 * kge + w2 * nse + w3 * rmse,
-      OF9  = w1 * kge + w2 * nselog + w3 * rmse,
-      OF10 = w1 * kgekm + w2 * kgelf + w3 * rmse
+      OF4  = rmse_v,
+      OF5  = pbias_v,
+      OF6  = pbiasfdc_v,
+      OF7  = rpear_v,
+      OF8  = w1 * kge + w2 * nse + w3 * rmse_v,
+      OF9  = w1 * kge + w2 * nselog + w3 * rmse_v,
+      OF10 = w1 * kgekm_v + w2 * kgelf_v + w3 * rmse_v
     )
-    return(criteria[Optimization])
+    criteria[Optimization]
   }
 
-  # === Run optimization ===
-  message(paste("Optimizing", Optimization, "using SCE-UA..."))
+  message(sprintf("Optimizing %s with SCE-UA over %d regions (%d params)...",
+                  Optimization, length(opt_regions), length(opt_regions) * 4))
+
   Calibration <- sceua(OFUN,
-                       pars = opt.param,
+                       pars  = opt.param,
                        lower = opt.param.min,
                        upper = opt.param.max,
-                       maxn = Max.Functions)
+                       maxn  = Max.Functions)
 
   # === Organize output ===
-  final_params <- if (is.null(No.Optim)) {
-    get_param(Calibration$par, opt_regions)
+  final_params <- get_param(Calibration$par, opt_regions)
+  if (!is.null(No.Optim)) {
+    fixed <- Parameters[Parameters$Region %in% No.Optim, c("Region","X1","X2","fp","fe")]
+    final_params <- rbind(final_params, fixed)
+    final_params <- final_params[match(all_regions, final_params$Region), ]
   } else {
-    fixed <- Parameters[Parameters$Region %in% No.Optim, ]
-    all_params <- get_param(Calibration$par, opt_regions)
-    full <- rbind(all_params, fixed)
-    full[match(all_regions, full$Region), ]
+    final_params <- final_params[match(all_regions, final_params$Region), ]
   }
 
-  final_obj <- if (Optimization %in% c("OF4", "OF5", "OF6")) {
-    round(Calibration$value, 3)
-  } else {
-    round(1 - Calibration$value, 3)
-  }
+  # Report value: for OF that are "1 - metric" keep the corresponding "skill"
+  is_error_like <- Optimization %in% c("OF4","OF5","OF6") # rmse/pbias variants
+  final_obj_raw <- Calibration$value
+  final_obj_rep <- if (is_error_like) round(final_obj_raw, 3) else round(1 - final_obj_raw, 3)
 
   message("Optimization complete.")
   cat("\nFinal calibrated parameters per region:\n")
   print(final_params)
-  cat(paste0("Objective Function (", Optimization, ") = ", final_obj, "\n"))
+  cat(sprintf("Objective Function (%s) = %s\n", Optimization, final_obj_rep))
 
   tictoc::toc()
-
-  return(list(Parameters = final_params, OF = final_obj))
+  list(Parameters = final_params,
+       OF_value   = final_obj_rep,
+       OF_raw     = final_obj_raw,
+       Optimization = Optimization,
+       Regions_optimized = opt_regions)
 }
