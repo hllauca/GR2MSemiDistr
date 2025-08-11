@@ -96,7 +96,7 @@ Routing_GR2MSemiDistr <- function(Model,
   # === Remove temporary files on exit or error ===
   on.exit({
     if (is.null(TransferMatrixFile)) {
-      unlink(c("dem_tmp.tif", "dem_filled.tif", "comid_tmp.tif", "flow_dir.tif"), force = TRUE)
+      unlink(c("dem_tmp.tif", "dem_filled.tif", "flow_dir.tif"), force = TRUE)
     }
   }, add = TRUE)
 
@@ -106,6 +106,8 @@ Routing_GR2MSemiDistr <- function(Model,
   if (any(duplicated(Subbasins$COMID))) {
     stop("Duplicated COMID found in 'Subbasins'. Ensure unique COMID values.")
   }
+  # Force COMID to numeric to avoid categorical encoding during rasterization
+  Subbasins$COMID <- as.numeric(Subbasins$COMID)
   comid <- Subbasins$COMID
 
   # === Subset QS from model time window ===
@@ -126,20 +128,16 @@ Routing_GR2MSemiDistr <- function(Model,
 
     # Align QS columns to transfer_matrix column names if possible
     tm_names <- colnames(transfer_matrix)
-    if (!all(as.character(comid) %in% tm_names)) {
-      # Reorder/Subset columns of QS to the transfer matrix naming
-      idx_keep <- match(tm_names, as.character(comid))
-      if (any(is.na(idx_keep))) {
-        stop("Transfer matrix COMID do not fully match Subbasins/Model COMID.")
-      }
-      QS_aligned <- QS[, idx_keep, drop = FALSE]
-    } else {
-      QS_aligned <- QS
-      colnames(QS_aligned) <- as.character(comid)
-      QS_aligned <- QS_aligned[, tm_names, drop = FALSE]
+    idx_keep <- match(tm_names, as.character(comid))
+    if (any(is.na(idx_keep))) {
+      stop("Transfer matrix COMID do not fully match Subbasins/Model COMID.")
     }
+    QS_aligned <- QS[, idx_keep, drop = FALSE]
+    colnames(QS_aligned) <- tm_names
 
     QR <- QS_aligned %*% transfer_matrix
+    # Ensure output columns correspond to receivers (rows of transfer matrix)
+    colnames(QR) <- rownames(transfer_matrix)
     QR <- round(QR, 1)
     routed_comid <- rownames(transfer_matrix)
 
@@ -168,17 +166,21 @@ Routing_GR2MSemiDistr <- function(Model,
     # === Rasterize COMID onto DEM grid; touches=TRUE to retain small polygons ===
     comid_rast <- terra::rasterize(Subbasins, Dem, field = "COMID", touches = TRUE)
 
-    # === Write temporary rasters for WhiteboxTools ===
-    terra::writeRaster(Dem, "dem_tmp.tif", overwrite = TRUE)
-    terra::writeRaster(comid_rast, "comid_tmp.tif", overwrite = TRUE)
+    # === Drop any categorical encoding; ensure numeric values are carried through ===
+    levs <- terra::levels(comid_rast)
+    if (!is.null(levs) && length(levs) > 0 && nrow(levs[[1]]) > 0) {
+      levels(comid_rast) <- NULL
+    }
+    # Treat 0 as NA (some drivers may coerce NA to 0)
+    comid_rast <- terra::ifel(comid_rast == 0, NA, comid_rast)
 
-    # === Derive flow directions using WhiteboxTools ===
+    # === Write temporary DEM for WhiteboxTools and compute flow directions ===
+    terra::writeRaster(Dem, "dem_tmp.tif", overwrite = TRUE)
     whitebox::wbt_fill_depressions("dem_tmp.tif", "dem_filled.tif")
     whitebox::wbt_d8_pointer("dem_filled.tif", "flow_dir.tif")
 
-    # === Read back results as SpatRaster ===
+    # === Read flow directions and keep COMID raster in memory ===
     flow_dir_rast <- terra::rast("flow_dir.tif")
-    comid_rast    <- terra::rast("comid_tmp.tif")
 
     # === Determine COMID actually present on the grid ===
     comid_vals <- sort(unique(na.omit(as.vector(terra::values(comid_rast)))))
@@ -262,8 +264,10 @@ Routing_GR2MSemiDistr <- function(Model,
 
     # === Compute routed flows ===
     QR <- QS_aligned %*% transfer_matrix
+    # Ensure output columns correspond to receivers (rows of transfer matrix)
+    colnames(QR) <- rownames(transfer_matrix)
     QR <- round(QR, 1)
-    routed_comid <- as.character(comid_vals)
+    routed_comid <- rownames(transfer_matrix)
   }
 
   # === Save outputs, if requested ===
