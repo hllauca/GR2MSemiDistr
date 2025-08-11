@@ -188,7 +188,7 @@ Create_Forcing_Inputs <- function(Subbasins,
   }
 
   # ==== Assemble output data.frame ====
-  data_list <- list(Date = DatesMonths)
+  data_list <- list(DatesR = DatesMonths)
 
   if (!is.null(Precip)) {
     Prec <- as.data.frame(Prec)
@@ -214,8 +214,8 @@ Create_Forcing_Inputs <- function(Subbasins,
   if (Save) {
     if (!dir.exists("./Inputs")) dir.create("./Inputs", recursive = TRUE)
     fname <- sprintf("./Inputs/Inputs_model_%s_%s.txt",
-                     format(min(Ans$Date), "%Y%m"),
-                     format(max(Ans$Date), "%Y%m"))
+                     format(min(Ans$DatesR), "%Y%m"),
+                     format(max(Ans$DatesR), "%Y%m"))
     write.table(Ans, file = fname, sep = "\t", quote = FALSE, row.names = FALSE)
   }
 
