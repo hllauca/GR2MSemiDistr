@@ -71,164 +71,164 @@ Routing_GR2MSemiDistr <- function(Model,
 
   tictoc::tic()
 
-  # === Ensure WhiteboxTools binary ===
+  # --- helpers ---------------------------------------------------------------
+  # Build accumulation matrix A = I + T + T^2 + ... (stops within N-1 for a DAG)
+  .build_accum_matrix <- function(Tm) {
+    n <- nrow(Tm)
+    A <- Matrix::Diagonal(n)   # I
+    P <- Tm
+    it <- 1
+    repeat {
+      if (Matrix::nnzero(P) == 0) break
+      A <- A + P
+      P <- P %*% Tm
+      it <- it + 1
+      if (it >= n) break
+    }
+    A
+  }
+
+  # --- ensure WhiteboxTools ---------------------------------------------------
   if (!file.exists(whitebox::wbt_exe_path())) {
-    message("Installing WhiteboxTools...")
-    whitebox::install_whitebox()
+    message("Installing WhiteboxTools..."); whitebox::install_whitebox()
   }
   whitebox::wbt_init()
 
-  # === Validate inputs ===
-  if (!inherits(Subbasins, "SpatVector")) {
-    stop("Argument 'Subbasins' must be of class 'SpatVector'.")
-  }
-  if (!all(c("COMID", "Region") %in% names(Subbasins))) {
-    stop("The 'Subbasins' object must contain fields 'COMID' and 'Region'.")
-  }
+  # --- validate inputs --------------------------------------------------------
+  if (!inherits(Subbasins, "SpatVector")) stop("'Subbasins' must be a SpatVector.")
+  if (!all(c("COMID","Region") %in% names(Subbasins)))
+    stop("'Subbasins' must contain fields 'COMID' and 'Region'.")
   if (!is.null(Dem)) {
-    if (!inherits(Dem, "SpatRaster")) stop("Argument 'Dem' must be of class 'SpatRaster'.")
+    if (!inherits(Dem, "SpatRaster")) stop("'Dem' must be a SpatRaster.")
     if (!terra::same.crs(Dem, Subbasins)) stop("CRS of 'Dem' and 'Subbasins' must match.")
   }
   if (!is.null(RouIni) && !grepl("^(0[1-9]|1[0-2])/\\d{4}$", RouIni)) stop("RouIni must be 'mm/YYYY'.")
-  if (!is.null(RouEnd) && !grepl("^(0[1-9]|1[0-2])/\\d{4}$", RouEnd)) stop("RouEnd must be 'mm/YYYY'.")
+  if (!is.null(RouEnd) && !grepl("^(0[1-9]|1[0-2])/\\d{4}$", RouEnd))   stop("RouEnd must be 'mm/YYYY'.")
   if (!is.null(TransferMatrixFile) && !grepl("\\.rds$", TransferMatrixFile)) stop("TransferMatrixFile must be .rds")
 
-  # === IDs & sizes ===
+  # --- IDs & QS ---------------------------------------------------------------
   comid <- as.character(Subbasins$COMID)
   nsub  <- length(comid)
 
-  # === Subset QS by dates (if requested) ===
+  # Subset QS by dates (if requested)
   if ((is.null(RouIni) && is.null(RouEnd)) || nrow(Model$QS) == 1) {
     Dates <- as.Date(Model$Dates)
     QS    <- as.matrix(Model$QS)
   } else {
     all_dates <- as.Date(Model$Dates)
-    d0 <- as.Date(paste0("01/", RouIni), format = "%d/%m/%Y")
-    d1 <- as.Date(paste0("01/", RouEnd),  format = "%d/%m/%Y")
+    d0 <- as.Date(paste0("01/", RouIni), "%d/%m/%Y")
+    d1 <- as.Date(paste0("01/", RouEnd),  "%d/%m/%Y")
     i0 <- match(d0, all_dates); i1 <- match(d1, all_dates)
-    if (any(is.na(c(i0,i1)))) stop("RouIni/RouEnd not found in Model$Dates.")
+    if (any(is.na(c(i0, i1)))) stop("RouIni/RouEnd not found in Model$Dates.")
     Dates <- seq(d0, d1, by = "month")
     QS    <- as.matrix(Model$QS[i0:i1, , drop = FALSE])
   }
-
-  # Ensure QS columns align with COMID order if names exist
+  # Align QS columns to COMID order
   if (!is.null(colnames(QS))) {
     miss <- setdiff(comid, colnames(QS))
-    if (length(miss)) stop("QS columns missing COMID(s): ", paste(miss, collapse=", "))
+    if (length(miss)) stop("QS is missing columns for COMID(s): ", paste(miss, collapse=", "))
     QS <- QS[, comid, drop = FALSE]
-  } else {
-    # assume QS already in Subbasins order
-    colnames(QS) <- comid
-  }
+  } else colnames(QS) <- comid
 
-  # === Try to reuse transfer matrix ===
+  # --- build T with a single downstream per subbasin --------------------------
+  # If provided, reuse; otherwise derive from DEM + Whitebox D8 + FAC
   if (!is.null(TransferMatrixFile) && file.exists(TransferMatrixFile)) {
-    transfer_matrix <- readRDS(TransferMatrixFile)
-    # basic checks
-    if (!inherits(transfer_matrix, "dgCMatrix")) stop("TransferMatrixFile must be a sparse matrix (dgCMatrix).")
-    if (!identical(rownames(transfer_matrix), comid) ||
-        !identical(colnames(transfer_matrix), comid)) {
-      stop("Transfer matrix dimnames must match Subbasins COMID order.")
-    }
-    QR <- QS %*% transfer_matrix
+    Tm <- readRDS(TransferMatrixFile)
+    if (!inherits(Tm, "dgCMatrix")) stop("TransferMatrix must be 'dgCMatrix'.")
+    if (!identical(rownames(Tm), comid) || !identical(colnames(Tm), comid))
+      stop("TransferMatrix dimnames must match Subbasins COMID order.")
   } else {
     if (is.null(Dem)) stop("Provide 'Dem' when 'TransferMatrixFile' is not provided.")
 
-    # === DEM resampling ===
+    # (1) DEM resampling
     if (terra::is.lonlat(Dem)) {
-      message("DEM is lon/lat. Converting target resolution from meters to degrees for resampling...")
+      message("DEM is lon/lat. Converting target 'res' from meters to degrees for resampling...")
       lat_mean <- mean(c(terra::ymin(Dem), terra::ymax(Dem)))
       res_deg  <- res / (111320 * cos(lat_mean * pi / 180))
-      target_rast <- terra::rast(terra::ext(Dem), resolution = res_deg, crs = terra::crs(Dem))
-      Dem <- terra::resample(Dem, target_rast, method = "bilinear")
+      target   <- terra::rast(terra::ext(Dem), resolution = res_deg, crs = terra::crs(Dem))
+      Dem      <- terra::resample(Dem, target, method = "bilinear")
     } else {
-      res_dem <- terra::res(Dem) # c(xres, yres)
-      if (any(abs(res_dem - c(res, res)) > 1e-6)) {
-        message("Resampling DEM to ", res, " m...")
-        target_rast <- terra::rast(terra::ext(Dem), resolution = res, crs = terra::crs(Dem))
-        Dem <- terra::resample(Dem, target_rast, method = "bilinear")
-      } else {
-        message("DEM already at desired resolution: skipping resampling.")
+      cur <- terra::res(Dem)
+      if (any(abs(cur - c(res,res)) > 1e-6)) {
+        target <- terra::rast(terra::ext(Dem), resolution = res, crs = terra::crs(Dem))
+        Dem    <- terra::resample(Dem, target, method = "bilinear")
       }
     }
 
-    # === Rasterize COMID over DEM grid ===
-    comid_rast <- terra::rasterize(Subbasins, Dem, field = "COMID", touches = TRUE)
+    # (2) Rasterize COMID over DEM grid
+    comid_r <- terra::rasterize(Subbasins, Dem, field = "COMID", touches = TRUE)
 
-    # === Temp files ===
+    # (3) Whitebox preprocessing: Fill → D8 pointer → D8 FAC (cells)
     dem_tmp  <- tempfile(fileext = ".tif")
     dem_fill <- tempfile(fileext = ".tif")
-    com_tmp  <- tempfile(fileext = ".tif")
     fdir_tif <- tempfile(fileext = ".tif")
-
-    # cleanup
-    on.exit({
-      unlink(c(dem_tmp, dem_fill, com_tmp, fdir_tif), force = TRUE)
-    }, add = TRUE)
+    fac_tif  <- tempfile(fileext = ".tif")
+    on.exit(unlink(c(dem_tmp, dem_fill, fdir_tif, fac_tif), force = TRUE), add = TRUE)
 
     terra::writeRaster(Dem, dem_tmp, overwrite = TRUE)
-    terra::writeRaster(comid_rast, com_tmp, overwrite = TRUE)
-
     whitebox::wbt_fill_depressions(dem_tmp, dem_fill)
     whitebox::wbt_d8_pointer(dem_fill, fdir_tif)
+    whitebox::wbt_d8_flow_accumulation(dem_fill, fac_tif, out_type = "cells")
 
-    flow_dir_rast <- terra::rast(fdir_tif)
-    comid_rast    <- terra::rast(com_tmp)
+    fdir <- terra::rast(fdir_tif)
+    fac  <- terra::rast(fac_tif)
 
-    # === Build transfer matrix (column-normalized WFA) ===
-    transfer_matrix <- Matrix::sparseMatrix(
-      i = integer(0), j = integer(0),
-      dims = c(nsub, nsub),
-      dimnames = list(comid, comid)
-    )
+    # (4) D8 code → (dr, dc) offset
+    d8_map <- list(`1`=c(0,1), `2`=c(1,1), `4`=c(1,0), `8`=c(1,-1),
+                   `16`=c(0,-1), `32`=c(-1,-1), `64`=c(-1,0), `128`=c(-1,1))
+    nrows <- terra::nrow(fdir); ncols <- terra::ncol(fdir)
 
-    d8_map <- list(
-      `1` = c(0, 1), `2` = c(1, 1), `4` = c(1, 0), `8` = c(1, -1),
-      `16` = c(0, -1), `32` = c(-1, -1), `64` = c(-1, 0), `128` = c(-1, 1)
-    )
+    # (5) Build Tm: one downstream per column (0/1)
+    Tm <- Matrix::sparseMatrix(i = integer(0), j = integer(0),
+                               dims = c(nsub, nsub),
+                               dimnames = list(comid, comid))
 
-    nrows <- terra::nrow(flow_dir_rast)
-    ncols <- terra::ncol(flow_dir_rast)
-    ncell_tot <- terra::ncell(comid_rast)
+    # We will choose, for each COMID j, the boundary cell whose D8 points outside j
+    # and has the maximum FAC; the neighbor COMID is the unique downstream i.
+    vals <- terra::values(comid_r, mat = FALSE)
 
-    for (cell_id in seq_len(ncell_tot)) {
-      current_comid <- comid_rast[cell_id]
-      if (is.na(current_comid)) next
-      flow_dir <- flow_dir_rast[cell_id]
-      key <- as.character(flow_dir)
-      if (is.na(flow_dir) || !(key %in% names(d8_map))) next
+    for (k in seq_len(nsub)) {
+      id  <- comid[k]
+      idx <- which(vals == id)
+      if (!length(idx)) next
 
-      rc <- terra::rowColFromCell(flow_dir_rast, cell_id)
-      off <- d8_map[[key]]
-      r2 <- rc[1] + off[1]; c2 <- rc[2] + off[2]
-      if (r2 < 1 || r2 > nrows || c2 < 1 || c2 > ncols) next
+      best_fac  <- -Inf
+      best_dest <- NA_character_
 
-      dest_cell  <- terra::cellFromRowCol(flow_dir_rast, r2, c2)
-      next_comid <- comid_rast[dest_cell]
+      for (cell in idx) {
+        code <- fdir[cell]; if (is.na(code)) next
+        key  <- as.character(code); if (!(key %in% names(d8_map))) next
+        rc   <- terra::rowColFromCell(fdir, cell)
+        off  <- d8_map[[key]]
+        r2   <- rc[1] + off[1]; c2 <- rc[2] + off[2]
+        if (r2 < 1 || r2 > nrows || c2 < 1 || c2 > ncols) next
+        cell2 <- terra::cellFromRowCol(fdir, r2, c2)
+        dest  <- comid_r[cell2]
 
-      if (!is.na(next_comid) && next_comid != current_comid) {
-        # Use Subbasins-defined COMID order
-        i_name <- as.character(next_comid)
-        j_name <- as.character(current_comid)
-        if (i_name %in% comid && j_name %in% comid) {
-          transfer_matrix[i_name, j_name] <- 1
+        # Candidate: D8 leaves j and enters another COMID within the domain
+        if (is.na(dest) || dest == id) next
+
+        fac_here <- fac[cell]
+        if (!is.na(fac_here) && fac_here > best_fac) {
+          best_fac  <- fac_here
+          best_dest <- as.character(dest)
         }
+      }
+
+      # Assign the unique downstream if found in the domain; otherwise j is an outlet
+      if (!is.na(best_dest) && (best_dest %in% comid)) {
+        Tm[best_dest, id] <- 1
       }
     }
 
-    # Normalize columns (split flow equally among multiple downstreams)
-    col_sums <- Matrix::colSums(transfer_matrix)
-    col_sums[col_sums == 0] <- 1
-    transfer_matrix <- transfer_matrix %*% Matrix::Diagonal(x = as.numeric(1 / col_sums))
-
-    if (!is.null(TransferMatrixFile)) {
-      saveRDS(transfer_matrix, TransferMatrixFile)
-    }
-
-    QR <- QS %*% transfer_matrix
+    if (!is.null(TransferMatrixFile)) saveRDS(Tm, TransferMatrixFile)
   }
 
-  # === Optional save ===
+  # --- Build A and accumulate flows: QR = QS %*% A -----------------------------
+  AccumMatrix <- .build_accum_matrix(Tm)  # reachability (includes self)
+  QR <- QS %*% AccumMatrix                # accumulated flow at each subbasin
+
+  # --- Optional save -----------------------------------------------------------
   if (Save) {
     dir.create("./Outputs", showWarnings = FALSE, recursive = TRUE)
 
@@ -248,5 +248,8 @@ Routing_GR2MSemiDistr <- function(Model,
 
   message("Processing completed successfully in...")
   tictoc::toc()
-  list(QR = QR, Dates = Dates, COMID = comid, TransferMatrix = transfer_matrix)
+  list(QR = QR, Dates = Dates, COMID = comid,
+       TransferMatrix = Tm,
+       AccumMatrix = AccumMatrix)
 }
+
