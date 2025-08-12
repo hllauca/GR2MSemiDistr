@@ -2,7 +2,7 @@
 % Please edit documentation in R/Routing_GR2MSemiDistr.R
 \name{Routing_GR2MSemiDistr}
 \alias{Routing_GR2MSemiDistr}
-\title{Routing of simulated discharges for each subbasin using a weighted flow accumulation approach.}
+\title{Routing of simulated discharges for each subbasin using a weighted flow-accumulation network}
 \usage{
 Routing_GR2MSemiDistr(
   Model,
@@ -10,52 +10,76 @@ Routing_GR2MSemiDistr(
   Dem,
   RouIni = NULL,
   RouEnd = NULL,
-  TransferMatrixFile = NULL,
+  TransferMatrix = NULL,
   res = 500,
   Save = FALSE,
   Update = FALSE
 )
 }
 \arguments{
-\item{Model}{List containing model results, typically from 'Run_GR2MSemiDistr'. Must include:
+\item{Model}{List with GR2M results, typically from Run_GR2MSemiDistr. Must include:
 \describe{
-  \item{QS}{Matrix of simulated streamflows [m³/s], one column per subbasin.}
+  \item{QS}{Numeric matrix of simulated streamflows [m³/s]; columns are subbasins (COMID).}
   \item{Dates}{Vector of dates corresponding to the rows of QS.}
 }}
 
-\item{Subbasins}{A 'SpatVector' object with the subbasin boundaries. Must include attributes:
+\item{Subbasins}{A SpatVector of subbasin boundaries. Must contain attributes:
 \describe{
-  \item{COMID}{Integer ID of each subbasin.}
+  \item{COMID}{Integer ID of each subbasin (unique).}
   \item{Region}{Region code or name.}
 }}
 
-\item{Dem}{A 'SpatRaster' representing the digital elevation model. Required unless 'TransferMatrixFile' is used.}
+\item{Dem}{A SpatRaster DEM used to derive the routing network (required unless
+TransferMatrix is supplied). If the DEM is in lon/lat, res is converted to degrees.}
 
-\item{RouIni}{Character. Start date for routing in "mm/YYYY" format. If NULL, uses the start of the simulation.}
+\item{RouIni}{Character. Start date for routing in "mm/YYYY" format. If NULL,
+uses the beginning of Model$Dates.}
 
-\item{RouEnd}{Character. End date for routing in "mm/YYYY" format. If NULL, uses the end of the simulation.}
+\item{RouEnd}{Character. End date for routing in "mm/YYYY" format. If NULL,
+uses the end of Model$Dates.}
 
-\item{TransferMatrixFile}{Optional file path (.rds) to a precomputed transfer matrix. If provided, 'Dem' and WhiteboxTools are not used.}
+\item{TransferMatrix}{Optional numeric square matrix (n x n) encoding direct
+downstream connectivity (rows = destinations, columns = sources). If provided, Dem
+and WhiteboxTools are not used. Row/column names (COMID) must match Subbasins$COMID
+order; if missing, they are set from COMID.}
 
-\item{res}{Numeric. Desired spatial resolution in meters for resampling the DEM (default is 500). Converted to degrees if needed.}
+\item{res}{Numeric. Target DEM resolution in meters for resampling (default 500).
+Converted to degrees when Dem is in lon/lat.}
 
-\item{Save}{Logical. If TRUE, writes the routed discharges (QR) to a tabular .txt file in the './Outputs' directory. Default is FALSE.}
+\item{Save}{Logical. If TRUE, writes routed discharges (QR) as a tabular
+.txt file into "./Outputs". Default FALSE.}
 
-\item{Update}{Logical. If TRUE, deletes previous month's output and replaces it with the latest. Useful for incremental runs. Default is FALSE.}
+\item{Update}{Logical. If TRUE, removes the previous month's output before saving
+the new one (useful for incremental/operational runs). Default FALSE.}
 }
 \value{
-A list with the following elements:
+A list with:
 \describe{
-  \item{QR}{Matrix of routed streamflows [m³/s] per subbasin and time step.}
-  \item{Dates}{Vector of routing time steps.}
-  \item{COMID}{Vector of subbasin COMIDs (column names of QR).}
-  \item{TransferMatrix}{Sparse matrix used for flow routing (rows = outlets, columns = sources).}
+  \item{QR}{Base matrix of routed streamflows [m³/s]; rows = time, columns = COMID.}
+  \item{Dates}{Vector of routing dates used for QR.}
+  \item{COMID}{Character vector of subbasin IDs (column order of QR).}
+  \item{TransferMatrix}{Base matrix used for routing; T[i,j] = 1 if j → i.}
+  \item{AccumMatrix}{Base matrix A used to accumulate upstream contributions.}
 }
 }
 \description{
-This function routes monthly simulated streamflows from a semi-distributed GR2M model using a flow accumulation approach based on D8 flow directions.
-The routing network is derived from a digital elevation model (DEM) via WhiteboxTools, or optionally from a precomputed transfer matrix.
-Each subbasin contributes its outflow as a weight that is accumulated along the flow direction grid to downstream subbasins.
+Routes monthly simulated streamflows from a semi-distributed GR2M model through a
+single-downstream (D8) river network. The routing network is derived from a Digital
+Elevation Model (DEM) with WhiteboxTools, or provided directly via a precomputed
+transfer matrix. Each subbasin's outflow is accumulated downstream using the
+reachability (accumulation) matrix built from the transfer matrix.
+}
+\details{
+The transfer matrix T encodes single-downstream connectivity between subbasins:
+T[i, j] = 1 if subbasin j drains directly to i, and 0 otherwise.
+The accumulation matrix is A = I + T + T^2 + ... (truncated within N-1
+steps for a DAG), so that routed flows are computed as QR = QS %*% A, where
+QS are simulated outflows per subbasin (columns) and time steps (rows).
+
+When deriving T from a DEM, D8 flow directions and flow accumulation (FAC) are
+computed with WhiteboxTools. For each subbasin, the unique downstream neighbor is
+selected from boundary cells by the candidate with the highest FAC. Subbasin
+rasterization uses touches = FALSE to avoid spurious edge assignments.
 }
 \examples{
 library(GR2MSemiDistr)
@@ -79,5 +103,9 @@ plot(dates, routed$QR[, idx], type = "l", col = "darkblue", lwd = 2,
 }
 \references{
 Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).
-PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water, 13(8), 1048. \doi{10.3390/w13081048}
+PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020).
+Water, 13(8), 1048. \doi{10.3390/w13081048}
+}
+\seealso{
+Run_GR2MSemiDistr
 }
