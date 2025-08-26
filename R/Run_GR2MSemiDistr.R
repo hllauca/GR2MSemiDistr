@@ -297,7 +297,8 @@ Run_GR2MSemiDistr <- function(Data,
     dir.create("./Outputs", showWarnings = FALSE, recursive = TRUE)
 
     yyyymm_new <- format(tail(Dates, 1), "%Y%m")
-    prev_month <- lubridate::floor_date(tail(Dates, 1), "month") %m-% lubridate::months(1)
+    prev_month <- lubridate::`%m-%`(lubridate::floor_date(tail(Dates, 1), "month"),
+                                    lubridate::months(1))
     yyyymm_old <- format(prev_month, "%Y%m")
 
     if (Update) {
@@ -317,6 +318,7 @@ Run_GR2MSemiDistr <- function(Data,
     save_outputs(pr, "PR")
     save_outputs(ae, "AE")
     save_outputs(sm, "SM")
+    save_outputs(pc, "PC")
     save_outputs(ru, "RU")
     save_outputs(qs, "QS")
   }
