@@ -292,13 +292,18 @@ Run_GR2MSemiDistr <- function(Data,
     Ans$SINK <- data.frame(sim = round(qt, 2), obs = round(qo, 2), row.names = Dates)
   }
 
-  # === Save outputs (tab-separated; keep lubridate for month math) ===
+  # === Save outputs (tab-separated) ===
   if (Save) {
     dir.create("./Outputs", showWarnings = FALSE, recursive = TRUE)
 
     yyyymm_new <- format(tail(Dates, 1), "%Y%m")
-    prev_month <- lubridate::`%m-%`(lubridate::floor_date(tail(Dates, 1), "month"),
-                                    lubridate::months(1))
+
+    # Primer día del mes de la última fecha
+    d0 <- as.Date(format(tail(Dates, 1), "%Y-%m-01"))
+
+    # Primer día del mes anterior
+    prev_month <- seq(d0, by = "-1 month", length.out = 2)[2]
+
     yyyymm_old <- format(prev_month, "%Y%m")
 
     if (Update) {
@@ -322,6 +327,7 @@ Run_GR2MSemiDistr <- function(Data,
     save_outputs(ru, "RU")
     save_outputs(qs, "QS")
   }
+
 
   message("Processing completed successfully in...")
   tictoc::toc()
