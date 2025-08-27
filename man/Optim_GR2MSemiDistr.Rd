@@ -10,6 +10,8 @@ Optim_GR2MSemiDistr(
   RunIni,
   RunEnd,
   Parameters,
+  MatrixTransfer,
+  Outlet,
   Parameters.Min = c(100, 0.1, 0.8, 0.8),
   Parameters.Max = c(2000, 10, 1.2, 1.2),
   Optimization = "OF1",
@@ -33,6 +35,10 @@ It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibra
 
 \item{Parameters}{A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.}
 
+\item{MatrixTransfer}{Square transfer matrix (nsub × nsub) defining upstream-to-downstream connectivity for routing/accumulation of subbasin flows.}
+
+\item{Outlet}{Optional. Outlet subbasin identifier as a COMID code present in Subbasins. If provided, the routed outlet series is extracted from this column.}
+
 \item{Parameters.Min}{Numeric vector of length 4, specifying lower bounds for optimization in the following order:
 c(X1, X2, fp, fe).}
 
@@ -53,6 +59,8 @@ c(X1, X2, fp, fe).}
 }}
 
 \item{Max.Functions}{Integer. Maximum number of function evaluations in the optimization. Default is 1500.}
+
+\item{WarmUp}{Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.}
 
 \item{No.Optim}{Character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).}
 

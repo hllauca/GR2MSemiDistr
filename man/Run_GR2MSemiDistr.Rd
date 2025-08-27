@@ -11,7 +11,7 @@ Run_GR2MSemiDistr(
   RunEnd,
   Parameters,
   MatrixTransfer,
-  outlet = NULL,
+  Outlet = NULL,
   WarmUp = NULL,
   IniState = NULL,
   Save = FALSE,
@@ -19,37 +19,28 @@ Run_GR2MSemiDistr(
 )
 }
 \arguments{
-\item{Data}{A data frame of model input data in an airGR-compatible format,
-typically produced by Create_Forcing_Inputs. It must include a date column
-(Date or DatesR), P_<COMID> and E_<COMID> for each subbasin, and
-optionally an observed outlet discharge column QR (m³/s) for comparison.}
+\item{Data}{A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
+It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).}
 
-\item{Subbasins}{A SpatVector with subbasin geometries and attributes
-COMID (unique subbasin ID) and Region (region name/code).}
+\item{Subbasins}{A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).}
 
-\item{RunIni}{Simulation start date in the format 'mm/yyyy'.}
+\item{RunIni}{Simulation start date in the format "mm/yyyy".}
 
-\item{RunEnd}{Simulation end date in the format 'mm/yyyy'.}
+\item{RunEnd}{Simulation end date in the format "mm/yyyy".}
 
-\item{Parameters}{A data frame with GR2M parameters and correction factors
-by region. Must have columns: Region, X1, X2, fp, fe.}
+\item{Parameters}{A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.}
 
-\item{MatrixTransfer}{Square transfer matrix (nsub × nsub) defining upstream-to-downstream
-connectivity for routing/accumulation of subbasin flows.}
+\item{MatrixTransfer}{Square transfer matrix (nsub × nsub) defining upstream-to-downstream connectivity for routing/accumulation of subbasin flows.}
 
-\item{outlet}{Optional. Outlet subbasin identifier as a COMID code present in
-Subbasins. If provided, the routed outlet series is extracted from this column.}
+\item{Outlet}{Optional. Outlet subbasin identifier as a COMID code present in Subbasins. If provided, the routed outlet series is extracted from this column.}
 
-\item{WarmUp}{Optional number of months to discard from the beginning of the
-simulation as warm-up. Default is NULL.}
+\item{WarmUp}{Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.}
 
 \item{IniState}{Optional list of initial states for each subbasin. Default is NULL.}
 
-\item{Save}{Logical. If TRUE, output time series are saved as tab-separated
-text files under "Outputs/".}
+\item{Save}{Logical. If TRUE, output time series are saved as tab-separated text files under "Outputs/".}
 
-\item{Update}{Logical. If TRUE and Save = TRUE, removes previous month's
-output files before saving the current ones.}
+\item{Update}{Logical. If TRUE and Save = TRUE, removes previous month's output files before saving the current ones.}
 }
 \value{
 A list with:
@@ -59,14 +50,13 @@ A list with:
   \item{SM}{Matrix of production store level [mm/month] per subbasin.}
   \item{PC}{Matrix of percolation [mm/month] per subbasin.}
   \item{RU}{Matrix of runoff [mm/month] per subbasin (model internal output).}
-  \item{QR}{Matrix of routed discharge [m³/s] per subbasin
-            after network accumulation using MatrixTransfer.}
+  \item{QR}{Matrix of routed discharge [m³/s] per subbasin after network accumulation using MatrixTransfer.}
   \item{Dates}{Date vector for the simulation period.}
   \item{COMID}{Vector of subbasin COMIDs (column order matches matrices).}
   \item{EndState}{List of final state variables for each subbasin.}
   \item{SINK}{Only if outlet is provided.
               Data frame with outlet series where sim is the routed outlet discharge
-              (column QR[, outlet]). If observed outlet discharge QR exists
+              (column QR[, Outlet]). If observed outlet discharge QR exists
               in Data, obs is included as well. Row names are Dates.}
 }
 }

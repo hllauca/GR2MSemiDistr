@@ -1,7 +1,7 @@
 Package: GR2MSemiDistr
 Type: Package
 Title: Semi-Distributed GR2M Model for Large-Sample Hydrological Applications
-Version: 5.0
+Version: 5.1
 Author: Harold Llauca <hllauca@senamhi.gob.pe>
 Maintainer: Harold Llauca <hllauca@senamhi.gob.pe>
 Description: Implements a semi-distributed adaptation of the GR2M monthly hydrological
@@ -10,10 +10,10 @@ Description: Implements a semi-distributed adaptation of the GR2M monthly hydrol
     components such as precipitation, evapotranspiration, runoff, and discharge.
     It supports warm-up periods, initial states, output saving, regional
     parameter correction, and performance evaluation through various objective
-    functions. The routing scheme is based on subbasin structure and spatial
-    relationships derived from a DEM using WhiteboxTools. Designed for flexible
-    integration in research, water resource assessments, and operational hydrological
-    systems in complex basins.
+    functions. The routing scheme is implemented using a transfer matrix that
+    represents subbasin connectivity from upstream to downstream. Designed for
+    flexible integration in research, water resource assessments, and operational
+    hydrological systems in complex basins.
 License: GPL (>= 2)
 Encoding: UTF-8
 Depends:
@@ -21,13 +21,11 @@ Depends:
 Imports:
     airGR,
     hydroGOF,
-    Matrix,
     terra,
     lubridate,
     tictoc,
     sf,
     rtop,
-    whitebox,
     exactextractr
 RoxygenNote: 7.3.2
 URL: https://github.com/hllauca/GR2MSemiDistr

@@ -10,6 +10,9 @@
 #' @param Subbasins A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
 #' @param RunIni Simulation start date in the format "mm/yyyy".
 #' @param RunEnd Simulation end date in the format "mm/yyyy".
+#' @param WarmUp Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.
+#' @param MatrixTransfer Square transfer matrix (nsub × nsub) defining upstream-to-downstream connectivity for routing/accumulation of subbasin flows.
+#' @param Outlet Optional. Outlet subbasin identifier as a COMID code present in Subbasins. If provided, the routed outlet series is extracted from this column.
 #' @param Parameters A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.
 #' @param Parameters.Min Numeric vector of length 4, specifying lower bounds for optimization in the following order:
 #' c(X1, X2, fp, fe).
@@ -102,6 +105,8 @@ Optim_GR2MSemiDistr <- function(Data,
                                 RunIni,
                                 RunEnd,
                                 Parameters,
+                                MatrixTransfer,
+                                Outlet,
                                 Parameters.Min = c(100, 0.1, 0.8, 0.8),
                                 Parameters.Max = c(2000, 10, 1.2, 1.2),
                                 Optimization = 'OF1',
@@ -118,10 +123,18 @@ Optim_GR2MSemiDistr <- function(Data,
   if (!all(c("COMID", "Region") %in% names(Subbasins))) {
     stop("Subbasins must contain fields 'COMID' and 'Region'.")
   }
-  comid  <- as.character(Subbasins$COMID)   # ensure character
+  comid  <- as.character(Subbasins$COMID)
   region <- Subbasins$Region
   area   <- terra::expanse(Subbasins, unit = 'km')
   nsub   <- length(comid)
+
+  # Validate MatrixTransfer
+  if (!is.matrix(MatrixTransfer) || any(dim(MatrixTransfer) != nsub)) {
+    stop("MatrixTransfer must be a square matrix with dimensions equal to the number of subbasins.")
+  }
+  # Validate Outlet
+  idx_outlet <- match(Outlet, comid)
+  if (is.na(idx_outlet)) stop(sprintf("Outlet COMID '%s' not found in Subbasins.", Outlet))
 
   # === Dates: accept Data$Date or Data$DatesR ===
   date_col <- if ("Date" %in% names(Data)) "Date" else if ("DatesR" %in% names(Data)) "DatesR" else NULL
@@ -165,7 +178,7 @@ Optim_GR2MSemiDistr <- function(Data,
   opt_regions <- if (is.null(No.Optim)) all_regions else setdiff(all_regions, No.Optim)
   if (!length(opt_regions)) stop("No regions left to optimize (check No.Optim).")
 
-  # === Data columns by name ===
+  # === Forcing data columns check ===
   p_names <- paste0("P_", comid)
   e_names <- paste0("E_", comid)
   miss_p <- setdiff(p_names, names(Database))
@@ -175,7 +188,7 @@ Optim_GR2MSemiDistr <- function(Data,
                  paste(miss_p, collapse=","), paste(miss_e, collapse=",")))
   }
 
-  # === Bounds length sanity ===
+  # === Bounds sanity ===
   if (!(length(Parameters.Min) == 4 && length(Parameters.Max) == 4)) {
     stop("Parameters.Min/Max must be length 4 (X1, X2, fp, fe).")
   }
@@ -206,7 +219,20 @@ Optim_GR2MSemiDistr <- function(Data,
                E = fe * Database[[paste0("E_", comid_i)]])
   }
 
-  # === Objective function ===
+  # === Build cumulative routing matrix S = I + T + T^2 + ... + T^(n-1) ===
+  build_S <- function(Tmat) {
+    n <- ncol(Tmat)
+    S <- diag(n)
+    TT <- Tmat
+    for (k in 1:(n - 1)) {
+      S  <- S + TT
+      TT <- TT %*% Tmat
+    }
+    S
+  }
+  S_route <- build_S(MatrixTransfer)  # precalculated outside OFUN
+
+  # === Objective function using QT (outlet discharge after routing) ===
   OFUN <- function(par) {
     Param <- get_param(par, opt_regions)
     # Merge fixed (No.Optim) if any
@@ -218,7 +244,7 @@ Optim_GR2MSemiDistr <- function(Data,
       Param <- Param[match(all_regions, Param$Region), ]
     }
 
-    # Run GR2M for each subbasin
+    # Run GR2M for each subbasin (before routing)
     QS <- matrix(NA_real_, nrow = ntime, ncol = nsub)
     for (i in seq_len(nsub)) {
       reg_i   <- region[i]
@@ -231,28 +257,36 @@ Optim_GR2MSemiDistr <- function(Data,
                                        PotEvap = input_i$E)
 
       run_opt <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
-                                  InputsModel  = model_input,
+                                  InputsModel   = model_input,
                                   IndPeriod_Run = seq_len(ntime),
                                   verbose = FALSE, warnings = FALSE)
 
       output <- RunModel(model_input, run_opt, param_i, RunModel_GR2M)
+
+      # Convert to m3/s
       QS[, i] <- (area[i] * output$Qsim) / (86.4 * nDays)
     }
 
-    Qsim <- rowSums(QS, na.rm = TRUE)
+    # Routing: QR = QS %*% t(S), then extract outlet
+    QR <- QS %*% t(S_route)
+    Qsim <- as.numeric(QR[, idx_outlet])
+
+    # Observed flow
     Qobs <- Database$Q
+
+    # Warm-up trimming
     if (!is.null(WarmUp) && WarmUp > 0) {
-      if (WarmUp >= length(Qsim)) return(Inf) # penalize invalid warmup
+      if (WarmUp >= length(Qsim)) return(Inf)
       Qsim <- Qsim[-seq_len(WarmUp)]
       Qobs <- Qobs[-seq_len(WarmUp)]
     }
 
-    # Remove any NA pairs
-    ok <- is.finite(Qsim) & is.finite(Qobs)
+    # Remove NA pairs
+    ok <- is.finite(QT) & is.finite(Qobs)
     if (!any(ok)) return(Inf)
-    y <- Qsim[ok]; x <- Qobs[ok]
+    y <- QT[ok]; x <- Qobs[ok]
 
-    # Metrics (assuming hydroGOF-like API)
+    # Metrics
     kge     <- 1 - KGE(y, x)
     nse     <- 1 - NSE(y, x)
     nselog  <- 1 - NSE(y, x, fun = log, epsilon.type = "Pushpalatha2012")
@@ -297,10 +331,8 @@ Optim_GR2MSemiDistr <- function(Data,
     final_params <- final_params[match(all_regions, final_params$Region), ]
   }
 
-  # Report value: for OF that are "1 - metric" keep the corresponding "skill"
-  is_error_like <- Optimization %in% c("OF4","OF5","OF6") # rmse/pbias variants
+  # Report objective value:
   final_obj_raw <- Calibration$value
-  final_obj_rep <- if (is_error_like) round(final_obj_raw, 3) else round(1 - final_obj_raw, 3)
 
   message("Optimization complete.")
   cat("\nFinal calibrated parameters per region:\n")
@@ -309,8 +341,5 @@ Optim_GR2MSemiDistr <- function(Data,
 
   tictoc::toc()
   list(Parameters = final_params,
-       OF_value   = final_obj_rep,
-       OF_raw     = final_obj_raw,
-       Optimization = Optimization,
-       Regions_optimized = opt_regions)
+       OF = final_obj_raw)
 }
