@@ -166,13 +166,13 @@ Create_Forcing_Inputs <- function(Subbasins,
   Subbasins_sf <- sf::st_as_sf(Subbasins)
 
   if (!is.null(Precip)) {
-    Prec <- .extract_variable(Precip, "precipitation", IniGrids, DateIni, DateEnd,
-                              Subbasins_sf, Update)
+    Prec <- round(.extract_variable(Precip, "precipitation", IniGrids, DateIni, DateEnd,
+                              Subbasins_sf, Update),2)
   }
 
   if (!is.null(PotEvap)) {
-    Evap <- .extract_variable(PotEvap, "evapotranspiration", IniGrids, DateIni, DateEnd,
-                              Subbasins_sf, Update)
+    Evap <- round(.extract_variable(PotEvap, "evapotranspiration", IniGrids, DateIni, DateEnd,
+                              Subbasins_sf, Update),2)
   }
 
   # ==== Date vector ====

@@ -232,7 +232,7 @@ Optim_GR2MSemiDistr <- function(Data,
   }
   S_route <- build_S(MatrixTransfer)  # precalculated outside OFUN
 
-  # === Objective function using QT (outlet discharge after routing) ===
+  # === Objective function using Qsim (outlet discharge after routing) ===
   OFUN <- function(par) {
     Param <- get_param(par, opt_regions)
     # Merge fixed (No.Optim) if any
@@ -282,9 +282,9 @@ Optim_GR2MSemiDistr <- function(Data,
     }
 
     # Remove NA pairs
-    ok <- is.finite(QT) & is.finite(Qobs)
+    ok <- is.finite(Qsim) & is.finite(Qobs)
     if (!any(ok)) return(Inf)
-    y <- QT[ok]; x <- Qobs[ok]
+    y <- Qsim[ok]; x <- Qobs[ok]
 
     # Metrics
     kge     <- 1 - KGE(y, x)
