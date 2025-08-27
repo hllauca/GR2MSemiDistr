@@ -11,7 +11,7 @@
 #' @param RunIni Simulation start date in the format "mm/yyyy".
 #' @param RunEnd Simulation end date in the format "mm/yyyy".
 #' @param WarmUp Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.
-#' @param MatrixTransfer Square transfer matrix (nsub × nsub) defining upstream-to-downstream connectivity for routing/accumulation of subbasin flows.
+#' @param MatrixTransfer Square matrix or data frame (nsub × nsub) of subbasin connectivity. Row and column names must match COMID and are internally reordered to align with P/E inputs and QS.
 #' @param Outlet Optional. Outlet subbasin identifier as a COMID code present in Subbasins. If provided, the routed outlet series is extracted from this column.
 #' @param Parameters A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.
 #' @param Parameters.Min Numeric vector of length 4, specifying lower bounds for optimization in the following order:
@@ -128,22 +128,41 @@ Optim_GR2MSemiDistr <- function(Data,
   area   <- terra::expanse(Subbasins, unit = 'km')
   nsub   <- length(comid)
 
-  # Validate MatrixTransfer
-  if (!is.matrix(MatrixTransfer) || any(dim(MatrixTransfer) != nsub)) {
-    stop("MatrixTransfer must be a square matrix with dimensions equal to the number of subbasins.")
+  # === Validate and reorder MatrixTransfer (matrix or data.frame) ===
+  MT <- as.matrix(MatrixTransfer)
+  if (any(dim(MT) != c(nsub, nsub))) {
+    stop(sprintf("MatrixTransfer must be a square %d x %d object.", nsub, nsub))
   }
-  # Validate Outlet
+  if (is.null(rownames(MT)) || is.null(colnames(MT))) {
+    stop("MatrixTransfer must have rownames and colnames corresponding to COMID.")
+  }
+  miss_rows <- setdiff(comid, rownames(MT))
+  miss_cols <- setdiff(comid, colnames(MT))
+  if (length(miss_rows) || length(miss_cols)) {
+    stop(sprintf(
+      "MatrixTransfer names do not match COMID. Missing rows: [%s]; Missing cols: [%s]",
+      paste(miss_rows, collapse = ", "), paste(miss_cols, collapse = ", ")
+    ))
+  }
+  # Reordenar exactamente al orden de COMID (coherente con P_, E_, QS)
+  MT <- MT[comid, comid, drop = FALSE]
+
+  # === Validate Outlet (después de alinear MT) ===
   idx_outlet <- match(Outlet, comid)
   if (is.na(idx_outlet)) stop(sprintf("Outlet COMID '%s' not found in Subbasins.", Outlet))
 
   # === Dates: accept Data$Date or Data$DatesR ===
   date_col <- if ("Date" %in% names(Data)) "Date" else if ("DatesR" %in% names(Data)) "DatesR" else NULL
   if (is.null(date_col)) stop("Data must include a 'Date' or 'DatesR' column.")
-  Data[[date_col]] <- as.POSIXct(
-    paste0(Data[[date_col]], " 00:00:00"),
-    tz = "UTC",
-    tryFormats = c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y","%Y-%m","%m/%Y")
-  )
+  if (inherits(Data[[date_col]], "Date")) {
+    Data[[date_col]] <- as.POSIXct(Data[[date_col]], tz = "UTC")
+  } else if (!inherits(Data[[date_col]], c("POSIXct","POSIXt"))) {
+    Data[[date_col]] <- as.POSIXct(
+      paste0(Data[[date_col]], " 00:00:00"),
+      tz = "UTC",
+      tryFormats = c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y","%Y-%m","%m/%Y")
+    )
+  }
   if (any(is.na(Data[[date_col]]))) stop("Unrecognized date format in Data.")
 
   # Indices for run window (mm/YYYY)
@@ -178,7 +197,7 @@ Optim_GR2MSemiDistr <- function(Data,
   opt_regions <- if (is.null(No.Optim)) all_regions else setdiff(all_regions, No.Optim)
   if (!length(opt_regions)) stop("No regions left to optimize (check No.Optim).")
 
-  # === Forcing data columns check ===
+  # === Forcing data columns check (+ orden respecto a COMID) ===
   p_names <- paste0("P_", comid)
   e_names <- paste0("E_", comid)
   miss_p <- setdiff(p_names, names(Database))
@@ -186,6 +205,11 @@ Optim_GR2MSemiDistr <- function(Data,
   if (length(miss_p) || length(miss_e)) {
     stop(sprintf("Missing columns in Data. P: [%s]; E: [%s]",
                  paste(miss_p, collapse=","), paste(miss_e, collapse=",")))
+  }
+  p_idx <- match(p_names, names(Database))
+  e_idx <- match(e_names, names(Database))
+  if (is.unsorted(p_idx) || is.unsorted(e_idx)) {
+    warning("P_/E_ columns are not ordered like COMID. Access by name is safe, but consider reordering for consistency.")
   }
 
   # === Bounds sanity ===
@@ -219,7 +243,7 @@ Optim_GR2MSemiDistr <- function(Data,
                E = fe * Database[[paste0("E_", comid_i)]])
   }
 
-  # === Build cumulative routing matrix S = I + T + T^2 + ... + T^(n-1) ===
+  # === Build cumulative routing matrix S = I + T + ... + T^(n-1) (usar MT ya reordenada) ===
   build_S <- function(Tmat) {
     n <- ncol(Tmat)
     S <- diag(n)
@@ -230,7 +254,7 @@ Optim_GR2MSemiDistr <- function(Data,
     }
     S
   }
-  S_route <- build_S(MatrixTransfer)  # precalculated outside OFUN
+  S_route <- build_S(MT)  # precalculado fuera de OFUN
 
   # === Objective function using Qsim (outlet discharge after routing) ===
   OFUN <- function(par) {
@@ -267,7 +291,7 @@ Optim_GR2MSemiDistr <- function(Data,
       QS[, i] <- (area[i] * output$Qsim) / (86.4 * nDays)
     }
 
-    # Routing: QR = QS %*% t(S), then extract outlet
+    # Routing: QR = QS %*% t(S_route), extract outlet
     QR <- QS %*% t(S_route)
     Qsim <- as.numeric(QR[, idx_outlet])
 
@@ -331,7 +355,6 @@ Optim_GR2MSemiDistr <- function(Data,
     final_params <- final_params[match(all_regions, final_params$Region), ]
   }
 
-  # Report objective value:
   final_obj_raw <- Calibration$value
 
   message("Optimization complete.")

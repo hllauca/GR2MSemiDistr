@@ -6,13 +6,12 @@
 #' evapotranspiration, routes the simulated flows through the river network via
 #' a transfer matrix, and can optionally save results as text files.
 #'
-#' @param Data A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
-#' It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).
+#' @param Data A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs. It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).
 #' @param Subbasins A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
 #' @param RunIni Simulation start date in the format "mm/yyyy".
 #' @param RunEnd Simulation end date in the format "mm/yyyy".
 #' @param Parameters A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.
-#' @param MatrixTransfer Square transfer matrix (nsub × nsub) defining upstream-to-downstream connectivity for routing/accumulation of subbasin flows.
+#' @param MatrixTransfer Square matrix or data frame (nsub × nsub) of subbasin connectivity. Row and column names must match COMID and are internally reordered to align with P/E inputs and QS.
 #' @param Outlet Optional. Outlet subbasin identifier as a COMID code present in Subbasins. If provided, the routed outlet series is extracted from this column.
 #' @param WarmUp Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.
 #' @param IniState Optional list of initial states for each subbasin. Default is NULL.
@@ -96,8 +95,8 @@
 #'      main = paste("Runoff (RU) - COMID", target_comid),
 #'      xlab = "Date", ylab = "mm/month")
 #'
-#' plot(dates, model$QS[, idx], type = "l", col = "blue",
-#'      main = paste("Simulated Discharge (QS) - COMID", target_comid),
+#' plot(dates, model$QR[, idx], type = "l", col = "blue",
+#'      main = paste("Simulated Discharge (QR) - COMID", target_comid),
 #'      xlab = "Date", ylab = "m³/s")
 #'
 #' # Optional: compare simulated vs observed outlet discharge
@@ -116,6 +115,10 @@
 #' @importFrom terra expanse
 #'
 #' @export
+#'
+#' Run the GR2M model for multiple subbasins (semi-distributed with routing)
+#'
+#' (… roxygen igual a tu versión …)
 #'
 Run_GR2MSemiDistr <- function(Data,
                               Subbasins,
@@ -148,11 +151,16 @@ Run_GR2MSemiDistr <- function(Data,
   date_col <- if ("Date" %in% names(Data)) "Date" else if ("DatesR" %in% names(Data)) "DatesR" else NULL
   if (is.null(date_col)) stop("Data must contain 'Date' or 'DatesR'.")
 
-  Data[[date_col]] <- as.POSIXct(
-    paste0(Data[[date_col]], " 00:00:00"),
-    tz = "UTC",
-    tryFormats = c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y", "%Y-%m", "%m/%Y")
-  )
+  # Convertir a POSIXct robustamente (si ya es Date/POSIX, se respeta)
+  if (inherits(Data[[date_col]], "Date")) {
+    Data[[date_col]] <- as.POSIXct(Data[[date_col]], tz = "UTC")
+  } else if (!inherits(Data[[date_col]], c("POSIXct", "POSIXt"))) {
+    Data[[date_col]] <- as.POSIXct(
+      paste0(Data[[date_col]], " 00:00:00"),
+      tz = "UTC",
+      tryFormats = c("%Y-%m-%d", "%Y/%m/%d", "%d-%m-%Y", "%d/%m/%Y", "%Y-%m", "%m/%Y")
+    )
+  }
   if (any(is.na(Data[[date_col]]))) stop("Unrecognized date format in Data.")
 
   ind_start <- which(format(Data[[date_col]], "%m/%Y") == RunIni)
@@ -186,9 +194,10 @@ Run_GR2MSemiDistr <- function(Data,
   fp_vec <- Parameters$fp[match_idx]
   fe_vec <- Parameters$fe[match_idx]
 
-  # ==== Forcing columns: check presence ====
+  # ==== Forcing columns: check presence and order vs COMID ====
   p_names <- paste0("P_", comid)
   e_names <- paste0("E_", comid)
+
   miss_p  <- setdiff(p_names, names(Database))
   miss_e  <- setdiff(e_names, names(Database))
   if (length(miss_p) || length(miss_e)) {
@@ -196,6 +205,39 @@ Run_GR2MSemiDistr <- function(Data,
                  paste(miss_p, collapse = ", "),
                  paste(miss_e, collapse = ", ")))
   }
+
+  # Verificación estricta de orden (que el orden de P_ y E_ siga a COMID)
+  p_idx <- match(p_names, names(Database))
+  e_idx <- match(e_names, names(Database))
+  if (is.unsorted(p_idx) || is.unsorted(e_idx)) {
+    warning("Las columnas de P_ y/o E_ no están en el mismo orden que COMID. Se continuará accediendo por nombre, pero se recomienda mantener el orden para coherencia.")
+  }
+
+  # ==== MatrixTransfer: aceptar data.frame/matrix, validar nombres y reordenar ====
+  if (is.null(MatrixTransfer)) stop("MatrixTransfer is required.")
+
+  MT <- as.matrix(MatrixTransfer)
+
+  if (any(dim(MT) != c(nsub, nsub))) {
+    stop(sprintf("MatrixTransfer must be a square %d x %d object.", nsub, nsub))
+  }
+  if (is.null(rownames(MT)) || is.null(colnames(MT))) {
+    stop("MatrixTransfer must have rownames and colnames corresponding to COMID.")
+  }
+
+  rows_mt <- as.character(rownames(MT))
+  cols_mt <- as.character(colnames(MT))
+
+  miss_rows <- setdiff(comid, rows_mt)
+  miss_cols <- setdiff(comid, cols_mt)
+  if (length(miss_rows) || length(miss_cols)) {
+    stop(sprintf(
+      "MatrixTransfer names do not match COMID. Missing rows: [%s]; Missing cols: [%s]",
+      paste(miss_rows, collapse = ", "), paste(miss_cols, collapse = ", ")
+    ))
+  }
+  # Reordenar al orden exacto de COMID (coincidirá con P_, E_, y QS)
+  MT <- MT[comid, comid, drop = FALSE]
 
   # ==== Model run per subbasin ====
   message(sprintf("Running GR2M model for %d subbasins", nsub))
@@ -216,7 +258,7 @@ Run_GR2MSemiDistr <- function(Data,
     if (any(Input$P < 0))                 stop(sprintf("Negative P in COMID %s", comid[i]))
     if (any(Input$E < 0))                 stop(sprintf("Negative E in COMID %s", comid[i]))
 
-    # If the period has only 1 time step, pad one extra month to satisfy airGR inputs
+    # Si solo hay 1 paso temporal, rellenar con un mes extra para satisfacer airGR
     if (ntime == 1) {
       d1 <- as.Date(Input$DatesR[1])
       next_month <- seq(d1, by = "month", length.out = 2)[2]
@@ -232,25 +274,25 @@ Run_GR2MSemiDistr <- function(Data,
 
     if (is.null(IniState)) {
       RunOptions <- CreateRunOptions(
-        FUN_MOD      = RunModel_GR2M,
-        InputsModel  = InputsModel,
+        FUN_MOD       = RunModel_GR2M,
+        InputsModel   = InputsModel,
         IndPeriod_Run = seq_len(ntime),
         verbose = FALSE, warnings = FALSE
       )
     } else {
       IniStates <- CreateIniStates(
-        FUN_MOD    = RunModel_GR2M,
+        FUN_MOD     = RunModel_GR2M,
         InputsModel = InputsModel,
-        ProdStore  = IniState[[i]]$Store$Prod,
-        RoutStore  = IniState[[i]]$Store$Rout,
-        ExpStore   = IniState[[i]]$Store$Exp,
-        UH1        = IniState[[i]]$UH$UH1,
-        UH2        = IniState[[i]]$UH$UH2
+        ProdStore   = IniState[[i]]$Store$Prod,
+        RoutStore   = IniState[[i]]$Store$Rout,
+        ExpStore    = IniState[[i]]$Store$Exp,
+        UH1         = IniState[[i]]$UH$UH1,
+        UH2         = IniState[[i]]$UH$UH2
       )
       RunOptions <- CreateRunOptions(
-        FUN_MOD      = RunModel_GR2M,
-        InputsModel  = InputsModel,
-        IniStates    = IniStates,
+        FUN_MOD       = RunModel_GR2M,
+        InputsModel   = InputsModel,
+        IniStates     = IniStates,
         IndPeriod_Run = seq_len(ntime),
         verbose = FALSE, warnings = FALSE
       )
@@ -284,17 +326,13 @@ Run_GR2MSemiDistr <- function(Data,
 
   colnames(PR) <- colnames(AE) <- colnames(SM) <- colnames(PC) <- colnames(RU) <- colnames(QS) <- comid
 
-  # ==== Routing with MatrixTransfer ====
-  if (!is.matrix(MatrixTransfer) || any(dim(MatrixTransfer) != nsub)) {
-    stop("MatrixTransfer must be a square matrix with dimensions equal to the number of subbasins.")
-  }
-
+  # ==== Routing with MatrixTransfer (ya reordenado al orden de COMID) ====
   n  <- ncol(QS)
   S  <- diag(n)
-  TT <- MatrixTransfer
+  TT <- MT
   for (k in 1:(n - 1)) {
     S  <- S + TT
-    TT <- TT %*% MatrixTransfer
+    TT <- TT %*% MT
   }
   QR <- QS %*% t(S)
   colnames(QR) <- comid

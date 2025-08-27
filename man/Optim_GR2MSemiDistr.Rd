@@ -35,7 +35,7 @@ It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibra
 
 \item{Parameters}{A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.}
 
-\item{MatrixTransfer}{Square transfer matrix (nsub × nsub) defining upstream-to-downstream connectivity for routing/accumulation of subbasin flows.}
+\item{MatrixTransfer}{Square matrix or data frame (nsub × nsub) of subbasin connectivity. Row and column names must match COMID and are internally reordered to align with P/E inputs and QS.}
 
 \item{Outlet}{Optional. Outlet subbasin identifier as a COMID code present in Subbasins. If provided, the routed outlet series is extracted from this column.}
 
