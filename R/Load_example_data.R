@@ -13,6 +13,7 @@
 #' qobs    <- data$qobs
 #' grid_pr <- data$grid_pr
 #' grid_pe <- data$grid_pe
+#' martixT <- data$matrixT
 #'
 #' @export
 Load_example_data <- function() {
@@ -21,8 +22,7 @@ Load_example_data <- function() {
     dem      = terra::rast(system.file("extdata/dem.tif", package = "GR2MSemiDistr")),
     grid_pr  = terra::rast(system.file("extdata/grid_pr.tif", package = "GR2MSemiDistr")),
     grid_pe  = terra::rast(system.file("extdata/grid_pe.tif", package = "GR2MSemiDistr")),
-    qobs     = read.table(system.file("extdata/qobs.txt", package = "GR2MSemiDistr"), header = FALSE)
+    qobs     = read.table(system.file("extdata/qobs.txt", package = "GR2MSemiDistr"), header = FALSE),
+    matrixT  = read.table(system.file("extdata/matrixT.txt", package = "GR2MSemiDistr"), header = TRUE, row.names = 1, check.names = FALSE)
   )
 }
-
-

@@ -337,7 +337,7 @@ Optim_GR2MSemiDistr <- function(Data,
   message("Optimization complete.")
   cat("\nFinal calibrated parameters per region:\n")
   print(final_params)
-  cat(sprintf("Objective Function (%s) = %s\n", Optimization, final_obj_rep))
+  cat(sprintf("Objective Function (%s) = %s\n", Optimization, final_obj_raw))
 
   tictoc::toc()
   list(Parameters = final_params,
