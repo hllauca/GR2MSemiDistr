@@ -116,10 +116,6 @@
 #'
 #' @export
 #'
-#' Run the GR2M model for multiple subbasins (semi-distributed with routing)
-#'
-#' (… roxygen igual a tu versión …)
-#'
 Run_GR2MSemiDistr <- function(Data,
                               Subbasins,
                               RunIni,
