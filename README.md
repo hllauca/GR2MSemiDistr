@@ -10,12 +10,13 @@ This package was developed as part of hydrological research and operational wate
 
 ## Features
 
-- GR2M water balance modeling in a semi-distributed configuration  
-- Regional parameter definition and correction factors  
-- Support for long-term and operational streamflow simulation  
-- Integration with gridded precipitation and evapotranspiration datasets  
-- Routing of discharges via WFA algorithm using DEM and D8 flow directions  
-- Fully compatible with the `airGR` and `terra` ecosystems  
+- Semi-distributed GR2M water balance modeling over thousands of subbasins.
+- Regionalized parameterization with correction factors for precipitation and potential evapotranspiration.
+- Long-term and operational streamflow simulation for hydrological forecasting and water resource assessments.
+- Direct integration with gridded precipitation and evapotranspiration datasets for areal subbasin computations.
+- Routing of subbasin discharges via a transfer matrix built from subbasin connectivity information.
+- Seamless compatibility with the airGR hydrological modeling framework and the terra spatial ecosystem.
+- Scalable workflows designed for national-scale applications and climate services.
 
 ---
 
@@ -46,11 +47,17 @@ library(GR2MSemiDistr)
 # === Load example data ===
 data <- GR2MSemiDistr::Load_example_data()
 names(data)
-cat     <- data$cat        # Subbasin boundaries (SpatVector)
-dem     <- data$dem        # Digital Elevation Model (SpatRaster)
-qobs    <- data$qobs       # Observed streamflow at outlet (data.frame)
-grid_pr <- data$grid_pr    # Precipitation gridded data (SpatRaster)
-grid_pe <- data$grid_pe    # Potential evapotranspiration gridded data (SpatRaster)
+cat     <- data$cat       # Subbasin boundaries (SpatVector)
+dem     <- data$dem       # Digital Elevation Model (SpatRaster)
+qobs    <- data$qobs      # Observed streamflow at outlet (data.frame)
+grid_pr <- data$grid_pr   # Precipitation gridded data (SpatRaster)
+grid_pe <- data$grid_pe   # Potential evapotranspiration gridded data (SpatRaster)
+matrixT <- data$matrixT   # Connectivity matrix (data.frame)
+
+# === Visualize subbasins on DEM ===
+terra::plot(terra::mask(dem, cat), alpha=0.8)
+terra::plot(cat, add=TRUE)
+terra::text(cat)
 
 # === Define simulation period ===
 start_date <- "01/1981"
@@ -65,7 +72,7 @@ model_inputs <- Create_Forcing_Inputs(
   Qobs = qobs,
   DateIni = start_date,
   DateEnd = end_date,
-  IniGrids = ini_grids
+  IniGrids = ini_grids,
 )
 
 # === Visualize input data ===
@@ -88,8 +95,8 @@ plot(dates, avg_E, type = "l", col = "orange", lwd = 1.5,
 # Plot observed streamflow (if available)
 if ("Q" %in% names(model_inputs)) {
   plot(dates, model_inputs$Q, type = "l", col = "darkgreen", lwd = 1.5,
-       ylab = "Observed Streamflow [m³/s]", xlab = "Date",
-       main = "Observed Streamflow at Outlet")
+       ylab = "Q [m³/s]", xlab = "Date",
+       main = "Observed Streamflow at Basin Outlet")
 }
 
 # === Initialize model parameters by region ===
@@ -101,14 +108,16 @@ param_init <- data.frame(
   fe = 1.0    # Evapotranspiration correction factor
 )
 
-# === Calibrate parameters using KGE as objective function ===
+# === Calibrate parameters using OF10 as objective function ===
 result <- Optim_GR2MSemiDistr(
   Data = model_inputs,
   Subbasins = cat,
   RunIni = "01/1981",
   RunEnd = "12/2005",
+  MatrixTransfer=matrixT,
+  Outlet = '8', # basin outlet comid
   Parameters = param_init,
-  Optimization = "OF1"  # KGE
+  Optimization = "OF10"
 )
 
 # === Extract optimized parameters and performance ===
@@ -121,12 +130,14 @@ model <- Run_GR2MSemiDistr(
   Subbasins = cat,
   RunIni = "01/1981",
   RunEnd = "12/2016",
-  Parameters = best_params,
-  Save = FALSE
+  MatrixTransfer=matrixT,
+  Outlet = '8', # basin outlet comid
+  Parameters = best_params
 )
 
+
 # === Plot model components for a selected subbasin ===
-target_comid <- model$COMID[1]  # Select first subbasin
+target_comid <- model$COMID[8]
 idx <- which(model$COMID == target_comid)
 dates <- as.Date(model$Dates)
 
@@ -146,8 +157,8 @@ plot(dates, model$PC[, idx], type = "l", col = "purple",
 plot(dates, model$RU[, idx], type = "l", col = "darkred",
      main = paste("Runoff (RU) - COMID", target_comid),
      xlab = "Date", ylab = "mm/month")
-plot(dates, model$QS[, idx], type = "l", col = "blue",
-     main = paste("Simulated Discharge (QS) - COMID", target_comid),
+plot(dates, model$QR[, idx], type = "l", col = "blue",
+     main = paste("Simulated Discharge (QR) - COMID", target_comid),
      xlab = "Date", ylab = "m³/s")
 
 # === Compare simulated vs. observed discharge at outlet ===
@@ -160,21 +171,4 @@ if (!is.null(model$SINK)) {
   legend("topright", legend = c("Simulated", "Observed"),
          col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
 }
-
-# === Route simulated discharges using WhiteboxTools ===
-routed <- Routing_GR2MSemiDistr(
-  Model = model,
-  Subbasins = cat,
-  Dem = dem,
-  RouIni = "01/1981",
-  RouEnd = "12/2016",
-  res = 500
-)
-
-# === Plot routed discharge ===
-idx <- which(model$COMID == model$COMID[1])
-dates <- as.Date(model$Dates)
-plot(dates, routed$QR[, idx], type = "l", col = "darkblue", lwd = 2,
-     xlab = "Date", ylab = "Discharge [m³/s]",
-     main = paste("Routed Discharge - Subbasin", routed$COMID[idx]))
 ```
