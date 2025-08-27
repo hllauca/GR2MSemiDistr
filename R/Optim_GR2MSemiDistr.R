@@ -65,8 +65,10 @@
 #'   Subbasins = cat,
 #'   RunIni = "01/1981",
 #'   RunEnd = "12/2005",
+#'   MatrixTransfer=matrixT,
+#'   Outlet = '8', # basin outlet comid
 #'   Parameters = param_init,
-#'   Optimization = "OF1"  # KGE
+#'   Optimization = "OF10"
 #' )
 #'
 #' # Extract results
@@ -79,6 +81,8 @@
 #'   Subbasins = cat,
 #'   RunIni = "01/1981",
 #'   RunEnd = "12/2005",
+#'   MatrixTransfer=matrixT,
+#'   Outlet = '8', # basin outlet comid
 #'   Parameters = best_params,
 #' )
 #'

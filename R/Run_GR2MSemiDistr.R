@@ -64,6 +64,8 @@
 #'   Subbasins = cat,
 #'   RunIni = "01/1981",
 #'   RunEnd = "12/2016",
+#'   MatrixTransfer = matrixT,
+#'   Outlet = '8', # basin outlet comid
 #'   Parameters = param_df,
 #' )
 #'

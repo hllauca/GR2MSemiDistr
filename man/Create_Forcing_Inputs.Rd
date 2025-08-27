@@ -90,8 +90,8 @@ plot(dates, avg_E, type = "l", col = "orange", lwd = 1.5,
 # Plot observed streamflow at outlet (if available)
 if ("Q" \%in\% names(model_inputs)) {
   plot(dates, model_inputs$Q, type = "l", col = "darkgreen", lwd = 1.5,
-       ylab = "Observed Streamflow [m³/s]", xlab = "Date",
-       main = "Observed Streamflow at Outlet")
+       ylab = "Q [m³/s]", xlab = "Date",
+       main = "Observed Streamflow at Basin Outlet")
 }
 }
 \references{

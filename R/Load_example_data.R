@@ -13,7 +13,11 @@
 #' qobs    <- data$qobs
 #' grid_pr <- data$grid_pr
 #' grid_pe <- data$grid_pe
-#' martixT <- data$matrixT
+#' matrixT <- data$matrixT
+#'
+#' terra::plot(terra::mask(dem, cat), alpha=0.8)
+#' terra::plot(cat, add=TRUE)
+#' terra::text(cat)
 #'
 #' @export
 Load_example_data <- function() {
