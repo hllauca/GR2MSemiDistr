@@ -4,18 +4,17 @@
 \alias{Build_Transfer_Matrix}
 \title{Build transfer matrix (rows = receivers, cols = donors)}
 \usage{
-Build_Transfer_Matrix(riv)
+Build_Transfer_Matrix(Riv)
 }
 \arguments{
-\item{riv}{A `SpatVector` of river reaches/subbasins. Its attribute table must contain
+\item{Riv}{A `SpatVector` of river reaches/subbasins. Its attribute table must contain
 `COMID` (unique subbasin ID) and `NextDownID` (immediate downstream ID).
 Geometry is ignored; only attributes are used. Outlets (no downstream basin/river)
 must be encoded with `-1` in `NextDownID`.}
 }
 \value{
-A `data.frame` of size n × n with entries in {0,1}. Row names and
-  column names are the node IDs (COMID domain). Outlets (no downstream) lead
-  to rows of zeros.
+A sparse matrix of class `dgCMatrix` (rows = receivers, cols = donors),
+  with row/column names equal to `COMID`.
 }
 \description{
 Create a dense 0/1 transfer matrix (as a data.frame) from a river reach/subbasin
