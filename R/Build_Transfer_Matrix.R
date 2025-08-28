@@ -100,9 +100,5 @@ Build_Transfer_Matrix <- function(riv) {
   if (is.null(rownames(out)) || is.null(colnames(out))) {
     stop("Transfer matrix must carry row and column names (COMID domain).")
   }
-  if (!all(out %in% c(0L, 1L))) {
-    stop("Transfer matrix contains values other than 0/1.")
-  }
-
   return(out)
 }
