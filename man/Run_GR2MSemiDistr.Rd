@@ -96,7 +96,7 @@ parameters <- data.frame(
     )
 
 # Run model with given parameters
-model <- Run_GR2MSemiDistr2(
+model <- Run_GR2MSemiDistr(
   Data = model_inputs,
   Subbasins = cat,
   RunIni = "01/1981",

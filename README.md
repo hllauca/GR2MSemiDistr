@@ -137,7 +137,7 @@ param_init <- data.frame(
 )
 
 # === Calibrate parameters using OF10 as objective function ===
-result <- Optim_GR2MSemiDistr2(
+result <- Optim_GR2MSemiDistr(
   Data          = model_inputs,
   Subbasins     = cat,
   RunIni        = "01/1981",
@@ -153,7 +153,7 @@ best_params <- result$Parameters
 final_score <- result$OF
 
 # === Run GR2M model using optimized parameters ===
-model <- Run_GR2MSemiDistr2(
+model <- Run_GR2MSemiDistr(
   Data          = model_inputs,
   Subbasins     = cat,
   RunIni        = "01/1981",
