@@ -10,6 +10,7 @@
 #' @param Subbasins SpatVector. Geometries of subbasins. Must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
 #' @param RunIni character. Simulation start date in the format "mm/yyyy".
 #' @param RunEnd character. Simulation end date in the format "mm/yyyy".
+#' @param WarmUp integer (optional). Number of months to discard from the beginning of the simulation as model warm-up.
 #' @param TransferMatrix matrix or dgCMatrix. Subbasin connectivity matrix defining downstream routing.
 #' Rows represent receiving (downstream) subbasins, and columns represent donor (upstream) subbasins.
 #' Row and column names must match `COMID`. For large river networks (thousands of subbasins),

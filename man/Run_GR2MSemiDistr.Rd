@@ -12,8 +12,7 @@ Run_GR2MSemiDistr(
   Parameters,
   TransferMatrix,
   Outlet = NULL,
-  WarmUp = NULL,
-  IniState = NULL,
+  StatesIni = NULL,
   Save = FALSE,
   Update = FALSE
 )
@@ -38,18 +37,17 @@ For large river networks (thousands of subbasins), a sparse matrix is strongly r
 \item{Outlet}{character (optional). COMID of the outlet subbasin to extract routed discharge.
 If provided, the simulated outlet discharge (`qsim`) is returned, and compared with observed discharge (`Q`) if available in `Data`.}
 
-\item{WarmUp}{integer (optional). Number of months to discard from the beginning of the simulation as model warm-up.
-Ignored if `Update = TRUE`. Default is `NULL`.}
-
-\item{IniState}{list (optional). Initial state variables for GR2M subbasins.
+\item{StatesIni}{list (optional). Initial state variables for GR2M subbasins.
 If `NULL`, default initial conditions are used.}
 
 \item{Save}{logical. If `TRUE`, simulation results are saved in tab-separated `.txt` files inside the `./Outputs` directory.
 Default is `FALSE`.}
 
-\item{Update}{logical. If `TRUE`, the function runs only for the last month of the input data, appends results to existing
-output files (if present), and discards the artificial extra month added internally to satisfy airGR's minimum timestep requirement.
-Default is `FALSE`.}
+\item{Update}{logical. If `TRUE`, the function processes only the last available months of the input data
+and appends results to existing output files (if present).
+If the input contains only one month, an artificial second month is added internally
+to satisfy airGR's minimum timestep requirement, and this artificial record is discarded
+after the run. Default is `FALSE`.}
 }
 \value{
 A list with the following elements:
@@ -65,7 +63,7 @@ A list with the following elements:
   \item{QR}{matrix. Routed discharge per subbasin (m³/s), after applying the connectivity matrix.}
   \item{SINK}{data.frame (optional). Simulated discharge at the outlet subbasin. Contains
   column `sim` (simulated) and, if available, column `obs` (observed). Returned only if `Outlet` is provided.}
-  \item{EndState}{list. Final GR2M states for each subbasin, as returned by `airGR::RunModel_GR2M`.}
+  \item{StatesEnd}{list. Final GR2M states for each subbasin, as returned by `airGR::RunModel_GR2M`.}
 }
 }
 \description{
@@ -75,9 +73,11 @@ subbasin connectivity defined in a transfer matrix. The function supports a warm
 saving results to disk, and an update mode for appending new results.
 }
 \details{
-In `Update = TRUE` mode, only the last month of the input series is processed. Since airGR requires at least two
-timesteps, the function appends an artificial month with P = 100 mm and E = 100 mm. This artificial record is
-discarded after the run, ensuring only the actual last month is saved and returned.
+In `Update = TRUE` mode, the function processes the most recent months of the input series
+and appends them to existing outputs. If the input contains only a single month, an artificial
+second month (with P = 100 mm and E = 100 mm) is temporarily added to satisfy airGR’s minimum
+timestep requirement. This artificial record is removed after the run, ensuring that only
+the real months are kept in the results and output files.
 
 The transfer matrix describes subbasin connectivity: rows correspond to donor subbasins and columns to receivers.
 It can be supplied as a `data.frame`, a base R `matrix`, or a sparse `dgCMatrix`. For applications with many
