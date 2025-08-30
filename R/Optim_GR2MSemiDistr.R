@@ -352,11 +352,11 @@ Optim_GR2MSemiDistr <- function(Data,
   message(sprintf("Optimizing %s with SCE-UA over %d regions (%d params)...",
                   Optimization, length(opt_regions), length(opt_regions) * 4))
 
-  Calibration <- sceua(OFUN,
-                       pars  = opt.param,
-                       lower = opt.param.min,
-                       upper = opt.param.max,
-                       maxn  = Max.Functions)
+  Calibration <- rtop::sceua(OFUN,
+                             pars  = opt.param,
+                             lower = opt.param.min,
+                             upper = opt.param.max,
+                             maxn  = Max.Functions)
 
   # === Organize output ===
   final_params <- get_param(Calibration$par, opt_regions)
