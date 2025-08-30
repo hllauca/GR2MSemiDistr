@@ -1,4 +1,4 @@
-#' Build transfer matrix (rows = receivers, cols = donors)
+#' Build transfer matrix for subbasins connectivity
 #'
 #' Create a dense 0/1 transfer matrix (as a data.frame) from a river reach/subbasin
 #' layer that contains a unique ID (`COMID`) and its immediate downstream ID
@@ -9,7 +9,7 @@
 #' Designed to plug into routing steps used by `Run_GR2MSemiDistr()` and related
 #' functions in the package.
 #'
-#' @param Riv A `SpatVector` of river reaches/subbasins. Its attribute table must contain
+#' @param Rivers A `SpatVector` of river reaches/subbasins. Its attribute table must contain
 #'   `COMID` (unique subbasin ID) and `NextDownID` (immediate downstream ID).
 #'   Geometry is ignored; only attributes are used. Outlets (no downstream basin/river)
 #'   must be encoded with `-1` in `NextDownID`.
@@ -21,12 +21,12 @@
 #' @import Matrix
 #'
 #' @export
-Build_Transfer_Matrix <- function(Riv) {
-  if (!inherits(Riv, "SpatVector")) {
-    stop("'Riv' must be a 'SpatVector'. Read it first with terra::vect().")
+Build_Transfer_Matrix <- function(Rivers) {
+  if (!inherits(Rivers, "SpatVector")) {
+    stop("'Rivers' must be a 'SpatVector'. Read it first with terra::vect().")
   }
 
-  att <- as.data.frame(Riv)
+  att <- as.data.frame(Rivers)
   if (!all(c("COMID", "NextDownID") %in% names(att))) {
     stop("Input must contain 'COMID' and 'NextDownID'.")
   }
@@ -69,4 +69,3 @@ Build_Transfer_Matrix <- function(Riv) {
 
   return(Tsp)  # dgCMatrix
 }
-

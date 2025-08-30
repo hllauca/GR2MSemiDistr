@@ -10,12 +10,12 @@ Optim_GR2MSemiDistr(
   RunIni,
   RunEnd,
   Parameters,
-  MatrixTransfer,
+  TransferMatrix,
   Outlet,
   Parameters.Min = c(100, 0.1, 0.8, 0.8),
   Parameters.Max = c(2000, 10, 1.2, 1.2),
-  Optimization = "OF1",
-  Max.Functions = 1000,
+  Optimization = "OF10",
+  Max.Functions = 5000,
   WarmUp = 36,
   No.Optim = NULL,
   w1 = 0.6,
@@ -35,9 +35,12 @@ It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibra
 
 \item{Parameters}{A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.}
 
-\item{MatrixTransfer}{Square matrix or data frame (nsub × nsub) of subbasin connectivity. Row and column names must match COMID and are internally reordered to align with P/E inputs and QS.}
+\item{TransferMatrix}{Subbasin connectivity matrix defining downstream routing. Can be provided as a
+`data.frame`, a base R `matrix`, or a sparse matrix (`dgCMatrix` from the Matrix package).
+Row and column names must match `COMID`. The matrix is internally reordered to align with input forcings.
+For large river networks (thousands of subbasins), a sparse matrix is strongly recommended for memory efficiency.}
 
-\item{Outlet}{Optional. Outlet subbasin identifier as a COMID code present in Subbasins. If provided, the routed outlet series is extracted from this column.}
+\item{Outlet}{Outlet subbasin identifier as a COMID code present in Subbasins. Required for calibration.}
 
 \item{Parameters.Min}{Numeric vector of length 4, specifying lower bounds for optimization in the following order:
 c(X1, X2, fp, fe).}
@@ -58,7 +61,7 @@ c(X1, X2, fp, fe).}
   \item{"OF10"}{Composite objective: w1 × KGE.km + w2 × KGE.lf - w3 × RMSE.}
 }}
 
-\item{Max.Functions}{Integer. Maximum number of function evaluations in the optimization. Default is 1500.}
+\item{Max.Functions}{Integer. Maximum number of function evaluations in the optimization. Default is 5000.}
 
 \item{WarmUp}{Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.}
 
@@ -101,7 +104,7 @@ result <- Optim_GR2MSemiDistr(
   Subbasins = cat,
   RunIni = "01/1981",
   RunEnd = "12/2005",
-  MatrixTransfer=matrixT,
+  TransferMatrix = matrixT,
   Outlet = '8', # basin outlet comid
   Parameters = param_init,
   Optimization = "OF10"
@@ -117,16 +120,16 @@ model <- Run_GR2MSemiDistr(
   Subbasins = cat,
   RunIni = "01/1981",
   RunEnd = "12/2005",
-  MatrixTransfer=matrixT,
+  TransferMatrix = matrixT,
   Outlet = '8', # basin outlet comid
   Parameters = best_params,
 )
 
 if (!is.null(model$SINK)) {
   par(mfrow = c(1, 1))
-  plot(dates, model$SINK$sim, type = "l", col = "blue",
+  plot(model$dates, model$SINK$sim, type = "l", col = "blue",
        xlab = "Date", ylab = "Discharge [m³/s]",
-  lines(dates, model$SINK$obs, col = "red", type='o')
+  lines(model$dates, model$SINK$obs, col = "red", type='o')
   legend("topright", legend = c("Simulated", "Observed"),
          col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
 }

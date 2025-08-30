@@ -2,12 +2,12 @@
 % Please edit documentation in R/Build_Transfer_Matrix.R
 \name{Build_Transfer_Matrix}
 \alias{Build_Transfer_Matrix}
-\title{Build transfer matrix (rows = receivers, cols = donors)}
+\title{Build transfer matrix for subbasins connectivity}
 \usage{
-Build_Transfer_Matrix(Riv)
+Build_Transfer_Matrix(Rivers)
 }
 \arguments{
-\item{Riv}{A `SpatVector` of river reaches/subbasins. Its attribute table must contain
+\item{Rivers}{A `SpatVector` of river reaches/subbasins. Its attribute table must contain
 `COMID` (unique subbasin ID) and `NextDownID` (immediate downstream ID).
 Geometry is ignored; only attributes are used. Outlets (no downstream basin/river)
 must be encoded with `-1` in `NextDownID`.}

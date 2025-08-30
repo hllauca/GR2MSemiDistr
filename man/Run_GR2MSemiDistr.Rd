@@ -2,7 +2,7 @@
 % Please edit documentation in R/Run_GR2MSemiDistr.R
 \name{Run_GR2MSemiDistr}
 \alias{Run_GR2MSemiDistr}
-\title{Run the GR2M model for multiple subbasins (semi-distributed with routing)}
+\title{Run the GR2M semi-distributed model with river network routing}
 \usage{
 Run_GR2MSemiDistr(
   Data,
@@ -10,7 +10,7 @@ Run_GR2MSemiDistr(
   RunIni,
   RunEnd,
   Parameters,
-  MatrixTransfer,
+  TransferMatrix,
   Outlet = NULL,
   WarmUp = NULL,
   IniState = NULL,
@@ -19,7 +19,8 @@ Run_GR2MSemiDistr(
 )
 }
 \arguments{
-\item{Data}{A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs. It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).}
+\item{Data}{A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
+It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).}
 
 \item{Subbasins}{A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).}
 
@@ -29,108 +30,72 @@ Run_GR2MSemiDistr(
 
 \item{Parameters}{A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.}
 
-\item{MatrixTransfer}{Square matrix or data frame (nsub × nsub) of subbasin connectivity. Row and column names must match COMID and are internally reordered to align with P/E inputs and QS.}
+\item{TransferMatrix}{Subbasin connectivity matrix defining downstream routing. Can be provided as a
+`data.frame`, a base R `matrix`, or a sparse matrix (`dgCMatrix` from the Matrix package).
+Row and column names must match `COMID`. The matrix is internally reordered to align with input forcings.
+For large river networks (thousands of subbasins), a sparse matrix is strongly recommended for memory efficiency.}
 
-\item{Outlet}{Optional. Outlet subbasin identifier as a COMID code present in Subbasins. If provided, the routed outlet series is extracted from this column.}
+\item{Outlet}{Optional. Outlet subbasin identifier (`COMID`) present in Subbasins.
+If provided, the routed outlet discharge series is extracted and compared with observed values if available.}
 
-\item{WarmUp}{Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.}
+\item{WarmUp}{Optional number of months to discard from the beginning of the simulation as model warm-up.
+Ignored if `Update = TRUE`. Default is `NULL`.}
 
-\item{IniState}{Optional list of initial states for each subbasin. Default is NULL.}
+\item{IniState}{Optional list of initial states for GR2M. If `NULL`, default initial conditions are used.}
 
-\item{Save}{Logical. If TRUE, output time series are saved as tab-separated text files under "Outputs/".}
+\item{Save}{Logical. If `TRUE`, simulation results are saved in tab-separated `.txt` files inside the `./Outputs` directory. Default is `FALSE`.}
 
-\item{Update}{Logical. If TRUE and Save = TRUE, removes previous month's output files before saving the current ones.}
+\item{Update}{Logical. If `TRUE`, the function runs only the last month of the input data, appends it to existing
+output files (if they exist), and discards an artificial extra month added internally to satisfy airGR's
+minimum timestep requirement. Default is `FALSE`.}
 }
 \value{
-A list with:
+A list with the following elements:
 \describe{
-  \item{PR}{Matrix of total precipitation [mm/month] per subbasin.}
-  \item{AE}{Matrix of actual evapotranspiration [mm/month] per subbasin.}
-  \item{SM}{Matrix of production store level [mm/month] per subbasin.}
-  \item{PC}{Matrix of percolation [mm/month] per subbasin.}
-  \item{RU}{Matrix of runoff [mm/month] per subbasin (model internal output).}
-  \item{QR}{Matrix of routed discharge [m³/s] per subbasin after network accumulation using MatrixTransfer.}
-  \item{Dates}{Date vector for the simulation period.}
-  \item{COMID}{Vector of subbasin COMIDs (column order matches matrices).}
-  \item{EndState}{List of final state variables for each subbasin.}
-  \item{SINK}{Only if outlet is provided.
-              Data frame with outlet series where sim is the routed outlet discharge
-              (column QR[, Outlet]). If observed outlet discharge QR exists
-              in Data, obs is included as well. Row names are Dates.}
+  \item{Dates}{Vector of dates corresponding to the simulation period.}
+  \item{COMID}{Character vector of subbasin identifiers.}
+  \item{PR}{Matrix of precipitation inputs per subbasin (mm).}
+  \item{AE}{Matrix of actual evapotranspiration per subbasin (mm).}
+  \item{SM}{Matrix of soil moisture storage per subbasin (mm).}
+  \item{PC}{Matrix of percolation per subbasin (mm).}
+  \item{RU}{Matrix of runoff generated per subbasin (mm).}
+  \item{QR}{Matrix of routed discharges (m³/s) per subbasin.}
+  \item{SINK}{Optional data frame with outlet discharge. Contains `sim` (simulated) and `obs` (observed if available).}
+  \item{EndState}{List of final states for each subbasin, as returned by `airGR::RunModel_GR2M`.}
 }
 }
 \description{
-This function executes the monthly GR2M water balance model across multiple
-subbasins using a semi-distributed approach. It applies region-specific
-parameters and correction factors for precipitation and potential
-evapotranspiration, routes the simulated flows through the river network via
-a transfer matrix, and can optionally save results as text files.
+Executes the monthly GR2M water balance model across multiple subbasins in a semi-distributed configuration.
+Region-specific parameters and correction factors are applied, and discharges are routed through the
+subbasin connectivity defined in a transfer matrix. The function supports a warm-up period, outlet extraction,
+saving results to disk, and an update mode for appending new results.
 }
 \details{
-Subbasin-level simulated discharge (in m³/s) is obtained from GR2M runoff
-(mm/month) using basin area and days per month, and then accumulated/routed
-through the network using the geometric series of the transfer matrix
-S = I + T + T^2 + ... + T^(n-1), applied as QR = QS * S'.
-The outlet series is taken from the routed matrix column corresponding to
-the provided outlet COMID.
+In `Update = TRUE` mode, only the last month of the input series is processed. Since airGR requires at least two
+timesteps, the function appends an artificial month with P = 100 mm and E = 100 mm. This artificial record is
+discarded after the run, ensuring only the actual last month is saved and returned.
+
+The transfer matrix describes subbasin connectivity: rows correspond to donor subbasins and columns to receivers.
+It can be supplied as a `data.frame`, a base R `matrix`, or a sparse `dgCMatrix`. For applications with many
+subbasins (e.g., >10,000), a sparse representation is strongly advised to reduce memory usage and improve speed.
 }
 \examples{
 library(GR2MSemiDistr)
 
-# Define region parameters
-param_df <- data.frame(
-  Region = unique(cat$Region),
-  X1 = 2000,
-  X2 = 1.8,
-  fp = 0.8,
-  fe = 0.8
-)
-
-# Run the semi-distributed GR2M model
-model <- Run_GR2MSemiDistr(
+# Run model with given parameters
+sim <- Run_GR2MSemiDistr2(
   Data = model_inputs,
   Subbasins = cat,
   RunIni = "01/1981",
-  RunEnd = "12/2016",
-  MatrixTransfer = matrixT,
-  Outlet = '8', # basin outlet comid
-  Parameters = param_df,
+  RunEnd = "12/2005",
+  Parameters = param_init,
+  TransferMatrix = matrixT,
+  Outlet = '8',
+  Save = TRUE
 )
 
-# Select COMID of the subbasin to plot
-target_comid <- model$COMID[1]  # Change index as needed
-idx <- which(model$COMID == target_comid)
-dates <- as.Date(model$Dates)
-
-# Plot model outputs for selected subbasin
-par(mfrow = c(3, 2), mar = c(4, 4, 3, 1))
-
-plot(dates, model$PR[, idx], type = "l", col = "blue",
-     main = paste("Precipitation (PR) - COMID", target_comid),
-     xlab = "Date", ylab = "mm/month")
-
-plot(dates, model$AE[, idx], type = "l", col = "orange",
-     main = paste("Actual Evapotranspiration (AE) - COMID", target_comid),
-     xlab = "Date", ylab = "mm/month")
-
-plot(dates, model$SM[, idx], type = "l", col = "green4",
-     main = paste("Production Store (SM) - COMID", target_comid),
-     xlab = "Date", ylab = "mm/month")
-
-plot(dates, model$PC[, idx], type = "l", col = "purple",
-     main = paste("Percolation (PC) - COMID", target_comid),
-     xlab = "Date", ylab = "mm/month")
-
-plot(dates, model$RU[, idx], type = "l", col = "darkred",
-     main = paste("Runoff (RU) - COMID", target_comid),
-     xlab = "Date", ylab = "mm/month")
-
-plot(dates, model$QR[, idx], type = "l", col = "blue",
-     main = paste("Simulated Discharge (QR) - COMID", target_comid),
-     xlab = "Date", ylab = "m³/s")
-
-# Optional: compare simulated vs observed outlet discharge
-if (!is.null(model$SINK)) {
+# Plot simulated outlet discharge
+if (!is.null(sim$SINK)) {
   par(mfrow = c(1, 1))
   plot(dates, model$SINK$sim, type = "l", col = "blue",
        xlab = "Date", ylab = "Discharge [m³/s]",
@@ -138,8 +103,13 @@ if (!is.null(model$SINK)) {
   legend("topright", legend = c("Simulated", "Observed"),
          col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
 }
+
 }
 \references{
-Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).
-PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020). Water, 13(8), 1048. \doi{10.3390/w13081048}
+Perrin C., Michel C., Andréassian V. (2003). Improvement of a parsimonious model for streamflow simulation.
+\emph{Journal of Hydrology}, 279(1–4), 275–289. \doi{10.1016/S0022-1694(03)00225-7}
+
+Llauca H., Lavado-Casimiro W., Montesinos C., Santini W., Rau P. (2021).
+PISCO_HyM_GR2M: A Model of Monthly Water Balance in Peru (1981–2020).
+\emph{Water}, 13(8), 1048. \doi{10.3390/w13081048}
 }
