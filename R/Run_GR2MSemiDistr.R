@@ -399,18 +399,21 @@ Run_GR2MSemiDistr <- function(Data,
     if (!dir.exists("./Outputs")) {
       dir.create("./Outputs", recursive=TRUE)
     }
-
     save_one <- function(var, tag) {
       df <- as.data.frame(var)
       rownames(df) <- format(Dates, "%Y-%m-01")
-      file <- sprintf("./Outputs/%s_GR2MSemiDistr.txt", tag)
+      # Use only the last date (MMYYYY) in the file name
+      last_str <- format(max(Dates), "%m%Y")
+      file <- sprintf("./Outputs/%s_GR2MSemiDistr_%s.txt", tag, last_str)
 
-      # In Update mode, append to old file instead of overwriting
+      # If Update = TRUE, append only the new month and avoid duplicates
       if (Update && file.exists(file)) {
         old_df <- read.table(file, header=TRUE, sep="\t", check.names=FALSE)
-        new_df <- rbind(old_df, df)
+        # Remove duplicates if the last date already exists
+        new_df <- rbind(old_df[!rownames(old_df) %in% rownames(df), ], df)
         write.table(new_df, file=file, sep="\t", quote=FALSE)
       } else {
+        # Write new file if it does not exist
         write.table(df, file=file, sep="\t", quote=FALSE)
       }
     }
