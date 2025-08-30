@@ -286,11 +286,6 @@ Run_GR2MSemiDistr <- function(Data,
   ResModel <- vector("list", nsub)
 
   for (i in seq_len(nsub)) {
-    # Notify which subbasin is being processed
-    cat('\f')
-    progress <- (i / nsub) * 100
-    message(sprintf("Running GR2M for COMID %s - %.1f%% completed", comid[i], progress))
-
     # Build input dataframe with precipitation and evapotranspiration
     Input <- data.frame(
       DatesR = Database$DatesR,
@@ -381,11 +376,6 @@ Run_GR2MSemiDistr <- function(Data,
         QR[, i] <- QR[, i] + QR[, j]
       }
     }
-
-    # Show progress in percentage
-    cat('\f')
-    progress <- (k / nsteps) * 100
-    message(sprintf("Routing progress: %.1f%%", progress))
   }
 
   # If Update mode was used and only 1 real month was available,
