@@ -5,38 +5,42 @@
 #' subbasin connectivity defined in a transfer matrix. The function supports a warm-up period, outlet extraction,
 #' saving results to disk, and an update mode for appending new results.
 #'
-#' @param Data A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
-#' It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).
-#' @param Subbasins A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
-#' @param RunIni Simulation start date in the format "mm/yyyy".
-#' @param RunEnd Simulation end date in the format "mm/yyyy".
-#' @param Parameters A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.
-#' @param TransferMatrix Subbasin connectivity matrix defining downstream routing. Can be provided as a
-#' `data.frame`, a base R `matrix`, or a sparse matrix (`dgCMatrix` from the Matrix package).
+#' @param Data data.frame. Model input data in the airGR format, as produced by `Create_Forcing_Inputs`.
+#' Must include columns: DatesR, P_1 to P_n, E_1 to E_n, and optionally Q (observed discharge, used if available).
+#' @param Subbasins SpatVector. Geometries of subbasins. Must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
+#' @param RunIni character. Simulation start date in the format "mm/yyyy".
+#' @param RunEnd character. Simulation end date in the format "mm/yyyy".
+#' @param Parameters data.frame. GR2M model parameters and correction factors per region. Must include columns: Region, X1, X2, fp, fe.
+#' @param TransferMatrix matrix or dgCMatrix. Subbasin connectivity matrix defining downstream routing.
+#' Rows represent receiving (downstream) subbasins, and columns represent donor (upstream) subbasins.
 #' Row and column names must match `COMID`. The matrix is internally reordered to align with input forcings.
 #' For large river networks (thousands of subbasins), a sparse matrix is strongly recommended for memory efficiency.
-#' @param Outlet Optional. Outlet subbasin identifier (`COMID`) present in Subbasins.
-#' If provided, the routed outlet discharge series is extracted and compared with observed values if available.
-#' @param WarmUp Optional number of months to discard from the beginning of the simulation as model warm-up.
+#' @param Outlet character (optional). COMID of the outlet subbasin to extract routed discharge.
+#' If provided, the simulated outlet discharge (`qsim`) is returned, and compared with observed discharge (`Q`) if available in `Data`.
+#' @param WarmUp integer (optional). Number of months to discard from the beginning of the simulation as model warm-up.
 #' Ignored if `Update = TRUE`. Default is `NULL`.
-#' @param IniState Optional list of initial states for GR2M. If `NULL`, default initial conditions are used.
-#' @param Save Logical. If `TRUE`, simulation results are saved in tab-separated `.txt` files inside the `./Outputs` directory. Default is `FALSE`.
-#' @param Update Logical. If `TRUE`, the function runs only the last month of the input data, appends it to existing
-#' output files (if they exist), and discards an artificial extra month added internally to satisfy airGR's
-#' minimum timestep requirement. Default is `FALSE`.
+#' @param IniState list (optional). Initial state variables for GR2M subbasins.
+#' If `NULL`, default initial conditions are used.
+#' @param Save logical. If `TRUE`, simulation results are saved in tab-separated `.txt` files inside the `./Outputs` directory.
+#' Default is `FALSE`.
+#' @param Update logical. If `TRUE`, the function runs only for the last month of the input data, appends results to existing
+#' output files (if present), and discards the artificial extra month added internally to satisfy airGR's minimum timestep requirement.
+#' Default is `FALSE`.
 #'
 #' @return A list with the following elements:
 #' \describe{
-#'   \item{Dates}{Vector of dates corresponding to the simulation period.}
-#'   \item{COMID}{Character vector of subbasin identifiers.}
-#'   \item{PR}{Matrix of precipitation inputs per subbasin (mm).}
-#'   \item{AE}{Matrix of actual evapotranspiration per subbasin (mm).}
-#'   \item{SM}{Matrix of soil moisture storage per subbasin (mm).}
-#'   \item{PC}{Matrix of percolation per subbasin (mm).}
-#'   \item{RU}{Matrix of runoff generated per subbasin (mm).}
-#'   \item{QR}{Matrix of routed discharges (m³/s) per subbasin.}
-#'   \item{SINK}{Optional data frame with outlet discharge. Contains `sim` (simulated) and `obs` (observed if available).}
-#'   \item{EndState}{List of final states for each subbasin, as returned by `airGR::RunModel_GR2M`.}
+#'   \item{Dates}{Date vector. Simulation period (monthly).}
+#'   \item{COMID}{Character vector. Identifiers of the simulated subbasins.}
+#'   \item{PR}{matrix. Precipitation inputs per subbasin (mm). Columns correspond to subbasins.}
+#'   \item{AE}{matrix. Actual evapotranspiration per subbasin (mm).}
+#'   \item{SM}{matrix. Soil moisture storage per subbasin (mm).}
+#'   \item{PC}{matrix. Percolation per subbasin (mm).}
+#'   \item{RU}{matrix. Runoff generated per subbasin (mm).}
+#'   \item{QS}{matrix. Local discharge per subbasin (m³/s), obtained from runoff conversion by area.}
+#'   \item{QR}{matrix. Routed discharge per subbasin (m³/s), after applying the connectivity matrix.}
+#'   \item{SINK}{data.frame (optional). Simulated discharge at the outlet subbasin. Contains
+#'   column `sim` (simulated) and, if available, column `obs` (observed). Returned only if `Outlet` is provided.}
+#'   \item{EndState}{list. Final GR2M states for each subbasin, as returned by `airGR::RunModel_GR2M`.}
 #' }
 #'
 #' @details
@@ -59,34 +63,81 @@
 #' @examples
 #' library(GR2MSemiDistr)
 #'
+#' # Parameters (not calibrated)
+#' parameters <- data.frame(
+#'     Region = unique(cat$Region),
+#'     X1  = 500,  # Production store capacity [mm]
+#'     X2  = 1.5,  # Groundwater exchange coefficient
+#'     fp  = 1.0,  # Precipitation correction factor
+#'     fe  = 1.0   # Evapotranspiration correction factor
+#'     )
+#'
 #' # Run model with given parameters
-#' sim <- Run_GR2MSemiDistr2(
+#' model <- Run_GR2MSemiDistr2(
 #'   Data = model_inputs,
 #'   Subbasins = cat,
 #'   RunIni = "01/1981",
-#'   RunEnd = "12/2005",
-#'   Parameters = param_init,
+#'   RunEnd = "12/2016",
+#'   Parameters = parameters,
 #'   TransferMatrix = matrixT,
-#'   Outlet = '8',
-#'   Save = TRUE
+#'   Outlet = '8'
 #' )
 #'
-#' # Plot simulated outlet discharge
-#' if (!is.null(sim$SINK)) {
-#'   par(mfrow = c(1, 1))
-#'   plot(dates, model$SINK$sim, type = "l", col = "blue",
-#'        xlab = "Date", ylab = "Discharge [m³/s]",
-#    main = "Simulated vs Observed Discharge (Outlet)")
-#'   lines(dates, model$SINK$obs, col = "red", type='o')
+#' # Shown results for a target COMID
+#' target_comid <- "10"
+#' idx <- which(model$COMID == target_comid)
+#'
+#' par(mfrow = c(3, 2),
+#'     mar = c(4, 4, 3, 1),
+#'     cex.main = 0.9,
+#'     cex.lab = 0.8,
+#'     cex.axis = 0.7)
+#'
+#' # Precipitation
+#' plot(model$Dates, model$PR[, idx], type = "h", lwd = 2, col = "dodgerblue",
+#'      main = sprintf("Precipitation (PR) - COMID %s", target_comid),
+#'      xlab = "Date", ylab = "mm/month")
+#'
+#' # Actual evapotranspiration
+#' plot(model$Dates, model$AE[, idx], type = "h", lwd = 2, col = "orange",
+#'      main = sprintf("Actual Evapotranspiration (AE) - COMID %s", target_comid),
+#'      xlab = "Date", ylab = "mm/month")
+#'
+#' # Soil moisture storage
+#' plot(model$Dates, model$SM[, idx], type = "h", lwd = 2, col = "green",
+#'      main = sprintf("Soil Moisture (SM) - COMID %s", target_comid),
+#'      xlab = "Date", ylab = "mm")
+#'
+#' # Percolation
+#' plot(model$Dates, model$PC[, idx], type = "h", lwd = 2, col = "purple",
+#'      main = sprintf("Percolation (PC) - COMID %s", target_comid),
+#'      xlab = "Date", ylab = "mm/month")
+#'
+#' # Runoff
+#' plot(model$Dates, model$RU[, idx], type = "h", lwd = 2, col = "red",
+#'      main = sprintf("Runoff (RU) - COMID %s", target_comid),
+#'      xlab = "Date", ylab = "mm/month")
+#'
+#' # Routed discharge
+#' plot(model$Dates, model$QR[, idx], type = "l", lwd = 1.5, col = "blue",
+#'      main = sprintf("Routed Simulated Discharge (QR) - COMID %s", target_comid),
+#'      xlab = "Date", ylab = "m³/s")
+#'
+#' # Compare simulated vs observed discharge at outlet
+#' par(mfrow = c(1, 1))
+#' plot(model$Dates, model$SINK$sim, type = "l", col = "blue", lwd = 1.5,
+#'      xlab = "Date", ylab = "Discharge [m³/s]",
+#'      main = "Simulated vs Observed Discharge (Outlet)")
+#'   lines(model$Dates, model$SINK$obs, col = "red", lty = 2, lwd = 1.5)
 #'   legend("topright", legend = c("Simulated", "Observed"),
 #'          col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
-#' }
 #'
 #' @import airGR
 #' @import terra
 #' @import Matrix
 #' @import tictoc
 #' @import lubridate
+#' @import igraph
 #'
 #' @export
 Run_GR2MSemiDistr <- function(Data,
@@ -290,12 +341,31 @@ Run_GR2MSemiDistr <- function(Data,
   }
   colnames(QS) <- comid
 
-  # Perform routing through the river network using TransferMatrix
+  # === Routing: propagate accumulated flows downstream ===
   message("Performing routing with TransferMatrix...")
-  QR <- matrix(0, nrow=ntime, ncol=nsub)
+
+  # Build graph with correct orientation:
+  # MT[i, j] = 1 means subbasin j drains into i
+  g <- igraph::graph_from_adjacency_matrix(t(MT), mode = "directed")
+
+  # Compute topological order (headwaters -> outlet)
+  order_sub <- as.integer(igraph::topo_sort(g, mode = "out"))
+
+  # Initialize routed flows with local runoff
+  QR <- QS
   colnames(QR) <- comid
-  for (t in seq_len(ntime)) {
-    QR[t, ] <- as.numeric(QS[t, ] %*% (Diagonal(nsub) + MT))
+
+  # Traverse network and propagate accumulated flows downstream
+  for (j in order_sub) {
+    # Identify downstream receivers of subbasin j
+    rec_ids <- which(MT[, j] != 0)
+
+    # Pass accumulated discharge from j to each downstream receiver
+    if (length(rec_ids) > 0) {
+      for (i in rec_ids) {
+        QR[, i] <- QR[, i] + QR[, j]
+      }
+    }
   }
 
   # If Update mode was used, discard the artificial extra month
@@ -305,6 +375,7 @@ Run_GR2MSemiDistr <- function(Data,
     SM <- tail(SM, 1)
     PC <- tail(PC, 1)
     RU <- tail(RU, 1)
+    QS <- tail(QS, 1)
     QR <- tail(QR, 1)
     Dates <- tail(Dates, 1)
   }
@@ -350,6 +421,7 @@ Run_GR2MSemiDistr <- function(Data,
     save_one(SM,"SM")
     save_one(PC,"PC")
     save_one(RU,"RU")
+    save_one(QS,"QS")
     save_one(QR,"QR")
   }
 
@@ -366,6 +438,7 @@ Run_GR2MSemiDistr <- function(Data,
     SM       = SM,
     PC       = PC,
     RU       = RU,
+    QS       = QS,
     QR       = QR,
     EndState = lapply(ResModel, `[[`, "StateEnd")
   )

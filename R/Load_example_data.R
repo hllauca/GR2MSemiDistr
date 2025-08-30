@@ -8,16 +8,17 @@
 #'
 #' data <- GR2MSemiDistr::Load_example_data()
 #' names(data)
-#' cat     <- data$cat
-#' dem     <- data$dem
-#' qobs    <- data$qobs
-#' grid_pr <- data$grid_pr
-#' grid_pe <- data$grid_pe
-#' matrixT <- data$matrixT
 #'
-#' terra::plot(terra::mask(dem, cat), alpha=0.8)
-#' terra::plot(cat, add=TRUE)
-#' terra::text(cat)
+#' cat     <- data$cat       # Subbasin boundaries (SpatVector)
+#' dem     <- data$dem       # DEM (SpatRaster)
+#' qobs    <- data$qobs      # Observed streamflow (data.frame)
+#' grid_pr <- data$grid_pr   # Precipitation (SpatRaster)
+#' grid_pe <- data$grid_pe   # Potential evapotranspiration (SpatRaster)
+#' matrixT <- data$matrixT   # Connectivity matrix (data.frame)
+#'
+#' terra::plot(mask(dem, cat), alpha = 0.8, main = "Subbasins on DEM")
+#' terra::plot(cat, add = TRUE)
+#' terra::text(cat, labels = cat$COMID, cex = 0.6)
 #'
 #' @export
 Load_example_data <- function() {

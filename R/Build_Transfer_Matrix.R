@@ -9,13 +9,17 @@
 #' Designed to plug into routing steps used by `Run_GR2MSemiDistr()` and related
 #' functions in the package.
 #'
-#' @param Rivers A `SpatVector` of river reaches/subbasins. Its attribute table must contain
-#'   `COMID` (unique subbasin ID) and `NextDownID` (immediate downstream ID).
-#'   Geometry is ignored; only attributes are used. Outlets (no downstream basin/river)
-#'   must be encoded with `-1` in `NextDownID`.
+#' @param Rivers SpatVector. River reaches or subbasins. Must be a vector object from the `terra` package.
+#' Its attribute table must include:
+#' \describe{
+#'   \item{COMID}{Unique subbasin/reach identifier (character or numeric, internally coerced to character).}
+#'   \item{NextDownID}{Identifier of the immediate downstream subbasin/reach. Outlets (no downstream) must be coded with -1.}
+#' }
+#' Geometry is ignored; only the attribute table is used to build the connectivity.
 #'
-#' @return A sparse matrix of class `dgCMatrix` (rows = receivers, cols = donors),
-#'   with row/column names equal to `COMID`.
+#' @return dgCMatrix (sparse matrix). Subbasin connectivity matrix where
+#' rows represent receiving (downstream) subbasins and columns represent donor (upstream) subbasins.
+#' Row and column names are set to `COMID`.
 #'
 #' @import terra
 #' @import Matrix

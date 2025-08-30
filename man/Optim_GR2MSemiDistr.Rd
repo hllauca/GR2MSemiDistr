@@ -15,7 +15,7 @@ Optim_GR2MSemiDistr(
   Parameters.Min = c(100, 0.1, 0.8, 0.8),
   Parameters.Max = c(2000, 10, 1.2, 1.2),
   Optimization = "OF10",
-  Max.Functions = 5000,
+  Max.Functions = 1000,
   WarmUp = 36,
   No.Optim = NULL,
   w1 = 0.6,
@@ -24,67 +24,74 @@ Optim_GR2MSemiDistr(
 )
 }
 \arguments{
-\item{Data}{A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
-It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).}
+\item{Data}{data.frame. Model input data in the airGR format, as produced by `Create_Forcing_Inputs`.
+Must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).}
 
-\item{Subbasins}{A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).}
+\item{Subbasins}{SpatVector. Geometries of subbasins. Must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).}
 
-\item{RunIni}{Simulation start date in the format "mm/yyyy".}
+\item{RunIni}{character. Simulation start date in the format "mm/yyyy".}
 
-\item{RunEnd}{Simulation end date in the format "mm/yyyy".}
+\item{RunEnd}{character. Simulation end date in the format "mm/yyyy".}
 
-\item{Parameters}{A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.}
+\item{Parameters}{data.frame. GR2M model parameters and correction factors per region.
+Must have columns: Region, X1, X2, fp, fe.}
 
-\item{TransferMatrix}{Subbasin connectivity matrix defining downstream routing. Can be provided as a
-`data.frame`, a base R `matrix`, or a sparse matrix (`dgCMatrix` from the Matrix package).
-Row and column names must match `COMID`. The matrix is internally reordered to align with input forcings.
-For large river networks (thousands of subbasins), a sparse matrix is strongly recommended for memory efficiency.}
+\item{TransferMatrix}{matrix or dgCMatrix. Subbasin connectivity matrix defining downstream routing.
+Rows represent receiving (downstream) subbasins, and columns represent donor (upstream) subbasins.
+Row and column names must match `COMID`. For large river networks (thousands of subbasins),
+a sparse matrix is strongly recommended for memory efficiency.}
 
-\item{Outlet}{Outlet subbasin identifier as a COMID code present in Subbasins. Required for calibration.}
+\item{Outlet}{character. Outlet subbasin identifier as a COMID code present in `Subbasins`. Required for calibration.}
 
-\item{Parameters.Min}{Numeric vector of length 4, specifying lower bounds for optimization in the following order:
-c(X1, X2, fp, fe).}
+\item{Parameters.Min}{numeric vector of length 4. Lower bounds for optimization
+in the following order: c(X1, X2, fp, fe).}
 
-\item{Parameters.Max}{Numeric vector of length 4, specifying upper bounds for optimization in the same order as `Parameters.Min`.}
+\item{Parameters.Max}{numeric vector of length 4. Upper bounds for optimization
+in the same order as `Parameters.Min`.}
 
-\item{Optimization}{Character. Objective function to optimize. Available options include:
+\item{Optimization}{character. Objective function to optimize. Available options include:
 \describe{
   \item{"OF1"}{Kling-Gupta Efficiency (KGE).}
   \item{"OF2"}{Nash-Sutcliffe Efficiency (NSE).}
-  \item{"OF3"}{NSE applied to log-transformed flows (log-NSE, Pushpalatha 2012).}
+  \item{"OF3"}{NSE applied to log-transformed flows (logNSE, Pushpalatha 2012).}
   \item{"OF4"}{Root Mean Square Error (RMSE).}
   \item{"OF5"}{Percent Bias (PBIAS).}
-  \item{"OF6"}{FDC Bias (FDC Bias), based on flow duration curves.}
+  \item{"OF6"}{Bias in flow duration curves (FDC Bias).}
   \item{"OF7"}{Pearson correlation coefficient (r).}
-  \item{"OF8"}{Composite objective: w1 × KGE + w2 × NSE - w3 × RMSE.}
-  \item{"OF9"}{Composite objective: w1 × KGE + w2 × log-NSE - w3 × RMSE.}
-  \item{"OF10"}{Composite objective: w1 × KGE.km + w2 × KGE.lf - w3 × RMSE.}
+  \item{"OF8"}{Composite objective combining KGE, NSE, and RMSE with weights (w1, w2, w3).}
+  \item{"OF9"}{Composite objective combining KGE, logNSE, and RMSE with weights.}
+  \item{"OF10"}{Composite objective combining KGE.km, KGE.lf, and RMSE with weights.}
 }}
 
-\item{Max.Functions}{Integer. Maximum number of function evaluations in the optimization. Default is 5000.}
+\item{Max.Functions}{integer. Maximum number of function evaluations in the optimization.
+Default is 1000.}
 
-\item{WarmUp}{Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.}
+\item{WarmUp}{integer. Number of months discarded as warm-up period when computing the objective function.
+If NULL (default), no warm-up is applied.}
 
-\item{No.Optim}{Character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).}
+\item{No.Optim}{character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).}
 
-\item{w1}{Numeric. Weight for the first component in composite objective functions (OF8, OF9, OF10). Default is 0.6.}
+\item{w1}{numeric. Weight for the first component in composite objective functions (OF8, OF9, OF10). Default is 0.6.}
 
-\item{w2}{Numeric. Weight for the second component in composite objective functions. Default is 0.3.}
+\item{w2}{numeric. Weight for the second component in composite objective functions. Default is 0.3.}
 
-\item{w3}{Numeric. Weight for the third component in composite objective functions. Default is 0.2.}
+\item{w3}{numeric. Weight for the third component in composite objective functions. Default is 0.2.}
 }
 \value{
-A list with the following elements:
+A list with the following components:
 \describe{
-  \item{Parameters}{Data frame of optimized parameters per region (columns: Region, X1, X2, fp, fe).}
-  \item{OF}{Final value of the selected objective function.}
+  \item{Parameters}{data.frame. Optimized parameter set per calibration region.
+  Always includes all regions present in `Subbasins`; regions excluded from optimization
+  via `No.Optim` retain their original parameter values. Columns are: Region, X1, X2, fp, fe.}
+  \item{OF}{numeric. Final value of the selected objective function corresponding
+  to the best parameter set found by the optimization.}
 }
 }
 \description{
 Optimizes the GR2M monthly water balance model parameters (X1, X2, fp, fe) for multiple calibration regions
 using the SCE-UA algorithm. The model is run in a semi-distributed setup over multiple subbasins grouped
-by region. Users can select from various objective functions (e.g., NSE, KGE, RMSE, and linear combinations), including
-composite metrics. Parameter bounds must be provided, and regions can be excluded from calibration.
+by region. Users can select from various objective functions, including composite metrics.
+Parameter bounds must be provided, and regions can be excluded from calibration.
 }
 \examples{
 library(GR2MSemiDistr)
@@ -92,13 +99,13 @@ library(GR2MSemiDistr)
 # Define initial parameters for each region
 param_init <- data.frame(
   Region = unique(cat$Region),
-  X1 = rep(500, length(unique(cat$Region))),
-  X2 = rep(1.5, length(unique(cat$Region))),
-  fp = rep(1.0, length(unique(cat$Region))),
-  fe = rep(1.0, length(unique(cat$Region)))
+  X1  = 500,  # Production store capacity [mm]
+  X2  = 1.5,  # Groundwater exchange coefficient
+  fp  = 1.0,  # Precipitation correction factor
+  fe  = 1.0   # Evapotranspiration correction factor
 )
 
-# Optimize parameters using the KGE criterion (OF1)
+# Calibrate parameters using OF10 as objective function
 result <- Optim_GR2MSemiDistr(
   Data = model_inputs,
   Subbasins = cat,
@@ -125,14 +132,14 @@ model <- Run_GR2MSemiDistr(
   Parameters = best_params,
 )
 
-if (!is.null(model$SINK)) {
   par(mfrow = c(1, 1))
-  plot(model$dates, model$SINK$sim, type = "l", col = "blue",
+  plot(model$Dates, model$SINK$sim, type = "l", col = "blue", lwd = 1.5,
        xlab = "Date", ylab = "Discharge [m³/s]",
-  lines(model$dates, model$SINK$obs, col = "red", type='o')
-  legend("topright", legend = c("Simulated", "Observed"),
-         col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
-}
+       main = "Simulated vs Observed Discharge (Outlet)")
+    lines(model$Dates, model$SINK$obs, col = "red", lty = 2, lwd = 1.5)
+    legend("topright", legend = c("Simulated", "Observed"),
+           col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
+
 }
 \references{
 Llauca H, Lavado-Casimiro W, Montesinos C, Santini W, Rau P. (2021).

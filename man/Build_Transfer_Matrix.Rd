@@ -7,14 +7,18 @@
 Build_Transfer_Matrix(Rivers)
 }
 \arguments{
-\item{Rivers}{A `SpatVector` of river reaches/subbasins. Its attribute table must contain
-`COMID` (unique subbasin ID) and `NextDownID` (immediate downstream ID).
-Geometry is ignored; only attributes are used. Outlets (no downstream basin/river)
-must be encoded with `-1` in `NextDownID`.}
+\item{Rivers}{SpatVector. River reaches or subbasins. Must be a vector object from the `terra` package.
+Its attribute table must include:
+\describe{
+  \item{COMID}{Unique subbasin/reach identifier (character or numeric, internally coerced to character).}
+  \item{NextDownID}{Identifier of the immediate downstream subbasin/reach. Outlets (no downstream) must be coded with -1.}
+}
+Geometry is ignored; only the attribute table is used to build the connectivity.}
 }
 \value{
-A sparse matrix of class `dgCMatrix` (rows = receivers, cols = donors),
-  with row/column names equal to `COMID`.
+dgCMatrix (sparse matrix). Subbasin connectivity matrix where
+rows represent receiving (downstream) subbasins and columns represent donor (upstream) subbasins.
+Row and column names are set to `COMID`.
 }
 \description{
 Create a dense 0/1 transfer matrix (as a data.frame) from a river reach/subbasin

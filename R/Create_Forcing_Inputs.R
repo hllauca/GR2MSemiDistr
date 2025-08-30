@@ -3,23 +3,31 @@
 #' This function extracts spatially averaged monthly precipitation and potential evapotranspiration values for each subbasin,
 #' and optionally includes observed streamflow data, to produce a formatted data frame compatible with the airGR hydrological modeling framework.
 #'
-#' @param Subbasins A SpatVector object containing the subbasins' geometries. Must include the following attributes: 'COMID' (unique identifier), and 'Region' (string code for the hydro-climatic region).
-#' @param Precip A SpatRaster object with monthly precipitation data in [mm/month].
-#' @param PotEvap A SpatRaster object with monthly potential evapotranspiration data in [mm/month].
-#' @param Qobs Optional. A vector with observed streamflow in [m³/s] at the basin outlet.
-#' @param DateIni Start date of the output time series in 'mm/yyyy' format.
-#' @param DateEnd End date of the output time series in 'mm/yyyy' format.
-#' @param IniGrids Initial date of the gridded precipitation and evapotranspiration datasets in mm/yyyy format.
-#' @param Save Logical. If TRUE, saves the resulting data frame to a .txt file in the './Inputs' directory. Default is FALSE.
-#' @param Update Logical. If TRUE, returns only the last month of data (useful for operational updates). Default is FALSE.
-#' @param Members Optional. Integer indicating the number of ensemble members for streamflow forecasting. If provided, the date vector will be repeated accordingly. Default is NULL.
+#' @param Subbasins SpatVector. Subbasin geometries. Must include attributes:
+#' 'COMID' (unique subbasin identifier) and 'Region' (character code for the hydro-climatic region).
+#' @param Precip SpatRaster. Monthly precipitation fields in [mm/month].
+#' Dimensions and time coverage must include at least the requested period (`DateIni`–`DateEnd`).
+#' @param PotEvap SpatRaster. Monthly potential evapotranspiration fields in [mm/month].
+#' Must align with the precipitation raster in space and time.
+#' @param Qobs numeric vector (optional). Observed streamflow series at the basin outlet, in [m³/s].
+#' Length must match the number of simulated months if provided. Default is `NULL`.
+#' @param DateIni character. Start date of the output time series in `"mm/yyyy"` format.
+#' @param DateEnd character. End date of the output time series in `"mm/yyyy"` format.
+#' @param IniGrids character. Initial date of the gridded precipitation and evapotranspiration datasets in `"mm/yyyy"` format.
+#' Used to align raster time indices with the requested simulation period.
+#' @param Save logical. If `TRUE`, saves the resulting data frame to a tab-separated `.txt` file
+#' inside the `./Inputs` directory. Default is `FALSE`.
+#' @param Update logical. If `TRUE`, returns only the last month of data
+#' (useful for operational forecasting/updates). Default is `FALSE`.
+#' @param Members integer (optional). Number of ensemble members for streamflow forecasting.
+#' If provided, the date vector is replicated accordingly. Default is `NULL`.
 #'
-#' @return A data frame containing the model inputs in the airGR format, with columns:
+#' @return data.frame with model inputs in the airGR format, including the following columns:
 #' \describe{
-#'   \item{DatesR}{Monthly dates}
-#'   \item{P_x}{Mean precipitation for subbasin x, where x is the COMID}
-#'   \item{E_x}{Mean potential evapotranspiration for subbasin x, where x is the COMID}
-#'   \item{Q}{Observed streamflow [m³/s], if provided}
+#'   \item{DatesR}{POSIXct. Monthly dates covering the simulation period.}
+#'   \item{P_x}{numeric. Mean precipitation for subbasin x [mm/month], where x is the COMID.}
+#'   \item{E_x}{numeric. Mean potential evapotranspiration for subbasin x [mm/month], where x is the COMID.}
+#'   \item{Q}{numeric (optional). Observed streamflow at the basin outlet [m³/s], included only if `Qobs` was provided.}
 #' }
 #'
 #' @references
@@ -46,26 +54,24 @@
 #'   IniGrids = ini_grids,
 #' )
 #'
-#' # Create figures to visualize the inputs
-#' dates <- as.Date(model_inputs$DatesR)
+#' # Select a target COMID to plot
+#' target_comid <- "10"
 #'
-#' # Plot average precipitation across subbasins
-#' P_vars <- grep("^P_", names(model_inputs), value = TRUE)
-#' avg_P <- rowMeans(model_inputs[, P_vars], na.rm = TRUE)
-#' plot(dates, avg_P, type = "l", col = "blue", lwd = 1.5,
-#'      ylab = "Precipitation [mm/month]", xlab = "Date",
-#'      main = "Mean Precipitation across Subbasins")
+#' # Plot precipitation for the target subbasin
+#' P_col <- paste0("P_", target_comid)
+#' plot(model_inputs$DatesR, model_inputs[[P_col]], type = "h", lwd = 2, col = "dodgerblue",
+#'     ylab = "Precipitation [mm/month]", xlab = "Date",
+#'     main = sprintf("Precipitation in Subbasin %s", target_comid))
 #'
-#' # Plot average potential evapotranspiration across subbasins
-#' E_vars <- grep("^E_", names(model_inputs), value = TRUE)
-#' avg_E <- rowMeans(model_inputs[, E_vars], na.rm = TRUE)
-#' plot(dates, avg_E, type = "l", col = "orange", lwd = 1.5,
+#' # Plot potential evapotranspiration for the target subbasin
+#' E_col <- paste0("E_", target_comid)
+#' plot(model_inputs$DatesR, model_inputs[[E_col]], type = "o", lwd = 2, col = "darkgreen",
 #'      ylab = "PET [mm/month]", xlab = "Date",
-#'      main = "Mean Potential Evapotranspiration across Subbasins")
+#'      main = sprintf("Potential Evapotranspiration in Subbasin %s", target_comid))
 #'
 #' # Plot observed streamflow at outlet (if available)
 #' if ("Q" %in% names(model_inputs)) {
-#'   plot(dates, model_inputs$Q, type = "l", col = "darkgreen", lwd = 1.5,
+#'   plot(model_inputs$DatesR, model_inputs$Q, type = "l", col = "darkblue", lwd = 1.5,
 #'        ylab = "Q [m³/s]", xlab = "Date",
 #'        main = "Observed Streamflow at Basin Outlet")
 #' }

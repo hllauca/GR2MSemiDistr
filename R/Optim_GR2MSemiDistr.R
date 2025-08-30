@@ -2,47 +2,54 @@
 #'
 #' Optimizes the GR2M monthly water balance model parameters (X1, X2, fp, fe) for multiple calibration regions
 #' using the SCE-UA algorithm. The model is run in a semi-distributed setup over multiple subbasins grouped
-#' by region. Users can select from various objective functions (e.g., NSE, KGE, RMSE, and linear combinations), including
-#' composite metrics. Parameter bounds must be provided, and regions can be excluded from calibration.
+#' by region. Users can select from various objective functions, including composite metrics.
+#' Parameter bounds must be provided, and regions can be excluded from calibration.
 #'
-#' @param Data A data frame of model input data in the airGR format, as produced by Create_Forcing_Inputs.
-#' It must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).
-#' @param Subbasins A SpatVector object containing the geometries of subbasins. It must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
-#' @param RunIni Simulation start date in the format "mm/yyyy".
-#' @param RunEnd Simulation end date in the format "mm/yyyy".
-#' @param TransferMatrix Subbasin connectivity matrix defining downstream routing. Can be provided as a
-#' `data.frame`, a base R `matrix`, or a sparse matrix (`dgCMatrix` from the Matrix package).
-#' Row and column names must match `COMID`. The matrix is internally reordered to align with input forcings.
-#' For large river networks (thousands of subbasins), a sparse matrix is strongly recommended for memory efficiency.
-#' @param Outlet Outlet subbasin identifier as a COMID code present in Subbasins. Required for calibration.
-#' @param Parameters A data frame containing GR2M model parameters and correction factors per region. Must have columns: Region, X1, X2, fp, fe.
-#' @param Parameters.Min Numeric vector of length 4, specifying lower bounds for optimization in the following order:
-#' c(X1, X2, fp, fe).
-#' @param Parameters.Max Numeric vector of length 4, specifying upper bounds for optimization in the same order as `Parameters.Min`.
-#' @param Max.Functions Integer. Maximum number of function evaluations in the optimization. Default is 5000.
-#' @param Optimization Character. Objective function to optimize. Available options include:
+#' @param Data data.frame. Model input data in the airGR format, as produced by `Create_Forcing_Inputs`.
+#' Must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibration).
+#' @param Subbasins SpatVector. Geometries of subbasins. Must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
+#' @param RunIni character. Simulation start date in the format "mm/yyyy".
+#' @param RunEnd character. Simulation end date in the format "mm/yyyy".
+#' @param TransferMatrix matrix or dgCMatrix. Subbasin connectivity matrix defining downstream routing.
+#' Rows represent receiving (downstream) subbasins, and columns represent donor (upstream) subbasins.
+#' Row and column names must match `COMID`. For large river networks (thousands of subbasins),
+#' a sparse matrix is strongly recommended for memory efficiency.
+#' @param Outlet character. Outlet subbasin identifier as a COMID code present in `Subbasins`. Required for calibration.
+#' @param Parameters data.frame. GR2M model parameters and correction factors per region.
+#' Must have columns: Region, X1, X2, fp, fe.
+#' @param Parameters.Min numeric vector of length 4. Lower bounds for optimization
+#' in the following order: c(X1, X2, fp, fe).
+#' @param Parameters.Max numeric vector of length 4. Upper bounds for optimization
+#' in the same order as `Parameters.Min`.
+#' @param Max.Functions integer. Maximum number of function evaluations in the optimization.
+#' Default is 1000.
+#' @param Optimization character. Objective function to optimize. Available options include:
 #' \describe{
 #'   \item{"OF1"}{Kling-Gupta Efficiency (KGE).}
 #'   \item{"OF2"}{Nash-Sutcliffe Efficiency (NSE).}
-#'   \item{"OF3"}{NSE applied to log-transformed flows (log-NSE, Pushpalatha 2012).}
+#'   \item{"OF3"}{NSE applied to log-transformed flows (logNSE, Pushpalatha 2012).}
 #'   \item{"OF4"}{Root Mean Square Error (RMSE).}
 #'   \item{"OF5"}{Percent Bias (PBIAS).}
-#'   \item{"OF6"}{FDC Bias (FDC Bias), based on flow duration curves.}
+#'   \item{"OF6"}{Bias in flow duration curves (FDC Bias).}
 #'   \item{"OF7"}{Pearson correlation coefficient (r).}
-#'   \item{"OF8"}{Composite objective: w1 × KGE + w2 × NSE - w3 × RMSE.}
-#'   \item{"OF9"}{Composite objective: w1 × KGE + w2 × log-NSE - w3 × RMSE.}
-#'   \item{"OF10"}{Composite objective: w1 × KGE.km + w2 × KGE.lf - w3 × RMSE.}
+#'   \item{"OF8"}{Composite objective combining KGE, NSE, and RMSE with weights (w1, w2, w3).}
+#'   \item{"OF9"}{Composite objective combining KGE, logNSE, and RMSE with weights.}
+#'   \item{"OF10"}{Composite objective combining KGE.km, KGE.lf, and RMSE with weights.}
 #' }
-#' @param WarmUp Optional number of months to discard from the beginning of the simulation as warm-up. Default is NULL.
-#' @param No.Optim Character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).
-#' @param w1 Numeric. Weight for the first component in composite objective functions (OF8, OF9, OF10). Default is 0.6.
-#' @param w2 Numeric. Weight for the second component in composite objective functions. Default is 0.3.
-#' @param w3 Numeric. Weight for the third component in composite objective functions. Default is 0.2.
+#' @param WarmUp integer. Number of months discarded as warm-up period when computing the objective function.
+#' If NULL (default), no warm-up is applied.
+#' @param No.Optim character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).
+#' @param w1 numeric. Weight for the first component in composite objective functions (OF8, OF9, OF10). Default is 0.6.
+#' @param w2 numeric. Weight for the second component in composite objective functions. Default is 0.3.
+#' @param w3 numeric. Weight for the third component in composite objective functions. Default is 0.2.
 #'
-#' @return A list with the following elements:
+#' @return A list with the following components:
 #' \describe{
-#'   \item{Parameters}{Data frame of optimized parameters per region (columns: Region, X1, X2, fp, fe).}
-#'   \item{OF}{Final value of the selected objective function.}
+#'   \item{Parameters}{data.frame. Optimized parameter set per calibration region.
+#'   Always includes all regions present in `Subbasins`; regions excluded from optimization
+#'   via `No.Optim` retain their original parameter values. Columns are: Region, X1, X2, fp, fe.}
+#'   \item{OF}{numeric. Final value of the selected objective function corresponding
+#'   to the best parameter set found by the optimization.}
 #' }
 #'
 #' @references
@@ -56,13 +63,13 @@
 #' # Define initial parameters for each region
 #' param_init <- data.frame(
 #'   Region = unique(cat$Region),
-#'   X1 = rep(500, length(unique(cat$Region))),
-#'   X2 = rep(1.5, length(unique(cat$Region))),
-#'   fp = rep(1.0, length(unique(cat$Region))),
-#'   fe = rep(1.0, length(unique(cat$Region)))
+#'   X1  = 500,  # Production store capacity [mm]
+#'   X2  = 1.5,  # Groundwater exchange coefficient
+#'   fp  = 1.0,  # Precipitation correction factor
+#'   fe  = 1.0   # Evapotranspiration correction factor
 #' )
 #'
-#' # Optimize parameters using the KGE criterion (OF1)
+#' # Calibrate parameters using OF10 as objective function
 #' result <- Optim_GR2MSemiDistr(
 #'   Data = model_inputs,
 #'   Subbasins = cat,
@@ -89,21 +96,21 @@
 #'   Parameters = best_params,
 #' )
 #'
-#' if (!is.null(model$SINK)) {
 #'   par(mfrow = c(1, 1))
-#'   plot(model$dates, model$SINK$sim, type = "l", col = "blue",
+#'   plot(model$Dates, model$SINK$sim, type = "l", col = "blue", lwd = 1.5,
 #'        xlab = "Date", ylab = "Discharge [m³/s]",
-#    main = "Simulated vs Observed Discharge (Outlet)")
-#'   lines(model$dates, model$SINK$obs, col = "red", type='o')
-#'   legend("topright", legend = c("Simulated", "Observed"),
-#'          col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
-#' }
+#'        main = "Simulated vs Observed Discharge (Outlet)")
+#'     lines(model$Dates, model$SINK$obs, col = "red", lty = 2, lwd = 1.5)
+#'     legend("topright", legend = c("Simulated", "Observed"),
+#'            col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
+#'
 #' @import airGR
 #' @import rtop
 #' @import hydroGOF
 #' @import terra
 #' @import tictoc
 #' @import lubridate
+#' @import igraph
 #'
 #' @export
 Optim_GR2MSemiDistr <- function(Data,
@@ -116,7 +123,7 @@ Optim_GR2MSemiDistr <- function(Data,
                                 Parameters.Min = c(100, 0.1, 0.8, 0.8),
                                 Parameters.Max = c(2000, 10, 1.2, 1.2),
                                 Optimization = 'OF10',
-                                Max.Functions = 5000,
+                                Max.Functions = 1000,
                                 WarmUp = 36,
                                 No.Optim = NULL,
                                 w1 = 0.6,
@@ -206,8 +213,8 @@ Optim_GR2MSemiDistr <- function(Data,
   # === Validate forcing data columns ===
   p_names <- paste0("P_", comid)
   e_names <- paste0("E_", comid)
-  miss_p <- setdiff(p_names, names(Database))
-  miss_e <- setdiff(e_names, names(Database))
+  miss_p  <- setdiff(p_names, names(Database))
+  miss_e  <- setdiff(e_names, names(Database))
   if (length(miss_p) || length(miss_e)) {
     stop(sprintf("Missing columns in Data. P: [%s]; E: [%s]",
                  paste(miss_p, collapse=","), paste(miss_e, collapse=",")))
@@ -274,48 +281,56 @@ Optim_GR2MSemiDistr <- function(Data,
                                   IndPeriod_Run = seq_len(ntime),
                                   verbose = FALSE, warnings = FALSE)
 
-      output <- RunModel(model_input, run_opt, param_i, RunModel_GR2M)
+      output <- RunModel(InputsModel = model_input,
+                         RunOptions = run_opt,
+                         Param = param_i,
+                         FUN_MOD = RunModel_GR2M)
 
       # Convert runoff from mm to discharge in m³/s
       QS[, i] <- (area[i] * output$Qsim) / (86.4 * nDays)
     }
 
-    # === Routing: apply TransferMatrix at each timestep (vector-based) ===
-    QR <- matrix(0, nrow = ntime, ncol = nsub)
+
+    # === Routing: propagate accumulated flows downstream ===
+    # Build graph with correct orientation:
+    # MT[i, j] = 1 means subbasin j drains into i
+    g <- igraph::graph_from_adjacency_matrix(t(MT), mode = "directed")
+
+    # Compute topological order (headwaters -> outlet)
+    order_sub <- as.integer(igraph::topo_sort(g, mode = "out"))
+
+    # Initialize routed flows with local runoff
+    QR <- QS
     colnames(QR) <- comid
-    for (t in seq_len(ntime)) {
-      QR[t, ] <- as.numeric(QS[t, ] %*% (Diagonal(nsub) + MT))
+
+    # Traverse network and propagate accumulated flows downstream
+    for (j in order_sub) {
+      # Identify downstream receivers of subbasin j
+      rec_ids <- which(MT[, j] != 0)
+
+      # Pass accumulated discharge from j to each downstream receiver
+      if (length(rec_ids) > 0) {
+        for (i in rec_ids) {
+          QR[, i] <- QR[, i] + QR[, j]
+        }
+      }
     }
 
-    # Extract outlet simulated discharge
-    Qsim <- as.numeric(QR[, idx_outlet])
-
-    # Extract observed discharge
-    Qobs <- Database$Q
-
-    # Apply warm-up trimming if requested
-    if (!is.null(WarmUp) && WarmUp > 0) {
-      if (WarmUp >= length(Qsim)) return(Inf)
-      Qsim <- Qsim[-seq_len(WarmUp)]
-      Qobs <- Qobs[-seq_len(WarmUp)]
-    }
-
-    # Keep only valid (finite) pairs
-    ok <- is.finite(Qsim) & is.finite(Qobs)
-    if (!any(ok)) return(Inf)
-    y <- Qsim[ok]
-    x <- Qobs[ok]
+    # Extract outlet discharge after warm-up period
+    Qsim <- as.numeric(QR[-seq_len(WarmUp), idx_outlet])
+    # Qsim <- rowSums(QS)[-seq_len(WarmUp)]
+    Qobs <- Database$Q[-seq_len(WarmUp)]
 
     # === Compute performance metrics ===
-    kge     <- 1 - KGE(y, x)
-    nse     <- 1 - NSE(y, x)
-    nselog  <- 1 - NSE(y, x, fun = log, epsilon.type = "Pushpalatha2012")
-    rmse_v  <- rmse(y, x)
-    pbias_v <- abs(pbias(y, x))
-    pbiasfdc_v <- abs(pbiasfdc(y, x, plot = FALSE))
-    rpear_v <- 1 - rPearson(y, x)
-    kgekm_v <- 1 - KGEkm(y, x)
-    kgelf_v <- 1 - KGElf(y, x)
+    kge     <- 1 - KGE(Qsim, Qobs)
+    nse     <- 1 - NSE(Qsim, Qobs)
+    nselog  <- 1 - NSE(Qsim, Qobs, fun = log, epsilon.type = "Pushpalatha2012")
+    rpear_v <- 1 - rPearson(Qsim, Qobs)
+    kgekm_v <- 1 - KGEkm(Qsim, Qobs)
+    kgelf_v <- 1 - KGElf(Qsim, Qobs)
+    rmse_v  <- rmse(Qsim, Qobs)
+    pbias_v <- abs(pbias(Qsim, Qobs))
+    pbiasfdc_v <- abs(pbiasfdc(Qsim, Qobs, plot = FALSE))
 
     # Return selected objective function value
     criteria <- c(
@@ -326,9 +341,9 @@ Optim_GR2MSemiDistr <- function(Data,
       OF5  = pbias_v,
       OF6  = pbiasfdc_v,
       OF7  = rpear_v,
-      OF8  = w1 * kge + w2 * nse + w3 * rmse_v,
-      OF9  = w1 * kge + w2 * nselog + w3 * rmse_v,
-      OF10 = w1 * kgekm_v + w2 * kgelf_v + w3 * rmse_v
+      OF8  = (w1 * kge + w2 * nse + w3 * rmse_v)/ (w1 + w2 + w3),
+      OF9  = (w1 * kge + w2 * nselog + w3 * rmse_v)/ (w1 + w2 + w3),
+      OF10 = (w1 * kgekm_v + w2 * kgelf_v + w3 * rmse_v)/ (w1 + w2 + w3)
     )
     criteria[Optimization]
   }
@@ -352,18 +367,15 @@ Optim_GR2MSemiDistr <- function(Data,
   } else {
     final_params <- final_params[match(all_regions, final_params$Region), ]
   }
-
   final_obj_raw <- Calibration$value
 
   message("Optimization complete.")
   cat("\nFinal calibrated parameters per region:\n")
   print(final_params)
   cat(sprintf("Objective Function (%s) = %s\n", Optimization, final_obj_raw))
-
   tictoc::toc()
 
-  # Return optimized parameters and final objective value
+  # Return
   list(Parameters = final_params,
        OF = final_obj_raw)
 }
-

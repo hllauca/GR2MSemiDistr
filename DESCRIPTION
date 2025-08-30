@@ -1,19 +1,21 @@
 Package: GR2MSemiDistr
 Type: Package
-Title: Semi-Distributed GR2M Model for Large-Sample Hydrological Applications
-Version: 5.1
+Title: Semi-Distributed GR2M Model for Catchment to Large-Scale Hydrological Applications
+Version: 5.2
 Author: Harold Llauca <hllauca@senamhi.gob.pe>
 Maintainer: Harold Llauca <hllauca@senamhi.gob.pe>
-Description: Implements a semi-distributed adaptation of the GR2M monthly hydrological
-    model for large-sample and operational hydrological modeling. The model uses
-    regional parameters and subbasin-level forcing data to simulate water balance
-    components such as precipitation, evapotranspiration, runoff, and discharge.
-    It supports warm-up periods, initial states, output saving, regional
-    parameter correction, and performance evaluation through various objective
-    functions. The routing scheme is implemented using a transfer matrix that
-    represents subbasin connectivity from upstream to downstream. Designed for
-    flexible integration in research, water resource assessments, and operational
-    hydrological systems in complex basins.
+Description: Implements a semi-distributed adaptation of the GR2M monthly water balance model 
+    with spatial discretization into subbasins and routing based on a transfer matrix 
+    interpreted as a directed graph. The model supports both small catchments and large-sample 
+    applications with thousands of subbasins, using regionalized parameters and 
+    subbasin-level forcings to simulate precipitation, evapotranspiration, runoff, and discharge. 
+    It includes warm-up periods, initial states, saving options, regional parameter correction, 
+    and performance evaluation through multiple objective functions. Seamlessly integrates with 
+    the 'airGR' hydrological modeling framework and the 'terra' spatial ecosystem, making it 
+    suitable for research, operational forecasting, and water resources assessment. Future 
+    versions will include multi-objective calibration methods, bias correction of gridded forcings, 
+    automated preparation of inputs from observations, and advanced routing based on linear 
+    reservoir schemes.
 License: GPL (>= 2)
 Encoding: UTF-8
 Depends:
@@ -27,7 +29,8 @@ Imports:
     sf,
     rtop,
     exactextractr,
-    Matrix
+    Matrix,
+    igraph
 RoxygenNote: 7.3.2
 URL: https://github.com/hllauca/GR2MSemiDistr
 BugReports: https://github.com/hllauca/GR2MSemiDistr/issues
