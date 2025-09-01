@@ -355,21 +355,23 @@ Run_GR2MSemiDistr <- function(Data,
   # === Routing: propagate accumulated flows downstream ===
   message("Performing routing with TransferMatrix...")
 
+  # === Routing: propagate accumulated flows downstream ===
   # Build graph with correct orientation:
   # MT[i, j] = 1 means subbasin j drains into i
   g <- igraph::graph_from_adjacency_matrix(t(MT), mode = "directed")
-
+  
   # Compute topological order (headwaters -> outlet)
   order_sub <- as.integer(igraph::topo_sort(g, mode = "out"))
-
+  
   # Initialize routed flows with local runoff
-  QR <- QS; colnames(QR) <- comid
-
+  QR <- QS
+  colnames(QR) <- comid
+  
   # Traverse network and propagate accumulated flows downstream
   for (j in order_sub) {
     # Identify downstream receivers of subbasin j
     rec_ids <- which(MT[, j] != 0)
-
+    
     # Pass accumulated discharge from j to each downstream receiver
     if (length(rec_ids) > 0) {
       for (i in rec_ids) {
