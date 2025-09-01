@@ -152,30 +152,30 @@ Run_GR2MSemiDistr <- function(Data,
                               StatesIni = NULL,
                               Save = FALSE,
                               Update = FALSE) {
-
+  
   tictoc::tic()
-
+  
   # Validate that Subbasins is a SpatVector
   if (!inherits(Subbasins, "SpatVector")) {
     stop("'Subbasins' must be a 'SpatVector'.")
   }
-
+  
   # Check that Subbasins contains the required attributes
   if (!all(c("COMID", "Region") %in% names(Subbasins))) {
     stop("'Subbasins' must contain attributes 'COMID' and 'Region'.")
   }
-
+  
   # Extract basic attributes from Subbasins
   comid  <- as.character(Subbasins$COMID)         # Subbasin IDs as character
   region <- Subbasins$Region                      # Region assignment for each subbasin
   area   <- terra::expanse(Subbasins, unit = "km")# Subbasin areas in km²
   nsub   <- length(comid)                         # Number of subbasins
-
+  
   # Check that input Data contains DatesR column as required by airGR
   if (!"DatesR" %in% names(Data)) {
     stop("Data must contain column 'DatesR' as required by airGR.")
   }
-
+  
   # Convert DatesR to POSIXct if needed
   if (inherits(Data$DatesR, "Date")) {
     Data$DatesR <- as.POSIXct(Data$DatesR, tz = "UTC")
@@ -186,32 +186,33 @@ Run_GR2MSemiDistr <- function(Data,
       tryFormats = c("%Y-%m-%d","%Y/%m/%d","%d-%m-%Y","%d/%m/%Y","%Y-%m","%m/%Y")
     )
   }
-
+  
   # Stop if any date could not be recognized
   if (anyNA(Data$DatesR)) stop("Unrecognized date format in DatesR.")
-
+  
   # Identify start and end indices for the simulation window
   ind_start <- which(format(Data$DatesR, "%m/%Y") == RunIni)
   ind_end   <- which(format(Data$DatesR, "%m/%Y") == RunEnd)
-
+  
   if (!length(ind_start) || !length(ind_end)) {
     stop("RunIni or RunEnd not found (expected 'mm/YYYY').")
   }
   if (max(ind_end) < min(ind_start)) {
     stop("RunEnd precedes RunIni.")
   }
-
+  
   # Subset the database for the selected simulation period
   Database <- Data[min(ind_start):max(ind_end), , drop = FALSE]
   Dates    <- as.Date(Database$DatesR)
-
+  
+  added_fake <- FALSE
   # If Update mode is activated
   if (Update) {
     # If only one month is available, add an artificial next month
     if (nrow(Database) == 1) {
+      added_fake <- TRUE
       d1 <- as.Date(Dates[1])
       next_month <- seq(d1, by = "month", length.out = 2)[2]
-
       Database <- rbind(
         Database,
         cbind(DatesR = as.POSIXct(next_month, tz="UTC"),
@@ -221,31 +222,31 @@ Run_GR2MSemiDistr <- function(Data,
       Dates <- as.Date(Database$DatesR)
     }
   }
-
+  
   # Number of time steps and days in each month
   ntime    <- length(Dates)
   nDays    <- lubridate::days_in_month(Dates)
-
+  
   # Validate Parameters structure
   req_cols <- c("Region", "X1", "X2", "fp", "fe")
   if (!all(req_cols %in% names(Parameters))) {
     stop("Parameters must contain: Region, X1, X2, fp, fe.")
   }
-
+  
   # Ensure that all required regions are covered by Parameters
   regs_needed <- sort(unique(region))
   regs_have   <- sort(unique(Parameters$Region))
   if (!identical(regs_needed, regs_have)) {
     stop("Mismatch between required and provided Regions.")
   }
-
+  
   # Match parameters to subbasins by Region
   match_idx <- match(region, Parameters$Region)
   X1_vec <- Parameters$X1[match_idx]
   X2_vec <- Parameters$X2[match_idx]
   fp_vec <- Parameters$fp[match_idx]
   fe_vec <- Parameters$fe[match_idx]
-
+  
   # Validate forcing data presence
   p_names <- paste0("P_", comid)
   e_names <- paste0("E_", comid)
@@ -254,16 +255,16 @@ Run_GR2MSemiDistr <- function(Data,
   if (length(miss_p) || length(miss_e)) {
     stop("Missing forcing columns in Database.")
   }
-
+  
   # Validate TransferMatrix
   if (is.null(TransferMatrix)) stop("TransferMatrix is required.")
-
+  
   # Convert data.frame to matrix if needed
   if (is.data.frame(TransferMatrix)) TransferMatrix <- as.matrix(TransferMatrix)
-
+  
   # Convert to sparse matrix for efficiency
   MT <- as(TransferMatrix, "dgCMatrix")
-
+  
   # Validate dimensions and row/column names
   if (any(dim(MT) != c(nsub, nsub))) {
     stop(sprintf("TransferMatrix must be %d x %d.", nsub, nsub))
@@ -271,20 +272,20 @@ Run_GR2MSemiDistr <- function(Data,
   if (is.null(rownames(MT)) || is.null(colnames(MT))) {
     stop("TransferMatrix must have rownames and colnames corresponding to COMID.")
   }
-
+  
   rows_mt <- as.character(rownames(MT))
   cols_mt <- as.character(colnames(MT))
   if (!setequal(comid, rows_mt) || !setequal(comid, cols_mt)) {
     stop("TransferMatrix COMID mismatch.")
   }
-
+  
   # Reorder TransferMatrix to match COMID order
   MT <- MT[comid, comid, drop = FALSE]
-
+  
   # Run GR2M model for each subbasin
   message(sprintf("Running GR2M for %d subbasins", nsub))
   ResModel <- vector("list", nsub)
-
+  
   for (i in seq_len(nsub)) {
     # Build input dataframe with precipitation and evapotranspiration
     Input <- data.frame(
@@ -292,18 +293,18 @@ Run_GR2MSemiDistr <- function(Data,
       P      = fp_vec[i] * Database[[p_names[i]]],
       E      = fe_vec[i] * Database[[e_names[i]]]
     )
-
+    
     # Stop if NA values are found in P or E
     if (anyNA(Input$P) || anyNA(Input$E)) {
       stop(sprintf("NA values in P/E for COMID %s", comid[i]))
     }
-
+    
     # Create input structure for airGR
     InputsModel <- CreateInputsModel(FUN_MOD = RunModel_GR2M,
                                      DatesR   = Input$DatesR,
                                      Precip   = Input$P,
                                      PotEvap  = Input$E)
-
+    
     # If StatesIni is provided, match by COMID and use it
     if (!is.null(StatesIni)) {
       RunOptions <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
@@ -319,42 +320,42 @@ Run_GR2MSemiDistr <- function(Data,
                                      verbose = FALSE,
                                      warnings = FALSE)
     }
-
+    
     # Run GR2M for the subbasin
     ResModel[[i]] <- RunModel(InputsModel = InputsModel,
                               RunOptions  = RunOptions,
                               Param       = c(X1_vec[i], X2_vec[i]),
                               FUN         = RunModel_GR2M)
   }
-
+  
   # Helper to extract matrices from ResModel
   mat_from_list <- function(key, round_digits=2) {
     out <- do.call(cbind, lapply(ResModel, function(r) round(r[[key]], round_digits)))
     colnames(out) <- comid
     out
   }
-
+  
   # Extract outputs
   PR <- mat_from_list("Precip")
   AE <- mat_from_list("AE")
   SM <- mat_from_list("Prod")
   PC <- mat_from_list("Perc")
   RU <- mat_from_list("Qsim")
-
+  
   # Save end states with COMID names
   StatesEnd <- lapply(seq_along(ResModel), function(i) ResModel[[i]]$StateEnd)
   names(StatesEnd) <- comid
-
+  
   # Convert runoff (mm) into discharge (m³/s) using area and number of days
   QS <- matrix(NA, nrow=ntime, ncol=nsub)
   for (i in seq_len(nsub)) {
     QS[,i] <- round((area[i] * ResModel[[i]]$Qsim) / (86.4 * nDays), 2)
   }
   colnames(QS) <- comid
-
+  
   # === Routing: propagate accumulated flows downstream ===
   message("Performing routing with TransferMatrix...")
-
+  
   # === Routing: propagate accumulated flows downstream ===
   # Build graph with correct orientation:
   # MT[i, j] = 1 means subbasin j drains into i
@@ -379,10 +380,8 @@ Run_GR2MSemiDistr <- function(Data,
       }
     }
   }
-
-  # If Update mode was used and only 1 real month was available,
-  # discard the artificial extra month
-  if (Update && nrow(Database) == 1) {
+  
+  if (added_fake) {
     PR <- head(PR, -1)
     AE <- head(AE, -1)
     SM <- head(SM, -1)
@@ -392,7 +391,7 @@ Run_GR2MSemiDistr <- function(Data,
     QR <- head(QR, -1)
     Dates <- head(Dates, -1)
   }
-
+  
   # Extract outlet discharge if Outlet is provided
   qsim <- NULL
   qobs <- NULL
@@ -406,49 +405,72 @@ Run_GR2MSemiDistr <- function(Data,
       qobs <- Database$Q
     }
   }
-
+  
   # Save results to disk as tab-separated text files
   if (Save) {
+    # Ensure output directory exists
     if (!dir.exists("./Outputs")) {
-      dir.create("./Outputs", recursive=TRUE)
+      dir.create("./Outputs", recursive = TRUE)
     }
+    
     save_one <- function(var, tag) {
+      # Build a data.frame and set monthly Date strings as row names (YYYY-mm-01)
       df <- as.data.frame(var)
       rownames(df) <- format(Dates, "%Y-%m-01")
-
-      # Use only the last date (MMYYYY) in the file name
-      last_str <- format(max(Dates), "%Y%m")
-      file <- sprintf("./Outputs/%s_GR2MSemiDistr_%s.txt", tag, last_str)
-
-      # If Update = TRUE, append only the new months and avoid duplicates
-      if (Update && file.exists(file)) {
-        old_df <- read.table(file, header=TRUE, sep="\t", check.names=FALSE)
-        new_df <- rbind(old_df[!rownames(old_df) %in% rownames(df), ], df)
-        write.table(new_df, file=file, sep="\t", quote=FALSE)
+      
+      if (Update) {
+        # When updating: find the most recent existing file for this tag (…_YYYYMM.txt)
+        patt <- sprintf("^%s_GR2MSemiDistr_\\d{6}\\.txt$", tag)
+        olds <- list.files("./Outputs", pattern = patt, full.names = TRUE)
+        
+        # Read the latest existing file (if any) using the first column as row names (dates)
+        old_df <- if (length(olds)) {
+          pick <- which.max(as.integer(sub(".*_(\\d{6})\\.txt$", "\\1", basename(olds))))
+          read.table(olds[pick], header = TRUE, sep = "\t",
+                     check.names = FALSE, row.names = 1)
+        } else NULL
+        
+        # Merge without duplicates by date (row names). New data overrides same-month rows.
+        new_df <- if (!is.null(old_df)) {
+          rbind(old_df[setdiff(rownames(old_df), rownames(df)), , drop = FALSE], df)
+        } else df
+        
+        # Order by date and build the new filename with the latest month suffix
+        new_df  <- new_df[order(rownames(new_df)), , drop = FALSE]
+        last_mm <- format(as.Date(tail(rownames(new_df), 1)), "%Y%m")
+        new_fn  <- sprintf("./Outputs/%s_GR2MSemiDistr_%s.txt", tag, last_mm)
+        
+        # Write the updated file and remove any older files of the same tag
+        write.table(new_df, file = new_fn, sep = "\t", quote = FALSE)
+        if (length(olds)) unlink(setdiff(olds, new_fn))
+        
       } else {
-        write.table(df, file=file, sep="\t", quote=FALSE)
+        # Original behavior (no Update): write a fresh file using the last month in this run
+        last_str <- format(max(Dates), "%Y%m")
+        file <- sprintf("./Outputs/%s_GR2MSemiDistr_%s.txt", tag, last_str)
+        write.table(df, file = file, sep = "\t", quote = FALSE)
       }
     }
-
+    
     # Save all variables separately
-    save_one(PR,"PR")
-    save_one(AE,"AE")
-    save_one(SM,"SM")
-    save_one(PC,"PC")
-    save_one(RU,"RU")
-    save_one(QS,"QS")
-    save_one(QR,"QR")
-
-    # Save final states only once
+    save_one(PR, "PR")
+    save_one(AE, "AE")
+    save_one(SM, "SM")
+    save_one(PC, "PC")
+    save_one(RU, "RU")
+    save_one(QS, "QS")
+    save_one(QR, "QR")
+    
+    # Save final states only once (keeps month suffix aligned with the latest simulated date)
     last_str <- format(max(Dates), "%Y%m")
     save(StatesEnd, file = sprintf("./Outputs/StatesEnd_%s.Rdata", last_str))
   }
-
-
+  
+  
   # Report execution time
   message("Processing completed in...")
   tictoc::toc()
-
+  
   # Assemble results to return
   Ans <- list(
     Dates    = Dates,
@@ -462,7 +484,7 @@ Run_GR2MSemiDistr <- function(Data,
     QR       = QR,
     StatesEnd = StatesEnd
   )
-
+  
   # Add outlet discharge if available
   if (!is.null(Outlet)) {
     if (!is.null(qobs)) {
