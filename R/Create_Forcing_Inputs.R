@@ -189,8 +189,11 @@ Create_Forcing_Inputs <- function(Subbasins,
     end <- as.Date(paste0("01/", DateEnd),  "%d/%m/%Y")
     DatesMonths <- seq(ini, end, by = "month")
     if (!is.null(Members)) {
-      DatesMonths <- rep(DatesMonths, times = Members) # Members handling not modified
+      DatesMonths <- rep(DatesMonths, times = Members)
+      Prec <- Prec[rep(seq_len(nrow(Prec)), times = Members), , drop = FALSE]
+      Evap <- Evap[rep(seq_len(nrow(Evap)), times = Members), , drop = FALSE]
     }
+    
   }
 
   # ==== Assemble output data.frame ====
