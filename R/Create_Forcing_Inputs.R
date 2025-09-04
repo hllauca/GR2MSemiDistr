@@ -19,8 +19,9 @@
 #' inside the `./Inputs` directory. Default is `FALSE`.
 #' @param Update logical. If `TRUE`, returns only the last month of data
 #' (useful for operational forecasting/updates). Default is `FALSE`.
-#' @param Members integer (optional). Number of ensemble members for streamflow forecasting.
-#' If provided, the date vector is replicated accordingly. Default is `NULL`.
+#' @param Members logical. If `TRUE`, the number of ensemble members is inferred 
+#' from the raster layers (stacked as members × months). If `FALSE`, a single 
+#' deterministic series is processed. Default is `FALSE`.
 #'
 #' @return data.frame with model inputs in the airGR format, including the following columns:
 #' \describe{
@@ -92,16 +93,16 @@ Create_Forcing_Inputs <- function(Subbasins,
                                   IniGrids = "01/1981",
                                   Save = FALSE,
                                   Update = FALSE,
-                                  Members = NULL) {
-
+                                  Members = FALSE) {
+  
   tictoc::tic()
-
-  # ==== Basic class validation ====
+  
+  # ==== Basic validations ====
   if (!inherits(Subbasins, "SpatVector")) {
     stop("Argument 'Subbasins' must be of class 'SpatVector'.")
   }
   if (!"COMID" %in% names(Subbasins)) {
-    stop("The 'Subbasins' object must contain a field named 'COMID'.")
+    stop("The 'Subbasins' object must contain field 'COMID'.")
   }
   if (!is.null(Precip) && !inherits(Precip, "SpatRaster")) {
     stop("Argument 'Precip' must be of class 'SpatRaster'.")
@@ -109,117 +110,114 @@ Create_Forcing_Inputs <- function(Subbasins,
   if (!is.null(PotEvap) && !inherits(PotEvap, "SpatRaster")) {
     stop("Argument 'PotEvap' must be of class 'SpatRaster'.")
   }
-
+  
   # ==== Date format validation ====
   .check_mmYYYY <- function(x) grepl("^\\d{2}/\\d{4}$", x)
-  if (!.check_mmYYYY(IniGrids)) stop("IniGrids must be 'mm/YYYY', e.g. '01/1981'.")
-  if (!.check_mmYYYY(DateIni))  stop("DateIni must be 'mm/YYYY', e.g. '01/1990'.")
-  if (!.check_mmYYYY(DateEnd))  stop("DateEnd must be 'mm/YYYY', e.g. '12/2020'.")
-
+  if (!.check_mmYYYY(DateIni))  stop("DateIni must be 'mm/YYYY'.")
+  if (!.check_mmYYYY(DateEnd))  stop("DateEnd must be 'mm/YYYY'.")
+  if (!Members && !.check_mmYYYY(IniGrids)) {
+    stop("IniGrids must be 'mm/YYYY' when Members = FALSE.")
+  }
+  
   # ==== Helper: robust monthly date sequence ====
   .seq_months_from_tag <- function(mmYYYY, n_layers) {
     start <- as.Date(paste0("01/", mmYYYY), "%d/%m/%Y")
     seq(from = start, by = "month", length.out = n_layers)
   }
-
+  
   # ==== Helper: weighted areal mean extraction ====
   .extract_variable <- function(raster, var_name, IniGrids, DateIni, DateEnd,
-                                Subbasins_sf, Update = FALSE) {
-
+                                Subbasins_sf, Update = FALSE, Members = FALSE) {
+    
     message(sprintf("Computing monthly %s for each subbasin...", var_name))
-
+    
     nL <- terra::nlyr(raster)
-    all_dates <- .seq_months_from_tag(IniGrids, nL)
-
     ini <- as.Date(paste0("01/", DateIni), "%d/%m/%Y")
     end <- as.Date(paste0("01/", DateEnd), "%d/%m/%Y")
-
-    # Select layer indices within the requested date range
-    ind <- which(all_dates >= ini & all_dates <= end)
-    if (!length(ind)) stop("Requested range does not intersect raster temporal coverage.")
-
-    # If Update = TRUE, keep only the last date of the range
-    if (Update) ind <- tail(ind, 1)
-
-    # Weighted mean using polygon area
+    
+    if (Members) {
+      # cuando hay ensemble: usar todas las capas en bloques miembro×mes
+      n_months <- length(seq(ini, end, by = "month"))
+      MembersN <- nL / n_months
+      if (MembersN %% 1 != 0) stop("Raster not consistent with Members × Months.")
+      ind <- 1:(n_months * MembersN)
+    } else {
+      all_dates <- .seq_months_from_tag(IniGrids, nL)
+      ind <- which(all_dates >= ini & all_dates <= end)
+      if (!length(ind)) stop("Requested range does not intersect raster coverage.")
+      if (Update) ind <- tail(ind, 1)
+    }
+    
+    # Weighted mean extraction
     mat <- t(
       exactextractr::exact_extract(raster[[ind]], Subbasins_sf,
                                    fun = "mean", weights = "area", progress = FALSE)
     )
     return(mat)
   }
-
-  # ==== CRS checks and cropping/masking (if rasters are provided) ====
+  
+  # ==== CRS checks and cropping/masking ====
   if (!is.null(Precip)) {
-    if (!terra::same.crs(Precip, Subbasins)) {
-      stop("CRS mismatch between 'Precip' and 'Subbasins'. Reproject before calling.")
-    }
-    Precip <- terra::crop(Precip, terra::ext(Subbasins))
-    Precip <- terra::mask(Precip, Subbasins)
+    if (!terra::same.crs(Precip, Subbasins)) stop("CRS mismatch Precip vs Subbasins.")
+    Precip <- terra::mask(terra::crop(Precip, terra::ext(Subbasins)), Subbasins)
   }
   if (!is.null(PotEvap)) {
-    if (!terra::same.crs(PotEvap, Subbasins)) {
-      stop("CRS mismatch between 'PotEvap' and 'Subbasins'. Reproject before calling.")
-    }
-    PotEvap <- terra::crop(PotEvap, terra::ext(Subbasins))
-    PotEvap <- terra::mask(PotEvap, Subbasins)
+    if (!terra::same.crs(PotEvap, Subbasins)) stop("CRS mismatch PotEvap vs Subbasins.")
+    PotEvap <- terra::mask(terra::crop(PotEvap, terra::ext(Subbasins)), Subbasins)
   }
-
+  
   # ==== Extract COMID IDs as character ====
   comid <- as.character(Subbasins$COMID)
-
-  # ==== Data extraction ====
   Subbasins_sf <- sf::st_as_sf(Subbasins)
-
+  
+  # ==== Data extraction ====
   if (!is.null(Precip)) {
     Prec <- round(.extract_variable(Precip, "precipitation", IniGrids, DateIni, DateEnd,
-                              Subbasins_sf, Update),2)
+                                    Subbasins_sf, Update, Members), 2)
   }
-
   if (!is.null(PotEvap)) {
     Evap <- round(.extract_variable(PotEvap, "evapotranspiration", IniGrids, DateIni, DateEnd,
-                              Subbasins_sf, Update),2)
+                                    Subbasins_sf, Update, Members), 2)
   }
-
+  
   # ==== Date vector ====
   if (Update) {
     DatesMonths <- as.Date(paste0("01/", DateEnd), "%d/%m/%Y")
   } else {
-    ini <- as.Date(paste0("01/", DateIni),  "%d/%m/%Y")
-    end <- as.Date(paste0("01/", DateEnd),  "%d/%m/%Y")
-    DatesMonths <- seq(ini, end, by = "month")
-    if (!is.null(Members)) {
-      DatesMonths <- rep(DatesMonths, times = Members)
-      Prec <- Prec[rep(seq_len(nrow(Prec)), times = Members), , drop = FALSE]
-      Evap <- Evap[rep(seq_len(nrow(Evap)), times = Members), , drop = FALSE]
-    }
+    ini <- as.Date(paste0("01/", DateIni), "%d/%m/%Y")
+    end <- as.Date(paste0("01/", DateEnd), "%d/%m/%Y")
+    base_dates <- seq(ini, end, by = "month")
     
+    if (Members) {
+      n_months <- length(base_dates)
+      n_rows   <- if (!is.null(Precip)) nrow(Prec) else nrow(Evap)
+      MembersN <- n_rows / n_months
+      if (MembersN %% 1 != 0) stop("Mismatch: number of rows not n_months × Members.")
+      DatesMonths <- rep(base_dates, times = MembersN)
+    } else {
+      DatesMonths <- base_dates
+    }
   }
-
+  
   # ==== Assemble output data.frame ====
   data_list <- list(DatesR = DatesMonths)
-
+  
   if (!is.null(Precip)) {
-    Prec <- as.data.frame(Prec)
-    colnames(Prec) <- paste0("P_", comid)
+    Prec <- as.data.frame(Prec); colnames(Prec) <- paste0("P_", comid)
     data_list <- c(data_list, Prec)
   }
-
   if (!is.null(PotEvap)) {
-    Evap <- as.data.frame(Evap)
-    colnames(Evap) <- paste0("E_", comid)
+    Evap <- as.data.frame(Evap); colnames(Evap) <- paste0("E_", comid)
     data_list <- c(data_list, Evap)
   }
-
   if (!is.null(Qobs)) {
-    Flow <- as.data.frame(Qobs)
-    if (ncol(Flow) == 1) names(Flow) <- "Q"
+    Flow <- as.data.frame(Qobs); if (ncol(Flow) == 1) names(Flow) <- "Q"
     data_list <- c(data_list, Flow)
   }
-
+  
   Ans <- as.data.frame(data_list)
-
-  # ==== Optional: save to file ====
+  
+  # ==== Save option ====
   if (Save) {
     if (!dir.exists("./Inputs")) dir.create("./Inputs", recursive = TRUE)
     fname <- sprintf("./Inputs/Inputs_model_%s_%s.txt",
@@ -227,7 +225,7 @@ Create_Forcing_Inputs <- function(Subbasins,
                      format(max(Ans$DatesR), "%Y%m"))
     write.table(Ans, file = fname, sep = "\t", quote = FALSE, row.names = FALSE)
   }
-
+  
   message("Processing completed successfully in...")
   tictoc::toc()
   return(Ans)

@@ -14,7 +14,7 @@ Create_Forcing_Inputs(
   IniGrids = "01/1981",
   Save = FALSE,
   Update = FALSE,
-  Members = NULL
+  Members = FALSE
 )
 }
 \arguments{
@@ -43,8 +43,9 @@ inside the `./Inputs` directory. Default is `FALSE`.}
 \item{Update}{logical. If `TRUE`, returns only the last month of data
 (useful for operational forecasting/updates). Default is `FALSE`.}
 
-\item{Members}{integer (optional). Number of ensemble members for streamflow forecasting.
-If provided, the date vector is replicated accordingly. Default is `NULL`.}
+\item{Members}{logical. If `TRUE`, the number of ensemble members is inferred 
+from the raster layers (stacked as members × months). If `FALSE`, a single 
+deterministic series is processed. Default is `FALSE`.}
 }
 \value{
 data.frame with model inputs in the airGR format, including the following columns:
