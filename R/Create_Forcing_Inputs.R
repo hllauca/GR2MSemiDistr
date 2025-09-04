@@ -102,7 +102,7 @@ Create_Forcing_Inputs <- function(Subbasins,
     stop("Argument 'Subbasins' must be of class 'SpatVector'.")
   }
   if (!"COMID" %in% names(Subbasins)) {
-    stop("The 'Subbasins' object must contain field 'COMID'.")
+    stop("The 'Subbasins' object must contain a field named 'COMID'.")
   }
   if (!is.null(Precip) && !inherits(Precip, "SpatRaster")) {
     stop("Argument 'Precip' must be of class 'SpatRaster'.")
@@ -136,19 +136,19 @@ Create_Forcing_Inputs <- function(Subbasins,
     end <- as.Date(paste0("01/", DateEnd), "%d/%m/%Y")
     
     if (Members) {
-      # cuando hay ensemble: usar todas las capas en bloques miembro×mes
+      # usar todas las capas en bloques miembro×mes
       n_months <- length(seq(ini, end, by = "month"))
       MembersN <- nL / n_months
       if (MembersN %% 1 != 0) stop("Raster not consistent with Members × Months.")
       ind <- 1:(n_months * MembersN)
     } else {
+      # ruta clásica con IniGrids
       all_dates <- .seq_months_from_tag(IniGrids, nL)
       ind <- which(all_dates >= ini & all_dates <= end)
       if (!length(ind)) stop("Requested range does not intersect raster coverage.")
       if (Update) ind <- tail(ind, 1)
     }
     
-    # Weighted mean extraction
     mat <- t(
       exactextractr::exact_extract(raster[[ind]], Subbasins_sf,
                                    fun = "mean", weights = "area", progress = FALSE)
