@@ -10,17 +10,19 @@
 #' @param Subbasins SpatVector. Geometries of subbasins. Must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
 #' @param RunIni character. Simulation start date in the format "mm/yyyy".
 #' @param RunEnd character. Simulation end date in the format "mm/yyyy".
-#' @param WarmUp integer (optional). Number of months to discard from the beginning of the simulation as model warm-up.
 #' @param TransferMatrix matrix or dgCMatrix. Subbasin connectivity matrix defining downstream routing.
 #' Rows represent receiving (downstream) subbasins, and columns represent donor (upstream) subbasins.
 #' Row and column names must match `COMID`. For large river networks (thousands of subbasins),
 #' a sparse matrix is strongly recommended for memory efficiency.
 #' @param Outlet character. Outlet subbasin identifier as a COMID code present in `Subbasins`. Required for calibration.
 #' @param Parameters data.frame. GR2M model parameters and correction factors per region.
-#' Must have columns: Region, X1, X2, fp, fe.
-#' @param Parameters.Min numeric vector of length 4. Lower bounds for optimization
-#' in the following order: c(X1, X2, fp, fe).
-#' @param Parameters.Max numeric vector of length 4. Upper bounds for optimization
+#' Must have columns: Region, X1, X2, fp, fe. An optional `k` column (linear-reservoir
+#' routing constant per region, in months; see `Run_GR2MSemiDistr()` Details) is used
+#' as-is for regions in `No.Optim`; if absent, `k = 0` is assumed (previous,
+#' instantaneous-routing behavior).
+#' @param Parameters.Min numeric vector of length 5. Lower bounds for optimization
+#' in the following order: c(X1, X2, fp, fe, k).
+#' @param Parameters.Max numeric vector of length 5. Upper bounds for optimization
 #' in the same order as `Parameters.Min`.
 #' @param Max.Functions integer. Maximum number of function evaluations in the optimization.
 #' Default is 1000.
@@ -33,22 +35,28 @@
 #'   \item{"OF5"}{Percent Bias (PBIAS).}
 #'   \item{"OF6"}{Bias in flow duration curves (FDC Bias).}
 #'   \item{"OF7"}{Pearson correlation coefficient (r).}
-#'   \item{"OF8"}{Composite objective combining KGE, NSE, and RMSE with weights (w1, w2, w3).}
-#'   \item{"OF9"}{Composite objective combining KGE, logNSE, and RMSE with weights.}
-#'   \item{"OF10"}{Composite objective combining KGE.km, KGE.lf, and RMSE with weights.}
+#'   \item{"OF8"}{Composite objective combining KGE, NSE, and RSR (RMSE normalized by
+#'   sd(Qobs), Moriasi et al. 2007) with weights (w1, w2, w3).}
+#'   \item{"OF9"}{Composite objective combining KGE, logNSE, and RSR with weights.}
+#'   \item{"OF10"}{Composite objective combining KGE.km, KGE.lf, and RSR with weights.}
 #' }
-#' @param WarmUp integer. Number of months discarded as warm-up period when computing the objective function.
-#' If NULL (default), no warm-up is applied.
+#' @param WarmUp integer. Number of months discarded as warm-up period when computing the
+#' objective function. Default is 36.
 #' @param No.Optim character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).
 #' @param w1 numeric. Weight for the first component in composite objective functions (OF8, OF9, OF10). Default is 0.6.
 #' @param w2 numeric. Weight for the second component in composite objective functions. Default is 0.3.
 #' @param w3 numeric. Weight for the third component in composite objective functions. Default is 0.2.
+#' @param Cores integer. Number of parallel workers used to run GR2M across
+#' subbasins on every objective-function evaluation. Default is `1`
+#' (sequential); values greater than 1 build a `parallel::makeCluster()`
+#' PSOCK cluster ONCE before optimization starts and reuse it for every
+#' evaluation. Only worth it for large networks (thousands of subbasins).
 #'
 #' @return A list with the following components:
 #' \describe{
 #'   \item{Parameters}{data.frame. Optimized parameter set per calibration region.
 #'   Always includes all regions present in `Subbasins`; regions excluded from optimization
-#'   via `No.Optim` retain their original parameter values. Columns are: Region, X1, X2, fp, fe.}
+#'   via `No.Optim` retain their original parameter values. Columns are: Region, X1, X2, fp, fe, k.}
 #'   \item{OF}{numeric. Final value of the selected objective function corresponding
 #'   to the best parameter set found by the optimization.}
 #' }
@@ -105,13 +113,8 @@
 #'     legend("topright", legend = c("Simulated", "Observed"),
 #'            col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
 #'
-#' @import airGR
-#' @import rtop
-#' @import hydroGOF
-#' @import terra
-#' @import tictoc
-#' @import lubridate
-#' @import igraph
+#' @importFrom airGR CreateInputsModel CreateRunOptions RunModel RunModel_GR2M
+#' @importFrom hydroGOF KGE NSE rPearson KGEkm KGElf rmse pbias pbiasfdc
 #'
 #' @export
 Optim_GR2MSemiDistr <- function(Data,
@@ -121,15 +124,16 @@ Optim_GR2MSemiDistr <- function(Data,
                                 Parameters,
                                 TransferMatrix,
                                 Outlet,
-                                Parameters.Min = c(100, 0.1, 0.8, 0.8),
-                                Parameters.Max = c(2000, 10, 1.2, 1.2),
+                                Parameters.Min = c(100, 0.1, 0.8, 0.8, 0),
+                                Parameters.Max = c(2000, 10, 1.2, 1.2, 6),
                                 Optimization = 'OF10',
                                 Max.Functions = 1000,
                                 WarmUp = 36,
                                 No.Optim = NULL,
                                 w1 = 0.6,
                                 w2 = 0.3,
-                                w3 = 0.2) {
+                                w3 = 0.2,
+                                Cores = 1) {
   tictoc::tic()
 
   # === Validate Subbasins input ===
@@ -204,6 +208,13 @@ Optim_GR2MSemiDistr <- function(Data,
                  paste(all_regions, collapse=","), paste(regs_have, collapse=",")))
   }
 
+  # Optional routing constant k (months) per region; default to 0 (instantaneous
+  # transfer, i.e. previous behavior) if not supplied, for backward compatibility.
+  if (!"k" %in% names(Parameters)) {
+    Parameters$k <- 0
+    message("Parameters$k not supplied; defaulting to k = 0 (instantaneous routing, previous behavior).")
+  }
+
   # === Determine which regions are optimized ===
   if (!is.null(No.Optim) && any(!(No.Optim %in% all_regions))) {
     stop("No.Optim contains regions not present in Subbasins.")
@@ -222,12 +233,12 @@ Optim_GR2MSemiDistr <- function(Data,
   }
 
   # === Validate bounds ===
-  if (!(length(Parameters.Min) == 4 && length(Parameters.Max) == 4)) {
-    stop("Parameters.Min/Max must be length 4 (X1, X2, fp, fe).")
+  if (!(length(Parameters.Min) == 5 && length(Parameters.Max) == 5)) {
+    stop("Parameters.Min/Max must be length 5 (X1, X2, fp, fe, k).")
   }
 
   # Initial parameter vector for optimization (only for opt_regions)
-  opt.param     <- unlist(Parameters[Parameters$Region %in% opt_regions, c("X1","X2","fp","fe")], use.names = FALSE)
+  opt.param     <- unlist(Parameters[Parameters$Region %in% opt_regions, c("X1","X2","fp","fe","k")], use.names = FALSE)
   opt.param.min <- rep(Parameters.Min, times = length(opt_regions))
   opt.param.max <- rep(Parameters.Max, times = length(opt_regions))
 
@@ -239,6 +250,7 @@ Optim_GR2MSemiDistr <- function(Data,
                X2 = param_vec[(n + 1):(2 * n)],
                fp = param_vec[(2 * n + 1):(3 * n)],
                fe = param_vec[(3 * n + 1):(4 * n)],
+               k  = param_vec[(4 * n + 1):(5 * n)],
                row.names = NULL)
   }
 
@@ -251,6 +263,58 @@ Optim_GR2MSemiDistr <- function(Data,
                E = fe * Database[[paste0("E_", comid_i)]])
   }
 
+  # === Routing topology: built ONCE, outside OFUN ===
+  # The network topology never changes during calibration (only the GR2M and
+  # routing parameters do), so rebuilding the graph and recomputing the
+  # topological order on every objective-function evaluation (potentially
+  # Max.Functions times) would be pure waste -- especially for large networks.
+  g <- igraph::graph_from_adjacency_matrix(t(MT), mode = "directed")
+  if (!igraph::is_dag(g)) {
+    stop("TransferMatrix induces a cyclic graph; routing requires a valid dendritic network (DAG).")
+  }
+  order_sub <- as.integer(igraph::topo_sort(g, mode = "out"))
+
+  # === Parallel cluster: built ONCE, outside OFUN (same reasoning as the
+  # routing topology above) -- creating/tearing down a cluster on every
+  # objective-function evaluation would cost far more than it saves. Static
+  # objects (that don't change across evaluations) are exported once here;
+  # only Param (which does change every call) is passed to each parLapply()
+  # call directly. No-op when Cores = 1 (plain lapply, no cluster).
+  cl <- NULL
+  if (Cores > 1) {
+    cl <- parallel::makeCluster(Cores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    parallel::clusterEvalQ(cl, library(airGR))
+    parallel::clusterExport(cl, varlist = c("Database", "region", "area", "nDays",
+                                            "comid", "ntime", "forcing_input", "Dates"),
+                            envir = environment())
+  }
+
+  # === Per-subbasin GR2M run (independent until routing) ===
+  run_one_subbasin_calib <- function(i, Param) {
+    reg_i   <- region[i]
+    param_i <- c(Param$X1[Param$Region == reg_i], Param$X2[Param$Region == reg_i])
+    input_i <- forcing_input(Param, reg_i, Database, comid[i])
+
+    model_input <- CreateInputsModel(FUN_MOD = RunModel_GR2M,
+                                     DatesR  = input_i$DatesR,
+                                     Precip  = input_i$P,
+                                     PotEvap = input_i$E)
+
+    run_opt <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
+                                InputsModel   = model_input,
+                                IndPeriod_Run = seq_len(ntime),
+                                verbose = FALSE, warnings = FALSE)
+
+    output <- RunModel(InputsModel = model_input,
+                       RunOptions = run_opt,
+                       Param = param_i,
+                       FUN_MOD = RunModel_GR2M)
+
+    # Convert runoff from mm to discharge in m³/s
+    (area[i] * output$Qsim) / (86.4 * nDays)
+  }
+
   # === Objective function with routing ===
   OFUN <- function(par) {
     # Build parameter table from current vector
@@ -259,60 +323,40 @@ Optim_GR2MSemiDistr <- function(Data,
     # Merge fixed parameters (if some regions are excluded from optimization)
     if (!is.null(No.Optim)) {
       fixed <- Parameters[Parameters$Region %in% No.Optim, ]
-      Param <- rbind(Param, fixed[, c("Region","X1","X2","fp","fe")])
+      Param <- rbind(Param, fixed[, c("Region","X1","X2","fp","fe","k")])
       Param <- Param[match(all_regions, Param$Region), ]
     } else {
       Param <- Param[match(all_regions, Param$Region), ]
     }
 
     # Run GR2M for each subbasin independently (no routing yet)
-    QS <- matrix(NA_real_, nrow = ntime, ncol = nsub)
-    for (i in seq_len(nsub)) {
-      reg_i   <- region[i]
-      param_i <- c(Param$X1[Param$Region == reg_i], Param$X2[Param$Region == reg_i])
-      input_i <- forcing_input(Param, reg_i, Database, comid[i])
-
-      model_input <- CreateInputsModel(FUN_MOD = RunModel_GR2M,
-                                       DatesR  = input_i$DatesR,
-                                       Precip  = input_i$P,
-                                       PotEvap = input_i$E)
-
-      run_opt <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
-                                  InputsModel   = model_input,
-                                  IndPeriod_Run = seq_len(ntime),
-                                  verbose = FALSE, warnings = FALSE)
-
-      output <- RunModel(InputsModel = model_input,
-                         RunOptions = run_opt,
-                         Param = param_i,
-                         FUN_MOD = RunModel_GR2M)
-
-      # Convert runoff from mm to discharge in m³/s
-      QS[, i] <- (area[i] * output$Qsim) / (86.4 * nDays)
+    if (Cores > 1) {
+      qs_list <- parallel::parLapply(cl, seq_len(nsub), run_one_subbasin_calib, Param = Param)
+    } else {
+      qs_list <- lapply(seq_len(nsub), run_one_subbasin_calib, Param = Param)
     }
+    QS <- do.call(cbind, qs_list)
 
 
-    # === Routing: propagate accumulated flows downstream ===
-    # Build graph with correct orientation:
-    # MT[i, j] = 1 means subbasin j drains into i
-    g <- igraph::graph_from_adjacency_matrix(t(MT), mode = "directed")
-
-    # Compute topological order (headwaters -> outlet)
-    order_sub <- as.integer(igraph::topo_sort(g, mode = "out"))
+    # === Routing: propagate flows downstream through a linear reservoir per reach ===
+    # (g/order_sub are computed once outside OFUN -- topology doesn't change here.)
+    k_vec <- Param$k[match(region, Param$Region)]
 
     # Initialize routed flows with local runoff
     QR <- QS
     colnames(QR) <- comid
 
-    # Traverse network and propagate accumulated flows downstream
+    # Traverse network and propagate flows downstream, transiting each donor's
+    # discharge through its own reach (linear reservoir, k in months) before
+    # adding it to the receiver -- k = 0 reproduces the previous instantaneous sum.
     for (j in order_sub) {
       # Identify downstream receivers of subbasin j
       rec_ids <- which(MT[, j] != 0)
 
-      # Pass accumulated discharge from j to each downstream receiver
       if (length(rec_ids) > 0) {
+        routed_j <- route_linear_reservoir(QR[, j], k = k_vec[j])
         for (i in rec_ids) {
-          QR[, i] <- QR[, i] + QR[, j]
+          QR[, i] <- QR[, i] + routed_j
         }
       }
     }
@@ -333,6 +377,14 @@ Optim_GR2MSemiDistr <- function(Data,
     pbias_v <- abs(pbias(Qsim, Qobs))
     pbiasfdc_v <- abs(pbiasfdc(Qsim, Qobs, plot = FALSE))
 
+    # RSR (RMSE-observations standard deviation ratio, Moriasi et al. 2007):
+    # RMSE normalized by sd(Qobs), used ONLY inside the composite objectives
+    # (OF8-OF10) so it is on the same roughly-[0, ~2] scale as the other
+    # (1 - efficiency) terms. Using the raw RMSE (in m3/s, unbounded) there
+    # would make it dominate the weighted sum regardless of w1/w2/w3 for any
+    # basin with non-trivial discharge -- OF4 still reports the raw RMSE.
+    rmse_norm <- rmse_v / sd(Qobs)
+
     # Return selected objective function value
     criteria <- c(
       OF1  = kge,
@@ -342,10 +394,14 @@ Optim_GR2MSemiDistr <- function(Data,
       OF5  = pbias_v,
       OF6  = pbiasfdc_v,
       OF7  = rpear_v,
-      OF8  = (w1 * kge + w2 * nse + w3 * rmse_v)/ (w1 + w2 + w3),
-      OF9  = (w1 * kge + w2 * nselog + w3 * rmse_v)/ (w1 + w2 + w3),
-      OF10 = (w1 * kgekm_v + w2 * kgelf_v + w3 * rmse_v)/ (w1 + w2 + w3)
+      OF8  = (w1 * kge + w2 * nse + w3 * rmse_norm)/ (w1 + w2 + w3),
+      OF9  = (w1 * kge + w2 * nselog + w3 * rmse_norm)/ (w1 + w2 + w3),
+      OF10 = (w1 * kgekm_v + w2 * kgelf_v + w3 * rmse_norm)/ (w1 + w2 + w3)
     )
+    if (!Optimization %in% names(criteria)) {
+      stop(sprintf("Unknown 'Optimization' value '%s'. Must be one of: %s.",
+                   Optimization, paste(names(criteria), collapse = ", ")))
+    }
     criteria[Optimization]
   }
 
@@ -362,7 +418,7 @@ Optim_GR2MSemiDistr <- function(Data,
   # === Organize output ===
   final_params <- get_param(Calibration$par, opt_regions)
   if (!is.null(No.Optim)) {
-    fixed <- Parameters[Parameters$Region %in% No.Optim, c("Region","X1","X2","fp","fe")]
+    fixed <- Parameters[Parameters$Region %in% No.Optim, c("Region","X1","X2","fp","fe","k")]
     final_params <- rbind(final_params, fixed)
     final_params <- final_params[match(all_regions, final_params$Region), ]
   } else {

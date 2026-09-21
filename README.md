@@ -8,7 +8,7 @@ The package is designed for **large-sample and national-scale hydrological appli
 
 It integrates seamlessly with the `airGR` hydrological modeling framework and the `terra` spatial ecosystem, making it suitable for climate services, water resource assessments, and operational hydrological forecasting.  
 
-The package was developed as part of hydrological research and operational water resource modeling in Peru (see Llauca et al., 2021). Planned extensions include multi-objective calibration methods, automated input preparation from observations, bias correction of gridded forcings, and enhanced routing with linear reservoir schemes.  
+The package was developed as part of hydrological research and operational water resource modeling in Peru (see Llauca et al., 2021). Planned extensions include multi-objective calibration methods, automated input preparation from observations, and bias correction of gridded forcings.  
 
 > For any issues, bug reports, or suggestions, please contact: **Harold Llauca** (hllauca@senamhi.gob.pe)
 
@@ -21,6 +21,10 @@ The package was developed as part of hydrological research and operational water
 - Flexible parameterization: single-region setup (shared parameters across all subbasins) or multi-region calibration with regionalized correction factors for precipitation and potential evapotranspiration.  
 - Long-term and operational streamflow simulation for hydrological forecasting and water resources assessment.  
 - Routing of subbasin discharges using a transfer matrix interpreted as a directed graph, ensuring correct upstream–downstream accumulation and scalability to large river networks (>12,000 subbasins).  
+- Each reach is routed through a **linear reservoir** (calibrable transit/storage constant `k`, in months) instead of an instantaneous sum, so travel time and attenuation are represented explicitly -- important for large lowland reaches (e.g. Amazon-side floodplains) where treating flow transfer as instantaneous is a poor approximation at a monthly timestep. `k = 0` (the default when omitted) reproduces the previous instantaneous behavior exactly.
+- Routing memory (`RouteStatesEnd`/`RouteStatesIni`) can be carried across operational `Update = TRUE` runs, the same way GR2M's own states already are, so monthly updates stay continuous with the historical run.
+- `k` can also be set without calibrating it: pass a per-subbasin `k` (months, named by `COMID`) as `K_vec` in `Run_GR2MSemiDistr()`, computed however fits the network at hand (e.g. from reach length and an assumed velocity, or converted from an existing routing parameter such as a Muskingum `K` in seconds) -- left up to the user, not opinionated by the package.
+- Optional parallel execution across subbasins (`Cores` in both `Run_GR2MSemiDistr()` and `Optim_GR2MSemiDistr()`; each subbasin's GR2M run is independent until routing), worthwhile for large networks.
 - Seamless compatibility with the `airGR` hydrological modeling framework and the `terra` spatial ecosystem.  
 - Scalable and efficient workflows designed for national-scale hydrological modeling and climate services.  
 
@@ -31,7 +35,6 @@ The package was developed as part of hydrological research and operational water
 - Automated preparation of model input datasets using observed hydro-meteorological records.  
 - Bias correction of gridded precipitation and evapotranspiration products based on in-situ observations.  
 - Integration of additional calibration methods, including multi-objective optimization algorithms.  
-- Enhanced flow routing using a linear reservoir approach with estimable or calibrable routing parameters.  
 
 
 ---
@@ -133,7 +136,8 @@ param_init <- data.frame(
   X1  = 500,  # Production store capacity [mm]
   X2  = 1.5,  # Groundwater exchange coefficient
   fp  = 1.0,  # Precipitation correction factor
-  fe  = 1.0   # Evapotranspiration correction factor
+  fe  = 1.0,  # Evapotranspiration correction factor
+  k   = 1.0   # Routing transit/storage constant [months] (0 = instantaneous, as before)
 )
 
 # === Calibrate parameters using OF10 as objective function ===

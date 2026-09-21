@@ -10,7 +10,11 @@
 #' @param Subbasins SpatVector. Geometries of subbasins. Must include attributes "COMID" (unique subbasin ID) and "Region" (region name/code).
 #' @param RunIni character. Simulation start date in the format "mm/yyyy".
 #' @param RunEnd character. Simulation end date in the format "mm/yyyy".
-#' @param Parameters data.frame. GR2M model parameters and correction factors per region. Must include columns: Region, X1, X2, fp, fe.
+#' @param Parameters data.frame. GR2M model parameters and correction factors per region.
+#' Must include columns: Region, X1, X2, fp, fe. An optional `k` column sets the
+#' linear-reservoir routing constant per region (in months; see Details); if
+#' absent, `k = 0` is assumed for every region, which reproduces the previous
+#' instantaneous-routing behavior exactly.
 #' @param TransferMatrix matrix or dgCMatrix. Subbasin connectivity matrix defining downstream routing.
 #' Rows represent receiving (downstream) subbasins, and columns represent donor (upstream) subbasins.
 #' Row and column names must match `COMID`. The matrix is internally reordered to align with input forcings.
@@ -19,6 +23,20 @@
 #' If provided, the simulated outlet discharge (`qsim`) is returned, and compared with observed discharge (`Q`) if available in `Data`.
 #' @param StatesIni list (optional). Initial state variables for GR2M subbasins.
 #' If `NULL`, default initial conditions are used.
+#' @param RouteStatesIni named numeric vector (optional). Last routed outflow per
+#' donor subbasin (named by `COMID`) from a previous run, used as the initial
+#' state of each subbasin's routing reach so that the linear-reservoir memory
+#' carries over across `Update = TRUE` calls. If `NULL` (default), each reach
+#' is initialized at steady state (`Qout0 = I[1]`), same as a fresh run.
+#' @param K_vec named numeric vector (optional). Per-subbasin routing constant
+#' (months, named by `COMID`), computed externally by whatever method fits the
+#' network at hand (e.g. from reach length and an assumed velocity, or
+#' converted from an existing routing parameter such as a Muskingum `K` in
+#' seconds, `K_vec = K_seconds / (30 * 86400)`). When supplied, it is used
+#' INSTEAD of `Parameters$k` (bypassing the per-Region lookup) -- useful to
+#' set `k` without having to calibrate it or add a `k` column to `Parameters`.
+#' Must have one entry for every COMID in `Subbasins`. Default is `NULL` (use
+#' `Parameters$k`, or 0 if absent).
 #' @param Save logical. If `TRUE`, simulation results are saved in tab-separated `.txt` files inside the `./Outputs` directory.
 #' Default is `FALSE`.
 #' @param Update logical. If `TRUE`, the function processes only the last available months of the input data
@@ -26,6 +44,12 @@
 #' If the input contains only one month, an artificial second month is added internally
 #' to satisfy airGR's minimum timestep requirement, and this artificial record is discarded
 #' after the run. Default is `FALSE`.
+#' @param Cores integer. Number of parallel workers used to run GR2M across
+#' subbasins (each subbasin is independent until routing). Default is `1`
+#' (sequential, `lapply()`); values greater than 1 distribute subbasins over a
+#' `parallel::makeCluster()` PSOCK cluster. Only worth it for large networks
+#' (thousands of subbasins) -- for a handful of subbasins the cluster
+#' start-up overhead outweighs the gain.
 #'
 #' @return A list with the following elements:
 #' \describe{
@@ -41,6 +65,9 @@
 #'   \item{SINK}{data.frame (optional). Simulated discharge at the outlet subbasin. Contains
 #'   column `sim` (simulated) and, if available, column `obs` (observed). Returned only if `Outlet` is provided.}
 #'   \item{StatesEnd}{list. Final GR2M states for each subbasin, as returned by `airGR::RunModel_GR2M`.}
+#'   \item{RouteStatesEnd}{named numeric vector. Last routed outflow per donor subbasin
+#'   (named by `COMID`), to be passed back in as `RouteStatesIni` on the next `Update = TRUE`
+#'   call so routing memory carries over between operational runs.}
 #' }
 #'
 #' @details
@@ -53,6 +80,17 @@
 #' The transfer matrix describes subbasin connectivity: rows correspond to donor subbasins and columns to receivers.
 #' It can be supplied as a `data.frame`, a base R `matrix`, or a sparse `dgCMatrix`. For applications with many
 #' subbasins (e.g., >10,000), a sparse representation is strongly advised to reduce memory usage and improve speed.
+#'
+#' Routing between subbasins is no longer an instantaneous sum: each donor subbasin's
+#' accumulated discharge is passed through its own reach as a linear reservoir
+#' (`Qout(t) = alpha * Qout(t-1) + (1 - alpha) * I(t)`, with `alpha = exp(-1 / k)`
+#' and `k` in months, from `Parameters$k`) before being added to its downstream
+#' receiver. `k = 0` reproduces the previous behavior exactly (no lag, no
+#' attenuation), so existing calls that omit the `k` column are unaffected.
+#' Larger `k` values represent reaches with meaningful travel time and/or
+#' channel/floodplain storage (e.g. large lowland Amazon-side subbasins),
+#' where treating flow transfer as instantaneous is a poor approximation at a
+#' monthly timestep.
 #'
 #' @references
 #' Perrin C., Michel C., Andréassian V. (2003). Improvement of a parsimonious model for streamflow simulation.
@@ -134,12 +172,8 @@
 #'   legend("topright", legend = c("Simulated", "Observed"),
 #'          col = c("blue", "red"), lty = c(1, 2), lwd = 2, bty = "n")
 #'
-#' @import airGR
-#' @import terra
+#' @importFrom airGR CreateInputsModel CreateRunOptions RunModel RunModel_GR2M
 #' @import Matrix
-#' @import tictoc
-#' @import lubridate
-#' @import igraph
 #'
 #' @export
 Run_GR2MSemiDistr <- function(Data,
@@ -150,8 +184,11 @@ Run_GR2MSemiDistr <- function(Data,
                               TransferMatrix,
                               Outlet = NULL,
                               StatesIni = NULL,
+                              RouteStatesIni = NULL,
+                              K_vec = NULL,
                               Save = FALSE,
-                              Update = FALSE) {
+                              Update = FALSE,
+                              Cores = 1) {
   
   tictoc::tic()
   
@@ -240,6 +277,27 @@ Run_GR2MSemiDistr <- function(Data,
     stop("Mismatch between required and provided Regions.")
   }
   
+  # Routing constant k (months), per subbasin. Three ways to set it, in order
+  # of precedence:
+  #   1. K_vec (per-subbasin, computed externally by the user) -- bypasses
+  #      Parameters$k entirely.
+  #   2. Parameters$k (per-Region, calibrated or hand-set).
+  #   3. Neither supplied -> k = 0 everywhere (instantaneous routing, the
+  #      previous behavior), for backward compatibility.
+  if (!is.null(K_vec)) {
+    if (!all(comid %in% names(K_vec))) {
+      stop("K_vec is missing an entry for some COMID in Subbasins.")
+    }
+    k_vec <- unname(K_vec[comid])
+  } else {
+    if (!"k" %in% names(Parameters)) {
+      Parameters$k <- 0
+      message("Parameters$k not supplied; defaulting to k = 0 (instantaneous routing, previous behavior).")
+    }
+    match_idx_k <- match(region, Parameters$Region)
+    k_vec <- Parameters$k[match_idx_k]
+  }
+
   # Match parameters to subbasins by Region
   match_idx <- match(region, Parameters$Region)
   X1_vec <- Parameters$X1[match_idx]
@@ -262,9 +320,14 @@ Run_GR2MSemiDistr <- function(Data,
   # Convert data.frame to matrix if needed
   if (is.data.frame(TransferMatrix)) TransferMatrix <- as.matrix(TransferMatrix)
   
-  # Convert to sparse matrix for efficiency
+  # Convert to sparse matrix for efficiency. NOTE: t(MT) and MT[...] below
+  # rely on Matrix's S4 methods for base generics (t, `[`) -- that needs
+  # @import Matrix (whole package) in this file's roxygen block, not
+  # @importFrom Matrix <fn>, which only binds named functions and does not
+  # make those S4 method registrations visible (t(MT) would otherwise fall
+  # back to t.default() and error, since MT is not a plain matrix).
   MT <- as(TransferMatrix, "dgCMatrix")
-  
+
   # Validate dimensions and row/column names
   if (any(dim(MT) != c(nsub, nsub))) {
     stop(sprintf("TransferMatrix must be %d x %d.", nsub, nsub))
@@ -284,28 +347,28 @@ Run_GR2MSemiDistr <- function(Data,
   
   # Run GR2M model for each subbasin
   message(sprintf("Running GR2M for %d subbasins", nsub))
-  ResModel <- vector("list", nsub)
-  
-  for (i in seq_len(nsub)) {
-    # Build input dataframe with precipitation and evapotranspiration
+
+  # Each subbasin's GR2M run is fully independent of the others (routing
+  # happens afterwards), so this is run via lapply()/parLapply() instead of a
+  # plain for loop: with Cores > 1, subbasins are distributed across a PSOCK
+  # cluster instead of run one at a time -- worthwhile for large networks
+  # (thousands of subbasins), a no-op (same lapply, one process) at Cores = 1.
+  run_one_subbasin <- function(i) {
     Input <- data.frame(
       DatesR = Database$DatesR,
       P      = fp_vec[i] * Database[[p_names[i]]],
       E      = fe_vec[i] * Database[[e_names[i]]]
     )
-    
-    # Stop if NA values are found in P or E
+
     if (anyNA(Input$P) || anyNA(Input$E)) {
       stop(sprintf("NA values in P/E for COMID %s", comid[i]))
     }
-    
-    # Create input structure for airGR
+
     InputsModel <- CreateInputsModel(FUN_MOD = RunModel_GR2M,
                                      DatesR   = Input$DatesR,
                                      Precip   = Input$P,
                                      PotEvap  = Input$E)
-    
-    # If StatesIni is provided, match by COMID and use it
+
     if (!is.null(StatesIni)) {
       RunOptions <- CreateRunOptions(FUN_MOD = RunModel_GR2M,
                                      InputsModel = InputsModel,
@@ -320,14 +383,26 @@ Run_GR2MSemiDistr <- function(Data,
                                      verbose = FALSE,
                                      warnings = FALSE)
     }
-    
-    # Run GR2M for the subbasin
-    ResModel[[i]] <- RunModel(InputsModel = InputsModel,
-                              RunOptions  = RunOptions,
-                              Param       = c(X1_vec[i], X2_vec[i]),
-                              FUN         = RunModel_GR2M)
+
+    RunModel(InputsModel = InputsModel,
+            RunOptions  = RunOptions,
+            Param       = c(X1_vec[i], X2_vec[i]),
+            FUN         = RunModel_GR2M)
   }
-  
+
+  if (Cores > 1) {
+    cl <- parallel::makeCluster(Cores)
+    on.exit(parallel::stopCluster(cl), add = TRUE)
+    parallel::clusterEvalQ(cl, library(airGR))
+    parallel::clusterExport(cl, varlist = c("Database", "p_names", "e_names",
+                                            "fp_vec", "fe_vec", "StatesIni",
+                                            "comid", "ntime", "X1_vec", "X2_vec"),
+                            envir = environment())
+    ResModel <- parallel::parLapply(cl, seq_len(nsub), run_one_subbasin)
+  } else {
+    ResModel <- lapply(seq_len(nsub), run_one_subbasin)
+  }
+
   # Helper to extract matrices from ResModel
   mat_from_list <- function(key, round_digits=2) {
     out <- do.call(cbind, lapply(ResModel, function(r) round(r[[key]], round_digits)))
@@ -353,34 +428,51 @@ Run_GR2MSemiDistr <- function(Data,
   }
   colnames(QS) <- comid
   
-  # === Routing: propagate accumulated flows downstream ===
+  # === Routing: propagate flows downstream through a linear reservoir per reach ===
   message("Performing routing with TransferMatrix...")
-  
-  # === Routing: propagate accumulated flows downstream ===
+
   # Build graph with correct orientation:
   # MT[i, j] = 1 means subbasin j drains into i
   g <- igraph::graph_from_adjacency_matrix(t(MT), mode = "directed")
-  
+  if (!igraph::is_dag(g)) {
+    stop("TransferMatrix induces a cyclic graph; routing requires a valid dendritic network (DAG).")
+  }
+
   # Compute topological order (headwaters -> outlet)
   order_sub <- as.integer(igraph::topo_sort(g, mode = "out"))
-  
+
   # Initialize routed flows with local runoff
   QR <- QS
   colnames(QR) <- comid
-  
-  # Traverse network and propagate accumulated flows downstream
+
+  # Last routed outflow per donor subbasin (routing "memory"), returned as
+  # RouteStatesEnd for continuity across Update = TRUE calls.
+  RouteStatesEnd <- setNames(numeric(nsub), comid)
+  real_len <- ntime - as.integer(added_fake)  # exclude the artificial fake month, if any
+
+  # Traverse network and propagate flows downstream, transiting each donor's
+  # discharge through its own reach (linear reservoir, k in months) before
+  # adding it to the receiver -- k = 0 reproduces the previous instantaneous sum.
   for (j in order_sub) {
     # Identify downstream receivers of subbasin j
     rec_ids <- which(MT[, j] != 0)
-    
-    # Pass accumulated discharge from j to each downstream receiver
+
+    q0_j <- if (!is.null(RouteStatesIni) && comid[j] %in% names(RouteStatesIni)) {
+      RouteStatesIni[[comid[j]]]
+    } else {
+      NULL  # route_linear_reservoir() defaults to I[1] (steady state) when NULL
+    }
+    routed_j <- route_linear_reservoir(QR[, j], k = k_vec[j], Qout0 = q0_j)
+    RouteStatesEnd[comid[j]] <- routed_j[real_len]
+
+    # Pass transited discharge from j to each downstream receiver
     if (length(rec_ids) > 0) {
       for (i in rec_ids) {
-        QR[, i] <- QR[, i] + QR[, j]
+        QR[, i] <- QR[, i] + routed_j
       }
     }
   }
-  
+
   if (added_fake) {
     PR <- head(PR, -1)
     AE <- head(AE, -1)
@@ -390,8 +482,12 @@ Run_GR2MSemiDistr <- function(Data,
     QS <- head(QS, -1)
     QR <- head(QR, -1)
     Dates <- head(Dates, -1)
+    # Database itself must also drop the artificial row, or Database$Q below
+    # (used for the SINK$obs comparison) keeps the fake month's placeholder
+    # value and ends up longer than qsim, causing a row-count mismatch.
+    Database <- head(Database, -1)
   }
-  
+
   # Extract outlet discharge if Outlet is provided
   qsim <- NULL
   qobs <- NULL
@@ -464,6 +560,7 @@ Run_GR2MSemiDistr <- function(Data,
     # Save final states only once (keeps month suffix aligned with the latest simulated date)
     last_str <- format(max(Dates), "%Y%m")
     save(StatesEnd, file = sprintf("./Outputs/StatesEnd_%s.Rdata", last_str))
+    save(RouteStatesEnd, file = sprintf("./Outputs/RouteStates_%s.Rdata", last_str))
   }
   
   
@@ -482,7 +579,8 @@ Run_GR2MSemiDistr <- function(Data,
     RU       = RU,
     QS       = QS,
     QR       = QR,
-    StatesEnd = StatesEnd
+    StatesEnd = StatesEnd,
+    RouteStatesEnd = RouteStatesEnd
   )
   
   # Add outlet discharge if available

@@ -12,15 +12,16 @@ Optim_GR2MSemiDistr(
   Parameters,
   TransferMatrix,
   Outlet,
-  Parameters.Min = c(100, 0.1, 0.8, 0.8),
-  Parameters.Max = c(2000, 10, 1.2, 1.2),
+  Parameters.Min = c(100, 0.1, 0.8, 0.8, 0),
+  Parameters.Max = c(2000, 10, 1.2, 1.2, 6),
   Optimization = "OF10",
   Max.Functions = 1000,
   WarmUp = 36,
   No.Optim = NULL,
   w1 = 0.6,
   w2 = 0.3,
-  w3 = 0.2
+  w3 = 0.2,
+  Cores = 1
 )
 }
 \arguments{
@@ -34,7 +35,10 @@ Must include columns: DatesR, P_1 to P_n, E_1 to E_n, and Q (used for calibratio
 \item{RunEnd}{character. Simulation end date in the format "mm/yyyy".}
 
 \item{Parameters}{data.frame. GR2M model parameters and correction factors per region.
-Must have columns: Region, X1, X2, fp, fe.}
+Must have columns: Region, X1, X2, fp, fe. An optional `k` column (linear-reservoir
+routing constant per region, in months; see `Run_GR2MSemiDistr()` Details) is used
+as-is for regions in `No.Optim`; if absent, `k = 0` is assumed (previous,
+instantaneous-routing behavior).}
 
 \item{TransferMatrix}{matrix or dgCMatrix. Subbasin connectivity matrix defining downstream routing.
 Rows represent receiving (downstream) subbasins, and columns represent donor (upstream) subbasins.
@@ -43,10 +47,10 @@ a sparse matrix is strongly recommended for memory efficiency.}
 
 \item{Outlet}{character. Outlet subbasin identifier as a COMID code present in `Subbasins`. Required for calibration.}
 
-\item{Parameters.Min}{numeric vector of length 4. Lower bounds for optimization
-in the following order: c(X1, X2, fp, fe).}
+\item{Parameters.Min}{numeric vector of length 5. Lower bounds for optimization
+in the following order: c(X1, X2, fp, fe, k).}
 
-\item{Parameters.Max}{numeric vector of length 4. Upper bounds for optimization
+\item{Parameters.Max}{numeric vector of length 5. Upper bounds for optimization
 in the same order as `Parameters.Min`.}
 
 \item{Optimization}{character. Objective function to optimize. Available options include:
@@ -58,16 +62,17 @@ in the same order as `Parameters.Min`.}
   \item{"OF5"}{Percent Bias (PBIAS).}
   \item{"OF6"}{Bias in flow duration curves (FDC Bias).}
   \item{"OF7"}{Pearson correlation coefficient (r).}
-  \item{"OF8"}{Composite objective combining KGE, NSE, and RMSE with weights (w1, w2, w3).}
-  \item{"OF9"}{Composite objective combining KGE, logNSE, and RMSE with weights.}
-  \item{"OF10"}{Composite objective combining KGE.km, KGE.lf, and RMSE with weights.}
+  \item{"OF8"}{Composite objective combining KGE, NSE, and RSR (RMSE normalized by
+  sd(Qobs), Moriasi et al. 2007) with weights (w1, w2, w3).}
+  \item{"OF9"}{Composite objective combining KGE, logNSE, and RSR with weights.}
+  \item{"OF10"}{Composite objective combining KGE.km, KGE.lf, and RSR with weights.}
 }}
 
 \item{Max.Functions}{integer. Maximum number of function evaluations in the optimization.
 Default is 1000.}
 
-\item{WarmUp}{integer. Number of months discarded as warm-up period when computing the objective function.
-If NULL (default), no warm-up is applied.}
+\item{WarmUp}{integer. Number of months discarded as warm-up period when computing the
+objective function. Default is 36.}
 
 \item{No.Optim}{character vector (optional). Region names to exclude from the optimization (parameters will be kept fixed).}
 
@@ -76,13 +81,19 @@ If NULL (default), no warm-up is applied.}
 \item{w2}{numeric. Weight for the second component in composite objective functions. Default is 0.3.}
 
 \item{w3}{numeric. Weight for the third component in composite objective functions. Default is 0.2.}
+
+\item{Cores}{integer. Number of parallel workers used to run GR2M across
+subbasins on every objective-function evaluation. Default is `1`
+(sequential); values greater than 1 build a `parallel::makeCluster()`
+PSOCK cluster ONCE before optimization starts and reuse it for every
+evaluation. Only worth it for large networks (thousands of subbasins).}
 }
 \value{
 A list with the following components:
 \describe{
   \item{Parameters}{data.frame. Optimized parameter set per calibration region.
   Always includes all regions present in `Subbasins`; regions excluded from optimization
-  via `No.Optim` retain their original parameter values. Columns are: Region, X1, X2, fp, fe.}
+  via `No.Optim` retain their original parameter values. Columns are: Region, X1, X2, fp, fe, k.}
   \item{OF}{numeric. Final value of the selected objective function corresponding
   to the best parameter set found by the optimization.}
 }

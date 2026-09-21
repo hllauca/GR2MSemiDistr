@@ -13,8 +13,11 @@ Run_GR2MSemiDistr(
   TransferMatrix,
   Outlet = NULL,
   StatesIni = NULL,
+  RouteStatesIni = NULL,
+  K_vec = NULL,
   Save = FALSE,
-  Update = FALSE
+  Update = FALSE,
+  Cores = 1
 )
 }
 \arguments{
@@ -27,7 +30,11 @@ Must include columns: DatesR, P_1 to P_n, E_1 to E_n, and optionally Q (observed
 
 \item{RunEnd}{character. Simulation end date in the format "mm/yyyy".}
 
-\item{Parameters}{data.frame. GR2M model parameters and correction factors per region. Must include columns: Region, X1, X2, fp, fe.}
+\item{Parameters}{data.frame. GR2M model parameters and correction factors per region.
+Must include columns: Region, X1, X2, fp, fe. An optional `k` column sets the
+linear-reservoir routing constant per region (in months; see Details); if
+absent, `k = 0` is assumed for every region, which reproduces the previous
+instantaneous-routing behavior exactly.}
 
 \item{TransferMatrix}{matrix or dgCMatrix. Subbasin connectivity matrix defining downstream routing.
 Rows represent receiving (downstream) subbasins, and columns represent donor (upstream) subbasins.
@@ -40,6 +47,22 @@ If provided, the simulated outlet discharge (`qsim`) is returned, and compared w
 \item{StatesIni}{list (optional). Initial state variables for GR2M subbasins.
 If `NULL`, default initial conditions are used.}
 
+\item{RouteStatesIni}{named numeric vector (optional). Last routed outflow per
+donor subbasin (named by `COMID`) from a previous run, used as the initial
+state of each subbasin's routing reach so that the linear-reservoir memory
+carries over across `Update = TRUE` calls. If `NULL` (default), each reach
+is initialized at steady state (`Qout0 = I[1]`), same as a fresh run.}
+
+\item{K_vec}{named numeric vector (optional). Per-subbasin routing constant
+(months, named by `COMID`), computed externally by whatever method fits the
+network at hand (e.g. from reach length and an assumed velocity, or
+converted from an existing routing parameter such as a Muskingum `K` in
+seconds, `K_vec = K_seconds / (30 * 86400)`). When supplied, it is used
+INSTEAD of `Parameters$k` (bypassing the per-Region lookup) -- useful to
+set `k` without having to calibrate it or add a `k` column to `Parameters`.
+Must have one entry for every COMID in `Subbasins`. Default is `NULL` (use
+`Parameters$k`, or 0 if absent).}
+
 \item{Save}{logical. If `TRUE`, simulation results are saved in tab-separated `.txt` files inside the `./Outputs` directory.
 Default is `FALSE`.}
 
@@ -48,6 +71,13 @@ and appends results to existing output files (if present).
 If the input contains only one month, an artificial second month is added internally
 to satisfy airGR's minimum timestep requirement, and this artificial record is discarded
 after the run. Default is `FALSE`.}
+
+\item{Cores}{integer. Number of parallel workers used to run GR2M across
+subbasins (each subbasin is independent until routing). Default is `1`
+(sequential, `lapply()`); values greater than 1 distribute subbasins over a
+`parallel::makeCluster()` PSOCK cluster. Only worth it for large networks
+(thousands of subbasins) -- for a handful of subbasins the cluster
+start-up overhead outweighs the gain.}
 }
 \value{
 A list with the following elements:
@@ -64,6 +94,9 @@ A list with the following elements:
   \item{SINK}{data.frame (optional). Simulated discharge at the outlet subbasin. Contains
   column `sim` (simulated) and, if available, column `obs` (observed). Returned only if `Outlet` is provided.}
   \item{StatesEnd}{list. Final GR2M states for each subbasin, as returned by `airGR::RunModel_GR2M`.}
+  \item{RouteStatesEnd}{named numeric vector. Last routed outflow per donor subbasin
+  (named by `COMID`), to be passed back in as `RouteStatesIni` on the next `Update = TRUE`
+  call so routing memory carries over between operational runs.}
 }
 }
 \description{
@@ -82,6 +115,17 @@ the real months are kept in the results and output files.
 The transfer matrix describes subbasin connectivity: rows correspond to donor subbasins and columns to receivers.
 It can be supplied as a `data.frame`, a base R `matrix`, or a sparse `dgCMatrix`. For applications with many
 subbasins (e.g., >10,000), a sparse representation is strongly advised to reduce memory usage and improve speed.
+
+Routing between subbasins is no longer an instantaneous sum: each donor subbasin's
+accumulated discharge is passed through its own reach as a linear reservoir
+(`Qout(t) = alpha * Qout(t-1) + (1 - alpha) * I(t)`, with `alpha = exp(-1 / k)`
+and `k` in months, from `Parameters$k`) before being added to its downstream
+receiver. `k = 0` reproduces the previous behavior exactly (no lag, no
+attenuation), so existing calls that omit the `k` column are unaffected.
+Larger `k` values represent reaches with meaningful travel time and/or
+channel/floodplain storage (e.g. large lowland Amazon-side subbasins),
+where treating flow transfer as instantaneous is a poor approximation at a
+monthly timestep.
 }
 \examples{
 library(GR2MSemiDistr)

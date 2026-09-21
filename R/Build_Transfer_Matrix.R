@@ -21,8 +21,7 @@
 #' rows represent receiving (downstream) subbasins and columns represent donor (upstream) subbasins.
 #' Row and column names are set to `COMID`.
 #'
-#' @import terra
-#' @import Matrix
+#' @importFrom Matrix sparseMatrix
 #'
 #' @export
 Build_Transfer_Matrix <- function(Rivers) {

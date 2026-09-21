@@ -2,7 +2,7 @@
 #'
 #' Loads spatial and tabular example data (raster and vector) from 'inst/extdata/'.
 #'
-#' @return A list with objects: `cat`, `dem`, `grid_pr`, `grid_pe`, `qobs`
+#' @return A list with objects: `cat`, `dem`, `grid_pr`, `grid_pe`, `qobs`, `matrixT`
 #' @examples
 #' # Load example data
 #'

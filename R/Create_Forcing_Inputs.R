@@ -5,10 +5,12 @@
 #'
 #' @param Subbasins SpatVector. Subbasin geometries. Must include attributes:
 #' 'COMID' (unique subbasin identifier) and 'Region' (character code for the hydro-climatic region).
-#' @param Precip SpatRaster. Monthly precipitation fields in [mm/month].
+#' @param Precip SpatRaster (optional). Monthly precipitation fields in [mm/month].
 #' Dimensions and time coverage must include at least the requested period (`DateIni`–`DateEnd`).
-#' @param PotEvap SpatRaster. Monthly potential evapotranspiration fields in [mm/month].
-#' Must align with the precipitation raster in space and time.
+#' Default is `NULL` (no precipitation columns are produced).
+#' @param PotEvap SpatRaster (optional). Monthly potential evapotranspiration fields in [mm/month].
+#' Must align with the precipitation raster in space and time. Default is `NULL`
+#' (no evapotranspiration columns are produced).
 #' @param Qobs numeric vector (optional). Observed streamflow series at the basin outlet, in [m³/s].
 #' Length must match the number of simulated months if provided. Default is `NULL`.
 #' @param DateIni character. Start date of the output time series in `"mm/yyyy"` format.
@@ -76,17 +78,14 @@
 #'        ylab = "Q [m³/s]", xlab = "Date",
 #'        main = "Observed Streamflow at Basin Outlet")
 #' }
-#' @import exactextractr
-#' @import terra
-#' @import sf
-#' @import lubridate
-#' @import tictoc
+#' @importFrom exactextractr exact_extract
+#' @importFrom sf st_as_sf
 #'
 #' @export
 #'
 Create_Forcing_Inputs <- function(Subbasins,
-                                  Precip,
-                                  PotEvap,
+                                  Precip = NULL,
+                                  PotEvap = NULL,
                                   Qobs = NULL,
                                   DateIni,
                                   DateEnd,
@@ -141,6 +140,36 @@ Create_Forcing_Inputs <- function(Subbasins,
       MembersN <- nL / n_months
       if (MembersN %% 1 != 0) stop("Raster not consistent with Members × Months.")
       ind <- 1:(n_months * MembersN)
+
+      # Members = TRUE assumes the raster is member-blocked (member 1's
+      # n_months layers first, then member 2's, ...), NOT interleaved by
+      # month; dates are later assigned with rep(base_dates, times=MembersN),
+      # which only matches a member-blocked order. Validate against
+      # terra::time() when the raster carries time metadata; otherwise warn
+      # loudly, since a wrong assumption here would silently misassign dates
+      # to the wrong ensemble member.
+      expected_block <- seq(ini, by = "month", length.out = n_months)
+      rtime <- tryCatch(terra::time(raster[[ind]]), error = function(e) NULL)
+      if (!is.null(rtime) && !all(is.na(rtime))) {
+        rtime <- as.Date(rtime)
+        for (m in seq_len(MembersN)) {
+          block_m <- rtime[((m - 1) * n_months + 1):(m * n_months)]
+          if (!isTRUE(all(block_m == expected_block))) {
+            stop(sprintf(paste(
+              "Raster time metadata does not match the assumed member-blocked",
+              "layer order (member %d's block should cover %s to %s). Check",
+              "that layers are not interleaved by month across members."
+            ), m, format(ini, "%Y-%m"), format(end, "%Y-%m")))
+          }
+        }
+      } else {
+        message(
+          "Members = TRUE: raster has no time metadata (terra::time()), so the ",
+          "assumed member-blocked layer order (member 1's months first, then ",
+          "member 2's, ...) cannot be verified. If layers are actually ",
+          "interleaved by month across members, dates will be silently misassigned."
+        )
+      }
     } else {
       # ruta clásica con IniGrids
       all_dates <- .seq_months_from_tag(IniGrids, nL)
@@ -223,6 +252,17 @@ Create_Forcing_Inputs <- function(Subbasins,
     data_list <- c(data_list, Evap)
   }
   if (!is.null(Qobs)) {
+    # data.frame() silently recycles columns whose length is a clean divisor
+    # of the others, so a length mismatch here would otherwise misalign Qobs
+    # against DatesMonths without any warning -- check explicitly instead.
+    # NROW() (not length()) so a single-column data.frame/matrix Qobs (its
+    # row count) is compared correctly, not its column count.
+    if (NROW(Qobs) != length(DatesMonths)) {
+      stop(sprintf(
+        "Qobs length (%d) does not match the number of simulated months (%d).",
+        NROW(Qobs), length(DatesMonths)
+      ))
+    }
     Flow <- as.data.frame(Qobs); if (ncol(Flow) == 1) names(Flow) <- "Q"
     data_list <- c(data_list, Flow)
   }

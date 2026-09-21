@@ -6,8 +6,8 @@
 \usage{
 Create_Forcing_Inputs(
   Subbasins,
-  Precip,
-  PotEvap,
+  Precip = NULL,
+  PotEvap = NULL,
   Qobs = NULL,
   DateIni,
   DateEnd,
@@ -21,11 +21,13 @@ Create_Forcing_Inputs(
 \item{Subbasins}{SpatVector. Subbasin geometries. Must include attributes:
 'COMID' (unique subbasin identifier) and 'Region' (character code for the hydro-climatic region).}
 
-\item{Precip}{SpatRaster. Monthly precipitation fields in [mm/month].
-Dimensions and time coverage must include at least the requested period (`DateIni`–`DateEnd`).}
+\item{Precip}{SpatRaster (optional). Monthly precipitation fields in [mm/month].
+Dimensions and time coverage must include at least the requested period (`DateIni`–`DateEnd`).
+Default is `NULL` (no precipitation columns are produced).}
 
-\item{PotEvap}{SpatRaster. Monthly potential evapotranspiration fields in [mm/month].
-Must align with the precipitation raster in space and time.}
+\item{PotEvap}{SpatRaster (optional). Monthly potential evapotranspiration fields in [mm/month].
+Must align with the precipitation raster in space and time. Default is `NULL`
+(no evapotranspiration columns are produced).}
 
 \item{Qobs}{numeric vector (optional). Observed streamflow series at the basin outlet, in [m³/s].
 Length must match the number of simulated months if provided. Default is `NULL`.}
