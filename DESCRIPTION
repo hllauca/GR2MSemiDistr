@@ -1,7 +1,7 @@
 Package: GR2MSemiDistr
 Type: Package
 Title: Semi-Distributed GR2M Model for Catchment to Large-Scale Hydrological Applications
-Version: 5.4
+Version: 5.5
 Author: Harold Llauca <hllauca@senamhi.gob.pe>
 Maintainer: Harold Llauca <hllauca@senamhi.gob.pe>
 Description: Implements a semi-distributed adaptation of the GR2M monthly water balance model

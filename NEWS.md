@@ -1,3 +1,17 @@
+# GR2MSemiDistr 5.5
+
+## Bug fixes
+
+* `Create_Forcing_Inputs()`: the `Members = TRUE` layer-order check added in
+  5.3 could `stop()` on a perfectly valid raster whenever `terra::time()`
+  used a non-standard time unit (e.g. a fractional-year climatology such as
+  `evap_clim.nc`, which `as.Date()` misreads as days-since-1970-01-01,
+  collapsing all 12 months to nearly the same nonsense date). A mismatch
+  here isn't reliable evidence of a real interleaving bug, so it now only
+  `message()`s instead of blocking the run -- found while re-running
+  `1_ope/2_Outlook-Historical_based_GR2MSemiDistr_Peru.R` against this
+  version for the first time.
+
 # GR2MSemiDistr 5.4
 
 * `Run_GR2MSemiDistr()` gains `K_vec`, an optional named vector (by `COMID`)

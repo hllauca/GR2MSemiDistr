@@ -144,23 +144,33 @@ Create_Forcing_Inputs <- function(Subbasins,
       # Members = TRUE assumes the raster is member-blocked (member 1's
       # n_months layers first, then member 2's, ...), NOT interleaved by
       # month; dates are later assigned with rep(base_dates, times=MembersN),
-      # which only matches a member-blocked order. Validate against
-      # terra::time() when the raster carries time metadata; otherwise warn
-      # loudly, since a wrong assumption here would silently misassign dates
-      # to the wrong ensemble member.
+      # which only matches a member-blocked order. terra::time(), when
+      # present, is used as a best-effort sanity check -- but only to WARN,
+      # never to stop(): NetCDF files encode time in units terra doesn't
+      # always resolve the same way (e.g. a fractional-year climatology like
+      # evap_clim.nc converts through as.Date() as if it were days-since-
+      # 1970-01-01, collapsing all 12 months to nearly the same nonsense
+      # date). A mismatch here is therefore not reliable evidence of a real
+      # interleaving bug, so it can't justify blocking an otherwise-valid
+      # run; it's only a hint for a human to double check.
       expected_block <- seq(ini, by = "month", length.out = n_months)
       rtime <- tryCatch(terra::time(raster[[ind]]), error = function(e) NULL)
       if (!is.null(rtime) && !all(is.na(rtime))) {
         rtime <- as.Date(rtime)
-        for (m in seq_len(MembersN)) {
+        mismatched <- vapply(seq_len(MembersN), function(m) {
           block_m <- rtime[((m - 1) * n_months + 1):(m * n_months)]
-          if (!isTRUE(all(block_m == expected_block))) {
-            stop(sprintf(paste(
-              "Raster time metadata does not match the assumed member-blocked",
-              "layer order (member %d's block should cover %s to %s). Check",
-              "that layers are not interleaved by month across members."
-            ), m, format(ini, "%Y-%m"), format(end, "%Y-%m")))
-          }
+          !isTRUE(all(format(block_m, "%m") == format(expected_block, "%m")))
+        }, logical(1))
+        if (any(mismatched)) {
+          message(sprintf(paste(
+            "Members = TRUE: raster time metadata doesn't match the assumed",
+            "member-blocked layer order for %d of %d members (e.g. member %d's",
+            "block should follow the calendar-month sequence %s to %s). This",
+            "may be a real interleaving bug, or just an unreliable time unit in",
+            "the source file (common in climatology NetCDFs) -- verify manually",
+            "if unsure."
+          ), sum(mismatched), MembersN, which(mismatched)[1],
+          format(ini, "%Y-%m"), format(end, "%Y-%m")))
         }
       } else {
         message(
